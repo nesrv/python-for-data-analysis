@@ -4,30 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Учебный центр АйТи Клауд</title>
-  <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      background: #2c3496;
-    }
-    body, a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-    }
-    a { color: inherit; }
-    img {
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-      display: block;
-    }
-  </style>
+  <link rel="stylesheet" href="course.css">
+  <style>html, body { background: #2c3496; }</style>
 </head>
 <body>
-  <a href="slide2.html">
-    <img src="slide1.png" alt="Учебный центр АйТи Клауд. Современные технологии простым языком">
-  </a>
+  <img class="fullslide" src="slide1.png" alt="Учебный центр АйТи Клауд. Современные технологии простым языком">
+  <nav class="pager" aria-label="Слайды">
+    <a href="index.html" aria-current="page">1</a>
+    <a href="slide2.html">2</a>
+    <a href="slide3.html">3</a>
+    <a href="slide4.html">4</a>
+  </nav>
 </body>
 </html>
