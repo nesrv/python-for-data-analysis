@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3.2 Подключение к СУБД на примере PostgreSQL</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-3.html">← Модуль 3</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>3.2 Подключение к СУБД на примере PostgreSQL</h1>
+<p><strong>Цель:</strong> поднять локальный PostgreSQL 18 в Docker, проверить его из терминала и из DBeaver и прочитать таблицу из ноутбука Jupyter.</p>
+<p><strong>Опора:</strong> окружение <code>.venv</code> и ноутбуки из модуля 1. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p>Пароль ниже только для учебной базы на своём компьютере.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-3-2/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docker-compose.yml</code></td>
+<td>Описание контейнера PostgreSQL 18</td>
+</tr>
+<tr>
+<td><code>lab32-postgres.ipynb</code></td>
+<td>Подключение, создание таблицы, выборка в pandas</td>
+</tr>
+<tr>
+<td><code>data/scores_from_db.csv</code></td>
+<td>Выгрузка результата запроса</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Кратко: как поднимается база</h2>
+<ol>
+<li>Установить <strong>Docker Desktop</strong> и убедиться, что демон Docker запущен.</li>
+<li>В <code>module-3-2/docker-compose.yml</code> описать сервис <code>postgres:18</code>: порт <code>5432</code>, имя базы, пользователь и пароль.</li>
+<li>Запустить контейнер командой <code>docker compose up -d</code> и проверить <code>SELECT version()</code>.</li>
+<li>Подключиться тем же хостом и портом из <strong>DBeaver</strong>.</li>
+<li>Из <code>.ipynb</code> открыть соединение через SQLAlchemy и <code>psycopg</code>, создать таблицу и прочитать её в <code>DataFrame</code>.</li>
+</ol>
+<p>Дальше те же шаги расписаны так, чтобы их можно было выполнить на занятии.</p>
+<hr />
+<h2>3.2.1. Docker Desktop: установка и первые команды</h2>
+<p>Docker Desktop запускает контейнеры в Linux-окружении Windows (обычно через WSL 2).</p>
+<ol>
+<li>Скачайте установщик с <a href="https://www.docker.com/products/docker-desktop/">docker.com/products/docker-desktop</a>.</li>
+<li>Установите его и перезагрузите компьютер, если установщик этого попросит.</li>
+<li>Запустите <strong>Docker Desktop</strong> и дождитесь состояния <strong>Engine running</strong>.</li>
+<li>В терминале VS Code проверьте клиент:</li>
+</ol>
+<pre><code class="language-powershell">docker version
+docker compose version
+</code></pre>
+<p>В выводе <code>docker version</code> должны быть и Client, и Server. Если Server недоступен, Docker Desktop ещё не запущен.</p>
+<p>Полезные команды на занятии:</p>
+<table>
+<thead>
+<tr>
+<th>Команда</th>
+<th>Зачем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docker ps</code></td>
+<td>контейнеры, которые сейчас работают</td>
+</tr>
+<tr>
+<td><code>docker images</code></td>
+<td>уже скачанные образы</td>
+</tr>
+<tr>
+<td><code>docker compose up -d</code></td>
+<td>создать и запустить сервисы из файла Compose</td>
+</tr>
+<tr>
+<td><code>docker compose ps</code></td>
+<td>состояние сервисов этого файла</td>
+</tr>
+<tr>
+<td><code>docker compose logs</code></td>
+<td>журнал контейнера</td>
+</tr>
+<tr>
+<td><code>docker compose down</code></td>
+<td>остановить и убрать контейнеры этого файла</td>
+</tr>
+</tbody>
+</table>
+<p>Образ сам по себе ещё не база. База появляется, когда контейнер запущен и в нём стартовал PostgreSQL.</p>
+<p><strong>Критерий 3.2.1:</strong> <code>docker version</code> показывает Server, <code>docker compose version</code> печатает версию Compose.</p>
+<hr />
+<h2>3.2.2. Файл docker-compose.yml</h2>
+<p>Compose описывает, какой образ взять, как назвать контейнер, какие порты открыть и какие переменные передать PostgreSQL при первом создании данных.</p>
+<p>Создайте <code>module-3-2/docker-compose.yml</code>:</p>
+<pre><code class="language-yaml">services:
+  postgres:
+    image: postgres:18
+    container_name: pg18-course
+    environment:
+      POSTGRES_USER: student
+      POSTGRES_PASSWORD: student
+      POSTGRES_DB: course
+    ports:
+      - &quot;5432:5432&quot;
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [&quot;CMD-SHELL&quot;, &quot;pg_isready -U student -d course&quot;]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+</code></pre>
+<p>Что означает каждая часть:</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Смысл</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>services.postgres</code></td>
+<td>один сервис в этом файле</td>
+</tr>
+<tr>
+<td><code>image: postgres:18</code></td>
+<td>официальный образ PostgreSQL 18</td>
+</tr>
+<tr>
+<td><code>container_name</code></td>
+<td>фиксированное имя контейнера, по нему удобно вызывать <code>docker exec</code></td>
+</tr>
+<tr>
+<td><code>POSTGRES_USER</code>, <code>POSTGRES_PASSWORD</code>, <code>POSTGRES_DB</code></td>
+<td>учётная запись и база, которые образ создаёт при первом запуске</td>
+</tr>
+<tr>
+<td><code>ports: "5432:5432"</code></td>
+<td>порт компьютера слева, порт внутри контейнера справа</td>
+</tr>
+<tr>
+<td><code>volumes.pgdata</code></td>
+<td>данные переживут перезапуск контейнера</td>
+</tr>
+<tr>
+<td><code>healthcheck</code></td>
+<td>Docker проверяет, что сервер уже принимает подключения</td>
+</tr>
+</tbody>
+</table>
+<p>Каталог данных внутри образа PostgreSQL 18 — <code>/var/lib/postgresql</code>. Не монтируйте туда случайную пустую папку проекта: сервер не найдёт свой кластер.</p>
+<p><strong>Критерий 3.2.2:</strong> файл лежит в <code>module-3-2</code>, в нём образ <code>postgres:18</code>, пользователь <code>student</code>, база <code>course</code>, порт <code>5432</code>.</p>
+<hr />
+<h2>3.2.3. Запуск и проверка контейнера</h2>
+<p>Команды выполняйте из каталога, где лежит файл:</p>
+<pre><code class="language-powershell">cd module-3-2
+docker compose up -d
+docker compose ps
+</code></pre>
+<p>В столбце статуса ожидается <code>running</code> или <code>healthy</code>. Первый запуск скачивает образ и занимает несколько минут.</p>
+<p>Журнал, если статус другой:</p>
+<pre><code class="language-powershell">docker compose logs
+</code></pre>
+<p>Проверка версии SQL из контейнера:</p>
+<pre><code class="language-powershell">docker exec pg18-course psql -U student -d course -c &quot;SELECT version();&quot;
+</code></pre>
+<p>В тексте версии должна быть <strong>PostgreSQL 18</strong>.</p>
+<p>Короткий учебный запрос:</p>
+<pre><code class="language-powershell">docker exec pg18-course psql -U student -d course -c &quot;CREATE TABLE IF NOT EXISTS ping (id int); INSERT INTO ping VALUES (1); SELECT * FROM ping;&quot;
+</code></pre>
+<p>Остановка после занятия, данные тома сохраняются:</p>
+<pre><code class="language-powershell">docker compose stop
+</code></pre>
+<p>Снова поднять:</p>
+<pre><code class="language-powershell">docker compose start
+</code></pre>
+<p><code>docker compose down</code> удаляет контейнер, но именованный том <code>pgdata</code> оставляет. <code>docker compose down -v</code> удаляет и том: база создаётся заново, таблицы пропадают.</p>
+<p><strong>Критерий 3.2.3:</strong> <code>SELECT version()</code> показывает PostgreSQL 18, запрос к <code>ping</code> возвращает строку <code>1</code>.</p>
+<hr />
+<h2>3.2.4. DBeaver</h2>
+<p>DBeaver — настольный просмотрщик баз. Им проверяют, что сервер виден не только из Docker.</p>
+<ol>
+<li>Установите <strong>DBeaver Community</strong> с <a href="https://dbeaver.io/download/">dbeaver.io/download</a>.</li>
+<li><strong>База данных</strong> → <strong>Новое подключение</strong> → <strong>PostgreSQL</strong>.</li>
+<li>Если DBeaver предложит скачать драйвер PostgreSQL, согласитесь.</li>
+<li>Заполните параметры:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Хост</td>
+<td><code>localhost</code></td>
+</tr>
+<tr>
+<td>Порт</td>
+<td><code>5432</code></td>
+</tr>
+<tr>
+<td>База данных</td>
+<td><code>course</code></td>
+</tr>
+<tr>
+<td>Пользователь</td>
+<td><code>student</code></td>
+</tr>
+<tr>
+<td>Пароль</td>
+<td><code>student</code></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li><strong>Тест подключения</strong>, затем <strong>Готово</strong>.</li>
+<li>Откройте базу <code>course</code> → <strong>Схемы</strong> → <code>public</code> → <strong>Таблицы</strong>. Таблица <code>ping</code> из предыдущего шага должна быть в списке.</li>
+<li>Вкладка <strong>SQL</strong> у соединения. Выполните:</li>
+</ol>
+<pre><code class="language-sql">SELECT id FROM ping;
+</code></pre>
+<p>Результат — одна строка со значением <code>1</code>.</p>
+<p>Если тест не проходит, сначала посмотрите <code>docker compose ps</code>: контейнер должен быть запущен, порт <code>5432</code> не должен быть занят другим PostgreSQL на компьютере.</p>
+<p><strong>Критерий 3.2.4:</strong> тест подключения в DBeaver успешен, <code>SELECT id FROM ping</code> возвращает <code>1</code>.</p>
+<hr />
+<h2>3.2.5. Подключение из ноутбука</h2>
+<p>Установите драйвер и SQLAlchemy в <code>.venv</code>:</p>
+<pre><code class="language-powershell">cd ..
+.\.venv\Scripts\Activate.ps1
+python -m pip install &quot;psycopg[binary]&quot; sqlalchemy pandas
+</code></pre>
+<p>Создайте <code>module-3-2/lab32-postgres.ipynb</code>, ядро — <code>.venv</code>.</p>
+<p>Первая ячейка — markdown: ФИО, дата, заголовок «3.2 Подключение к PostgreSQL».</p>
+<p><strong>Ячейка — соединение:</strong></p>
+<pre><code class="language-python">import sqlalchemy as sa
+
+engine = sa.create_engine(
+    &quot;postgresql+psycopg://student:student@localhost:5432/course&quot;
+)
+with engine.connect() as conn:
+    version = conn.execute(sa.text(&quot;SELECT version()&quot;)).scalar()
+print(version)
+</code></pre>
+<p>Строка подключения собирается так: <code>postgresql+psycopg://пользователь:пароль@хост:порт/база</code>. Префикс <code>postgresql+psycopg</code> говорит SQLAlchemy использовать драйвер psycopg 3.</p>
+<p><strong>Критерий 3.2.5:</strong> ячейка печатает ту же PostgreSQL 18, что и <code>docker exec</code>.</p>
+<hr />
+<h2>3.2.6. Таблица и запросы из Jupyter</h2>
+<p>Создайте таблицу с баллами и прочитайте её.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import pandas as pd
+
+with engine.begin() as conn:
+    conn.execute(sa.text(&quot;DROP TABLE IF EXISTS scores&quot;))
+    conn.execute(sa.text(&quot;&quot;&quot;
+        CREATE TABLE scores (
+            name text NOT NULL,
+            group_code text NOT NULL,
+            score integer
+        )
+    &quot;&quot;&quot;))
+    conn.execute(
+        sa.text(&quot;&quot;&quot;
+            INSERT INTO scores (name, group_code, score)
+            VALUES
+                ('Анна', 'A', 18),
+                ('Борис', 'A', 15),
+                ('Вера', 'B', 20),
+                ('Глеб', 'B', NULL)
+        &quot;&quot;&quot;)
+    )
+
+frame = pd.read_sql(sa.text(&quot;SELECT name, group_code, score FROM scores ORDER BY name&quot;), engine)
+print(frame)
+print(&quot;пропусков в score:&quot;, int(frame[&quot;score&quot;].isna().sum()))
+</code></pre>
+<p><code>engine.begin()</code> фиксирует транзакцию: и <code>CREATE</code>, и <code>INSERT</code> попадут в базу. <code>NULL</code> в SQL — это пропуск, в pandas он становится <code>NaN</code>.</p>
+<p>Обновите список таблиц в DBeaver. Таблица <code>scores</code> и четыре строки должны быть видны.</p>
+<p><strong>Практика 3.2.6.</strong> Выберите только заполненные баллы и посчитайте сумму:</p>
+<pre><code class="language-python">filled = pd.read_sql(
+    sa.text(&quot;SELECT name, score FROM scores WHERE score IS NOT NULL ORDER BY score&quot;),
+    engine,
+)
+print(filled)
+print(&quot;сумма&quot;, int(filled[&quot;score&quot;].sum()))
+</code></pre>
+<p><strong>Критерий 3.2.6:</strong> в выборке нет Глеба, сумма равна <strong>53</strong>. Те же четыре строки открываются в DBeaver.</p>
+<hr />
+<h2>3.2.7. Выгрузка результата</h2>
+<p>Сохраните выборку в CSV, чтобы её можно было открыть без базы.</p>
+<pre><code class="language-python">from pathlib import Path
+
+out = Path(&quot;module-3-2/data/scores_from_db.csv&quot;)
+out.parent.mkdir(parents=True, exist_ok=True)
+filled.to_csv(out, index=False, encoding=&quot;utf-8&quot;)
+print(out.read_text(encoding=&quot;utf-8&quot;))
+</code></pre>
+<p><strong>Критерий 3.2.7:</strong> в файле три строки данных, заголовок <code>name,score</code>, сумма баллов по файлу совпадает с запросом.</p>
+<hr />
+<h2>3.2.8. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
+<ol>
+<li>Чем образ <code>postgres:18</code> отличается от запущенного контейнера <code>pg18-course</code>.</li>
+<li>Зачем в Compose указаны и порт слева, и порт справа в <code>"5432:5432"</code>.</li>
+<li>Почему пароль из Compose совпадает с паролем в строке подключения ноутбука и в DBeaver.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Docker Desktop запущен, <code>docker version</code> показывает Server</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>module-3-2/docker-compose.yml</code> с образом <code>postgres:18</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>docker compose ps</code> — контейнер <code>pg18-course</code> работает</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>SELECT version()</code> из <code>docker exec</code> показывает PostgreSQL 18</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td>DBeaver подключается к <code>localhost:5432</code>, база <code>course</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Ноутбук печатает версию через SQLAlchemy</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Таблица <code>scores</code> видна и в ноутбуке, и в DBeaver, сумма заполненных баллов 53</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>data/scores_from_db.csv</code> записан</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Три ответа самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docker: failed to connect</code> или пустой Server</td>
+<td>Запустить Docker Desktop и дождаться Engine running</td>
+</tr>
+<tr>
+<td>Порт 5432 занят</td>
+<td>Остановить локальный PostgreSQL или в Compose поставить другой левый порт, например <code>"5433:5432"</code>, и тот же порт указать в DBeaver и в строке подключения</td>
+</tr>
+<tr>
+<td><code>password authentication failed</code></td>
+<td>Пользователь и пароль как в <code>POSTGRES_*</code>. Если том уже создавался с другими значениями, смените их в Compose и выполните <code>docker compose down -v</code>, затем <code>up -d</code></td>
+</tr>
+<tr>
+<td>Контейнер сразу завершается</td>
+<td><code>docker compose logs</code>: часто это неверный путь тома</td>
+</tr>
+<tr>
+<td><code>ModuleNotFoundError: psycopg</code></td>
+<td><code>python -m pip install "psycopg[binary]" sqlalchemy pandas</code> в <code>.venv</code> и то же ядро в ноутбуке</td>
+</tr>
+<tr>
+<td>Кириллица в DBeaver искажена</td>
+<td>Кодировка клиента UTF-8; файл CSV сохранять с <code>encoding="utf-8"</code></td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель поднимает учебный PostgreSQL одной командой Compose и подключается к нему из DBeaver и из ноутбука одними и теми же host, port, database, user и password.</p>
+  </article>
+</body>
+</html>

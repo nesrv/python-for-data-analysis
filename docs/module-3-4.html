@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3.4 Нормализация данных. Форматирование данных</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-3.html">← Модуль 3</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>3.4 Нормализация данных. Форматирование данных</h1>
+<p><strong>Цель:</strong> привести поля одной таблицы к общим правилам: текст без лишних пробелов, числа и даты в одном виде, категории в одном словаре, числовой столбец на общей шкале.</p>
+<p><strong>Опора:</strong> <code>pandas</code> из модуля 3.1, таблица без явных дублей из модуля 3.3. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-3-4/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data/orders_raw.csv</code></td>
+<td>Заказы в разнобое: пробелы, запятая в сумме, разные даты и подписи</td>
+</tr>
+<tr>
+<td><code>lab34-format.ipynb</code></td>
+<td>Ноутбук с разбором и приведением полей</td>
+</tr>
+<tr>
+<td><code>data/orders_ready.csv</code></td>
+<td>Таблица после форматирования и нормализации суммы</td>
+</tr>
+</tbody>
+</table>
+<p>Форматирование меняет запись значения, но не его смысл: <code>" 1 200,50 "</code> и <code>1200.5</code> — одна сумма. Нормализация в этом занятии — приведение к одному правилу: одна шкала у чисел, одно написание у категории.</p>
+<hr />
+<h2>Подготовка</h2>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+python -m pip install pandas
+</code></pre>
+<p>Создайте ноутбук <code>module-3-4/lab34-format.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «3.4 Нормализация данных. Форматирование данных».</p>
+<hr />
+<h2>3.4.1. Исходная таблица</h2>
+<p>Создайте <code>module-3-4/data/orders_raw.csv</code> в кодировке UTF-8:</p>
+<pre><code class="language-text">order_id,city,amount,ordered_at,channel
+1,  Москва ,&quot;1 200,50&quot;,12.03.2026,Поиск
+2,казань,980.00,2026-03-13,реклама
+3,МОСКВА,&quot;2 450,00&quot;,13/03/2026,ПОИСК
+4,Тула,1500,2026/03/14,письмо
+</code></pre>
+<p>Одна и та же сущность записана по-разному. Город встречается как <code>Москва</code> и <code>МОСКВА</code>. Сумма то с пробелом и запятой, то с точкой. Дата приходит в трёх шаблонах. Канал отличается регистром.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import pandas as pd
+
+raw = pd.read_csv(&quot;module-3-4/data/orders_raw.csv&quot;, encoding=&quot;utf-8&quot;, dtype=str)
+print(raw.dtypes)
+print(raw)
+</code></pre>
+<p><code>dtype=str</code> нужен, чтобы pandas не угадывал числа и даты до ваших правил.</p>
+<p><strong>Критерий 3.4.1:</strong> четыре строки, все столбцы имеют тип <code>object</code> или <code>string</code>, кириллица читается.</p>
+<hr />
+<h2>3.4.2. Текст</h2>
+<p>Пробелы по краям и регистр не меняют город, но мешают группировке. Категорию приводят к одному написанию.</p>
+<pre><code class="language-python">frame = raw.copy()
+frame[&quot;city&quot;] = frame[&quot;city&quot;].str.strip().str.lower()
+frame[&quot;channel&quot;] = frame[&quot;channel&quot;].str.strip().str.lower()
+print(frame[&quot;city&quot;].tolist())
+print(frame[&quot;channel&quot;].unique().tolist())
+</code></pre>
+<p><strong>Практика 3.4.2.</strong> Замените канал словарём подписей: <code>поиск</code> → <code>search</code>, <code>реклама</code> → <code>ads</code>, <code>письмо</code> → <code>email</code>. Неизвестное значение оставьте как есть.</p>
+<pre><code class="language-python">channel_map = {&quot;поиск&quot;: &quot;search&quot;, &quot;реклама&quot;: &quot;ads&quot;, &quot;письмо&quot;: &quot;email&quot;}
+frame[&quot;channel&quot;] = frame[&quot;channel&quot;].map(channel_map).fillna(frame[&quot;channel&quot;])
+print(frame[&quot;channel&quot;].tolist())
+</code></pre>
+<p><strong>Критерий 3.4.2:</strong> города — <code>москва</code>, <code>казань</code>, <code>москва</code>, <code>тула</code>. Каналы — <code>search</code>, <code>ads</code>, <code>search</code>, <code>email</code>.</p>
+<hr />
+<h2>3.4.3. Числа</h2>
+<p>Сумма в файле — текст. Пробел отделяет тысячи, запятая отделяет дробную часть. Перед <code>float</code> пробелы убирают, запятую меняют на точку.</p>
+<pre><code class="language-python">frame[&quot;amount&quot;] = (
+    frame[&quot;amount&quot;]
+    .str.replace(&quot; &quot;, &quot;&quot;, regex=False)
+    .str.replace(&quot;,&quot;, &quot;.&quot;, regex=False)
+    .astype(float)
+)
+print(frame[&quot;amount&quot;].tolist())
+print(frame[&quot;amount&quot;].sum())
+</code></pre>
+<p><strong>Критерий 3.4.3:</strong> значения <code>1200.5</code>, <code>980.0</code>, <code>2450.0</code>, <code>1500.0</code>. Сумма равна <strong>6130.5</strong>.</p>
+<hr />
+<h2>3.4.4. Даты</h2>
+<p><code>pandas</code> умеет разобрать несколько шаблонов, если передать <code>format="mixed"</code> и день раньше месяца там, где запись неоднозначна. Для этой таблицы день стоит первым в <code>12.03.2026</code> и <code>13/03/2026</code>.</p>
+<pre><code class="language-python">frame[&quot;ordered_at&quot;] = pd.to_datetime(
+    frame[&quot;ordered_at&quot;],
+    format=&quot;mixed&quot;,
+    dayfirst=True,
+)
+print(frame[&quot;ordered_at&quot;].dt.strftime(&quot;%Y-%m-%d&quot;).tolist())
+</code></pre>
+<p>В результат сохраняют одну строковую форму <code>ГГГГ-ММ-ДД</code>, а не исходный разнобой.</p>
+<pre><code class="language-python">frame[&quot;ordered_at&quot;] = frame[&quot;ordered_at&quot;].dt.strftime(&quot;%Y-%m-%d&quot;)
+print(frame[&quot;ordered_at&quot;].tolist())
+</code></pre>
+<p><strong>Критерий 3.4.4:</strong> даты равны <code>2026-03-12</code>, <code>2026-03-13</code>, <code>2026-03-13</code>, <code>2026-03-14</code>.</p>
+<hr />
+<h2>3.4.5. Общая шкала суммы</h2>
+<p>После форматирования суммы всё ещё лежат в рублях и плохо сравниваются с другим показателем, если тот измерен в других единицах. Минимакс переводит столбец в отрезок от 0 до 1: минимум становится 0, максимум становится 1.</p>
+<pre><code class="language-python">low = frame[&quot;amount&quot;].min()
+high = frame[&quot;amount&quot;].max()
+frame[&quot;amount_norm&quot;] = (frame[&quot;amount&quot;] - low) / (high - low)
+print(frame[[&quot;amount&quot;, &quot;amount_norm&quot;]])
+</code></pre>
+<p>Исходную сумму не удаляют: нормированное поле добавляют рядом. Минимум <code>980</code> получает 0, максимум <code>2450</code> получает 1.</p>
+<p><strong>Практика 3.4.5.</strong> Проверьте руками норму для <code>1500</code>: <code>(1500 - 980) / (2450 - 980)</code>. Сверьте с ячейкой.</p>
+<p><strong>Критерий 3.4.5:</strong> в <code>amount_norm</code> есть 0 и 1. Для суммы <code>1500</code> норма примерно <strong>0.3537</strong>. Столбец <code>amount</code> на месте.</p>
+<hr />
+<h2>3.4.6. Сохранение</h2>
+<pre><code class="language-python">from pathlib import Path
+
+ready = frame[[&quot;order_id&quot;, &quot;city&quot;, &quot;amount&quot;, &quot;amount_norm&quot;, &quot;ordered_at&quot;, &quot;channel&quot;]]
+out = Path(&quot;module-3-4/data/orders_ready.csv&quot;)
+ready.to_csv(out, index=False, encoding=&quot;utf-8&quot;)
+
+check = pd.read_csv(out, encoding=&quot;utf-8&quot;)
+print(check)
+print(&quot;сумма&quot;, check[&quot;amount&quot;].sum())
+</code></pre>
+<p><strong>Критерий 3.4.6:</strong> файл читается повторно, сумма <code>amount</code> равна <strong>6130.5</strong>, даты в виде <code>2026-03-12</code> и соседних дней, каналы на английских кодах из словаря.</p>
+<hr />
+<h2>3.4.7. Самопроверка</h2>
+<p>В конце ноутбука ответьте:</p>
+<ol>
+<li>Чем форматирование суммы отличается от нормировки <code>amount_norm</code>.</li>
+<li>Почему файл сначала читают как строки, а не дают pandas самому выбрать типы.</li>
+<li>Зачем оставлять исходную сумму рядом с нормой от 0 до 1.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>orders_raw.csv</code> прочитан целиком как текст</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Города без краевых пробелов и в нижнем регистре</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Каналы заменены на <code>search</code>, <code>ads</code>, <code>email</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Сумма — число, итог 6130.5</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Даты в виде <code>ГГГГ-ММ-ДД</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>amount_norm</code> лежит от 0 до 1, <code>amount</code> сохранён</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>orders_ready.csv</code> совпадает с таблицей в ноутбуке</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Три ответа самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Сумма стала <code>1200</code> без копеек или <code>NaN</code></td>
+<td>Запятую меняют на точку после удаления пробелов, не наоборот</td>
+</tr>
+<tr>
+<td><code>Москва</code> и <code>МОСКВА</code> остались разными</td>
+<td>Нет <code>strip</code> или <code>lower</code> до группировки</td>
+</tr>
+<tr>
+<td>Дата <code>12.03.2026</code> стала 3 декабря</td>
+<td>В <code>to_datetime</code> не передан <code>dayfirst=True</code></td>
+</tr>
+<tr>
+<td>Деление на ноль в норме</td>
+<td>В столбце одно и то же число: минимум равен максимуму</td>
+</tr>
+<tr>
+<td>В CSV снова числа-строки с запятой</td>
+<td>В файл пишут <code>frame</code> после <code>astype(float)</code>, а не исходный <code>raw</code></td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель отдельно приводит запись полей к одному виду и отдельно, если шкала нужна для сравнения, кладёт число в отрезок от 0 до 1, не стирая исходное значение.</p>
+  </article>
+</body>
+</html>
