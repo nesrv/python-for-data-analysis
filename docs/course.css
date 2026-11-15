@@ -176,6 +176,21 @@ a { color: var(--ink); }
 
 .doc .back:hover { color: var(--accent); }
 
+.part-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 1.2em 0 0.4em;
+}
+
+.part-nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.part-nav a:hover { color: var(--accent); }
+
 .doc h2 {
   margin: 1.4em 0 0.4em;
   font-size: 22px;
