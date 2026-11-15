@@ -11,7 +11,38 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.6 Отладка</h1>
-    <p>Создайте <code>module-2/debug_demo.py</code>:</p>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные и находить ошибку шагами отладчика, а не догадкой по <code>print</code>.</p>
+<p><strong>Опора:</strong> расширение <strong>Python</strong> и интерпретатор <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-6/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>debug_demo.py</code></td>
+<td>Скрипт, на котором ставят точки останова</td>
+</tr>
+<tr>
+<td><code>bug_average.py</code></td>
+<td>Скрипт с ошибкой, которую находят отладчиком</td>
+</tr>
+<tr>
+<td><code>lab26-debug.md</code></td>
+<td>Короткая заметка: что было в переменных на остановке</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Подготовка</h2>
+<p>Проверьте интерпретатор: <code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong> → <code>./.venv/Scripts/python.exe</code>. Отладчик запускает тот интерпретатор, который выбран в статусной строке.</p>
+<hr />
+<h2>2.6.1. Точка останова</h2>
+<p>Создайте <code>module-2-6/debug_demo.py</code>:</p>
 <pre><code class="language-python">def grade(score: int) -&gt; str:
     if score &gt;= 18:
         label = &quot;зачёт с отличием&quot;
@@ -30,10 +61,173 @@ def main():
 
 
 if __name__ == &quot;__main__&quot;:
-    main()</code></pre>
-<ol><li>Щёлкните слева от строки <code>result = grade(score)</code> — красная точка останова.</li><li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) → <strong>Python File</strong>. Интерпретатор — <code>.venv</code>.</li><li>На остановке в панели <strong>Variables</strong> посмотрите <code>score</code>. Шаг <strong>Step Over</strong> (<code>F10</code>), затем <strong>Continue</strong> (<code>F5</code>).</li><li>Убедитесь, что в консоли отладки три строки.</li></ol>
-<p><strong>Критерий F:</strong> точка останова срабатывает на каждой итерации; для <code>9</code> в переменной <code>label</code> после шага внутрь функции — «нужна доработка».</p>
-<hr>
+    main()
+</code></pre>
+<ol>
+<li>Щёлкните слева от номера строки <code>result = grade(score)</code>. Появится красная точка.</li>
+<li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) и запустите <strong>Python File</strong>.</li>
+<li>Выполнение остановится до этой строки. В панели <strong>Variables</strong> найдите <code>score</code>.</li>
+<li><strong>Continue</strong> (<code>F5</code>) переходит к следующей остановке. Пройдите все три числа.</li>
+</ol>
+<p><strong>Практика 2.6.1.</strong> В <code>lab26-debug.md</code> запишите три значения <code>score</code>, которые видели на остановке, и три строки из отладочной консоли.</p>
+<p><strong>Критерий 2.6.1:</strong> остановка срабатывает три раза, в консоли есть пары <code>18 зачёт с отличием</code>, <code>15 зачёт</code>, <code>9 нужна доработка</code>.</p>
+<hr />
+<h2>2.6.2. Шаг внутрь и шаг через</h2>
+<p>На строке вызова <code>grade(score)</code> доступны два шага:</p>
+<table>
+<thead>
+<tr>
+<th>Клавиша</th>
+<th>Команда</th>
+<th>Куда переходит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>F10</code></td>
+<td>Step Over</td>
+<td>Выполняет вызов целиком и остаётся в <code>main</code></td>
+</tr>
+<tr>
+<td><code>F11</code></td>
+<td>Step Into</td>
+<td>Входит в первую строку <code>grade</code></td>
+</tr>
+<tr>
+<td><code>Shift+F11</code></td>
+<td>Step Out</td>
+<td>Выполняет функцию до <code>return</code> и возвращается к вызывающему коду</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Практика 2.6.2.</strong> Поставьте точку на строке вызова. Нажмите <code>F11</code>. Внутри <code>grade</code> дойдите до присваивания <code>label</code> клавишей <code>F10</code>. Для балла <code>9</code> в <strong>Variables</strong> должно появиться <code>label</code> со значением «нужна доработка». Затем <code>Shift+F11</code> вернёт вас в цикл.</p>
+<p><strong>Критерий 2.6.2:</strong> в заметке записано, что при <code>score == 9</code> переменная <code>label</code> равна «нужна доработка» ещё до выхода из функции.</p>
+<hr />
+<h2>2.6.3. Условная точка останова</h2>
+<p>Останавливаться на каждом элементе неудобно, если ошибка только в одном значении. Правый щелчок по красной точке → <strong>Edit Breakpoint</strong> → выражение <code>score &lt; 12</code>.</p>
+<p>Запустите отладку снова. Остановка будет только для <code>9</code>. Значения 18 и 15 выполнятся без паузы.</p>
+<p><strong>Практика 2.6.3.</strong> Смените условие на <code>score == 15</code>, запустите ещё раз и убедитесь, что пауза одна и в переменной именно 15. После проверки условие можно снять.</p>
+<p><strong>Критерий 2.6.3:</strong> при условии <code>score &lt; 12</code> отладчик останавливается один раз.</p>
+<hr />
+<h2>2.6.4. Поиск ошибки</h2>
+<p>Создайте <code>module-2-6/bug_average.py</code>. Среднее считается неверно: сумма делится не на число элементов.</p>
+<pre><code class="language-python">def average(values: list[int]) -&gt; float:
+    total = 0
+    for value in values:
+        total += value
+    return total / (len(values) - 1)
+
+
+def main():
+    scores = [18, 15, 20, 11]
+    print(&quot;среднее:&quot;, average(scores))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>Верное среднее — <code>(18 + 15 + 20 + 11) / 4 = 16</code>. Скрипт печатает другое число.</p>
+<ol>
+<li>Поставьте точку останова на строке <code>return</code>.</li>
+<li>Запустите отладчик.</li>
+<li>В <strong>Watch</strong> добавьте выражения <code>total</code>, <code>len(values)</code> и <code>len(values) - 1</code>.</li>
+<li>Сравните делитель с числом оценок.</li>
+</ol>
+<p><strong>Практика 2.6.4.</strong> Исправьте делитель на <code>len(values)</code>. Запустите файл обычным образом, без отладчика:</p>
+<pre><code class="language-powershell">python module-2-6\bug_average.py
+</code></pre>
+<p><strong>Критерий 2.6.4:</strong> до исправления в Watch видно деление на 3 при четырёх оценках. После исправления скрипт печатает <code>среднее: 16.0</code>.</p>
+<hr />
+<h2>2.6.5. Отладочная консоль</h2>
+<p>Пока программа стоит на точке останова, панель <strong>Debug Console</strong> выполняет выражения в этом месте. Это не терминал: команды <code>cd</code> здесь не работают.</p>
+<p>На остановке внутри <code>average</code> наберите:</p>
+<pre><code class="language-python">values
+total / len(values)
+</code></pre>
+<p>Второе выражение показывает среднее, не меняя файл. Так проверяют догадку до правки кода.</p>
+<p><strong>Критерий 2.6.5:</strong> консоль на остановке печатает список из четырёх баллов и число <code>16.0</code>.</p>
+<hr />
+<h2>2.6.6. Самопроверка</h2>
+<p>В <code>lab26-debug.md</code> ответьте:</p>
+<ol>
+<li>Чем Step Over отличается от Step Into.</li>
+<li>Зачем условная точка останова, если обычная уже останавливает программу.</li>
+<li>Почему выражение в Debug Console не заменяет исправление в файле.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Точка в <code>debug_demo.py</code> сработала на трёх баллах</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Step Into показал <code>label</code> для балла 9</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Условная точка остановила только один проход</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td>В <code>bug_average.py</code> ошибка найдена через Watch и исправлена, среднее 16.0</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Debug Console на остановке показала 16.0</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Три ответа в <code>lab26-debug.md</code></td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Отладчик использует не <code>.venv</code></td>
+<td>Статусная строка и <strong>Python: Select Interpreter</strong></td>
+</tr>
+<tr>
+<td>Точка серая и не срабатывает</td>
+<td>Файл сохранён, запущена именно эта копия, строка выполняется</td>
+</tr>
+<tr>
+<td><code>F10</code> не входит в <code>grade</code></td>
+<td>Для входа нужна <code>F11</code></td>
+</tr>
+<tr>
+<td>В Watch ошибка имени</td>
+<td>Имя есть только внутри функции; смотрите его на остановке внутри неё</td>
+</tr>
+<tr>
+<td>После правки всё ещё старый результат</td>
+<td>Остановлен предыдущий сеанс: кнопка Stop, затем новый запуск</td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель останавливает цикл на нужном значении, читает локальные переменные и проверяет исправление повторным запуском.</p>
   </article>
 </body>
 </html>

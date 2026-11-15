@@ -11,7 +11,43 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.7 Профилирование кода</h1>
-    <p>Создайте <code>module-2/profile_demo.py</code>:</p>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> измерить, какая функция занимает время, и сравнить два способа одного и того же подсчёта. Профиль не ищет логическую ошибку: для неё нужен отладчик из раздела 2.6.</p>
+<p><strong>Опора:</strong> терминал VS Code с активированным <code>.venv</code>. Рабочая папка — корень курса.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-7/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>profile_demo.py</code></td>
+<td>Две реализации суммы, которые сравнивают</td>
+</tr>
+<tr>
+<td><code>profile.txt</code></td>
+<td>Сохранённый вывод <code>cProfile</code></td>
+</tr>
+<tr>
+<td><code>lab27-profile.ipynb</code></td>
+<td>Замеры <code>timeit</code> и короткий вывод</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Подготовка</h2>
+<p>Создайте ноутбук <code>module-2-7/lab27-profile.ipynb</code>, ядро — <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.7 Профилирование кода».</p>
+<hr />
+<h2>2.7.1. Зачем профиль</h2>
+<p>Время программы складывается из времени функций. <code>cProfile</code> считает, сколько раз функция вызвана и сколько времени на неё пришлось. Сначала смотрят функции с большим накопленным временем, затем решают, есть ли более простой алгоритм.</p>
+<p>Профиль запускают на той же задаче, которую программа решает у пользователя. Замер на пустом списке ничего не говорит о рабочем объёме данных.</p>
+<p><strong>Критерий 2.7.1:</strong> в markdown одной фразой записано, чем профиль отличается от точки останова.</p>
+<hr />
+<h2>2.7.2. cProfile</h2>
+<p>Создайте <code>module-2-7/profile_demo.py</code>:</p>
 <pre><code class="language-python">def slow_sum(n: int) -&gt; int:
     total = 0
     for i in range(n):
@@ -19,20 +55,140 @@
     return total
 
 
+def fast_sum(n: int) -&gt; int:
+    return n * (n - 1) // 2
+
+
 def main():
-    return slow_sum(200_000) + slow_sum(100_000)
+    left = slow_sum(200_000)
+    right = slow_sum(100_000)
+    return left + right
 
 
 if __name__ == &quot;__main__&quot;:
-    print(main())</code></pre>
-<p>В терминале с <code>.venv</code>, из корня проекта:</p>
-<pre><code class="language-powershell">python -m cProfile -s cumtime module-2\profile_demo.py</code></pre>
-<p>В выводе найдите строку <code>slow_sum</code>. В ноутбуке добавьте markdown: сколько вызовов <code>slow_sum</code> (ожидается <strong>2</strong>) и что сортировка <code>-s cumtime</code> показывает функции с наибольшим накопленным временем сверху.</p>
-<p>Короткий замер в ячейке:</p>
+    print(main())
+</code></pre>
+<p>Из корня курса, в активированном <code>.venv</code>:</p>
+<pre><code class="language-powershell">python -m cProfile -s cumtime module-2-7\profile_demo.py
+</code></pre>
+<p><code>-s cumtime</code> сортирует таблицу по накопленному времени: сверху функции, внутри которых программа провела больше всего времени, вместе с вызовами из них.</p>
+<p>Сохраните вывод:</p>
+<pre><code class="language-powershell">python -m cProfile -s cumtime module-2-7\profile_demo.py &gt; module-2-7\profile.txt
+</code></pre>
+<p>В таблице найдите строку <code>slow_sum</code>. Колонка <code>ncalls</code> — число вызовов.</p>
+<p><strong>Практика 2.7.2.</strong> В ноутбуке запишите: сколько раз вызвана <code>slow_sum</code>, какое число напечатал скрипт, какая функция стоит в таблице выше неё.</p>
+<p>Число на выходе — сумма <code>0..199999</code> плюс сумма <code>0..99999</code>, то есть <code>199999 * 200000 / 2 + 99999 * 100000 / 2</code>. Скрипт печатает <strong>24999850000</strong>.</p>
+<p><strong>Критерий 2.7.2:</strong> в <code>profile.txt</code> у <code>slow_sum</code> два вызова, скрипт печатает <code>24999850000</code>.</p>
+<hr />
+<h2>2.7.3. Сравнение двух реализаций</h2>
+<p>Замените тело <code>main</code>, чтобы обе функции считали одну и ту же величину:</p>
+<pre><code class="language-python">def main():
+    a = slow_sum(300_000)
+    b = fast_sum(300_000)
+    print(&quot;совпали:&quot;, a == b)
+    return a
+</code></pre>
+<p>Снова сохраните профиль в <code>profile.txt</code>. Сравните <code>tottime</code> у <code>slow_sum</code> и <code>fast_sum</code>. <code>tottime</code> — время в самой функции, без учёта других вызовов. У формулы оно заметно меньше, чем у цикла.</p>
+<p><strong>Практика 2.7.3.</strong> В markdown перепишите две строки профиля: имя, <code>ncalls</code>, <code>tottime</code>. Отметьте, какая реализация быстрее на этом запуске.</p>
+<p><strong>Критерий 2.7.3:</strong> скрипт печатает <code>совпали: True</code>. У <code>slow_sum</code> время в <code>tottime</code> больше, чем у <code>fast_sum</code>.</p>
+<hr />
+<h2>2.7.4. timeit</h2>
+<p><code>timeit</code> повторяет один маленький фрагмент много раз и возвращает суммарные секунды. Так сравнивают короткие выражения, не запуская полный профиль.</p>
+<p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">import timeit
-print(timeit.timeit(&quot;sum(range(10_000))&quot;, number=500))</code></pre>
-<p><strong>Критерий G:</strong> профиль запускается без ошибки, в таблице есть <code>slow_sum</code>, скрипт печатает сумму.</p>
-<hr>
+
+loop = timeit.timeit(&quot;sum(range(10_000))&quot;, number=500)
+formula = timeit.timeit(&quot;n * (n - 1) // 2&quot;, number=500, setup=&quot;n = 10_000&quot;)
+print(&quot;sum(range):&quot;, loop)
+print(&quot;формула:&quot;, formula)
+print(&quot;цикл медленнее в&quot;, round(loop / formula, 1), &quot;раз&quot;)
+</code></pre>
+<p>Числа от запуска к запуску немного меняются. Вывод «формула быстрее» должен сохраняться.</p>
+<p><strong>Практика 2.7.4.</strong> Повторите замер с <code>number=100</code> и с <code>number=500</code>. В markdown запишите оба отношения. Не сравнивайте абсолютные секунды разных компьютеров между собой.</p>
+<p><strong>Критерий 2.7.4:</strong> в обоих замерах формула занимает меньше времени, чем <code>sum(range(...))</code>.</p>
+<hr />
+<h2>2.7.5. Что не ускоряют вслепую</h2>
+<p>Ускорение имеет смысл там, где профиль показал заметную долю времени. Функция, которая вызвана один раз и занимает доли процента, не стоит переписывания на этом занятии.</p>
+<p><strong>Практика 2.7.5.</strong> В <code>profile.txt</code> после раздела 2.7.3 найдите строку, у которой <code>tottime</code> меньше, чем у <code>slow_sum</code>. Запишите её имя и одну фразу: почему её не переписывают первой.</p>
+<p><strong>Критерий 2.7.5:</strong> в заметке названа функция с меньшим <code>tottime</code>, чем у <code>slow_sum</code>, и сказано, что сначала меняют самую дорогую часть.</p>
+<hr />
+<h2>2.7.6. Самопроверка</h2>
+<p>В конце ноутбука ответьте:</p>
+<ol>
+<li>Чем <code>ncalls</code> отличается от <code>tottime</code>.</li>
+<li>Зачем один и тот же подсчёт записан циклом и формулой.</li>
+<li>Почему один запуск <code>timeit</code> с <code>number=1</code> плохо сравнивает короткие выражения.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>profile_demo.py</code> запускается и печатает число</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>profile.txt</code> содержит <code>slow_sum</code> с двумя вызовами на первом варианте <code>main</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td>После замены <code>main</code> скрипт печатает <code>совпали: True</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>timeit</code> показывает, что формула быстрее цикла</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td>В заметке указана функция, которую не оптимизируют первой</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Три ответа самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>profile.txt</code> пустой или в неожиданной кодировке</td>
+<td>Перенаправление сделано из PowerShell в корне курса; откройте файл в VS Code как UTF-8</td>
+</tr>
+<tr>
+<td>В таблице нет <code>slow_sum</code></td>
+<td>Запущен не <code>module-2-7\profile_demo.py</code></td>
+</tr>
+<tr>
+<td><code>совпали: False</code></td>
+<td>Формула считает сумму <code>0 .. n-1</code>, как и цикл <code>range(n)</code></td>
+</tr>
+<tr>
+<td>Отношение в <code>timeit</code> скачет около единицы</td>
+<td>Слишком мало повторов или оба фрагмента делают одно и то же</td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель снимает профиль, читает число вызовов и накопленное время и выбирает для правки функцию, которая занимает основное время.</p>
   </article>
 </body>
 </html>

@@ -11,26 +11,177 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.5 Управление потоком выполнение и ветвление</h1>
-    <p><strong>Ячейка E1:</strong></p>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> выбирать ветку <code>if</code> / <code>elif</code> / <code>else</code>, повторять действия циклом <code>for</code> и <code>while</code> и управлять циклом через <code>break</code> и <code>continue</code>.</p>
+<p><strong>Опора:</strong> ноутбук в VS Code, ядро — <code>./.venv/Scripts/python.exe</code>. Рабочая папка — корень курса.</p>
+<p><strong>Итоговый артефакт:</strong> <code>module-2-5/lab25-flow.ipynb</code> со всеми ячейками и сохранённым выводом.</p>
+<hr />
+<h2>Подготовка</h2>
+<p>Создайте ноутбук <code>module-2-5/lab25-flow.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.5 Управление потоком выполнение и ветвление».</p>
+<p>Данные для примеров задайте в первой ячейке кода и больше не меняйте:</p>
+<pre><code class="language-python">students = [
+    {&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18},
+    {&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15},
+    {&quot;name&quot;: &quot;Вера&quot;, &quot;score&quot;: 20},
+    {&quot;name&quot;: &quot;Глеб&quot;, &quot;score&quot;: 11},
+]
+</code></pre>
+<hr />
+<h2>2.5.1. Ветвление</h2>
+<p>Условие проверяется сверху вниз. Выполняется первая истинная ветка, остальные пропускаются.</p>
+<p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">def grade(score: int) -&gt; str:
     if score &gt;= 18:
         return &quot;зачёт с отличием&quot;
-    if score &gt;= 12:
+    elif score &gt;= 12:
         return &quot;зачёт&quot;
-    return &quot;нужна доработка&quot;
+    else:
+        return &quot;нужна доработка&quot;
 
-for row in loaded:
-    s = int(row[&quot;score&quot;])
-    print(row[&quot;name&quot;], s, &quot;-&gt;&quot;, grade(s))</code></pre>
-<p><strong>Ячейка E2 — цикл и пропуск:</strong></p>
+for row in students:
+    print(row[&quot;name&quot;], row[&quot;score&quot;], &quot;-&gt;&quot;, grade(row[&quot;score&quot;]))
+</code></pre>
+<p>Порядок условий важен. Если первым поставить <code>score &gt;= 12</code>, ветка «с отличием» никогда не выполнится: 18 тоже не меньше 12.</p>
+<p><strong>Практика 2.5.1.</strong> Добавьте ветку для отрицательного балла: <code>score &lt; 0</code> возвращает <code>"ошибка в данных"</code>. Проверьте на списке <code>[-1, 11, 12, 18]</code>.</p>
+<p><strong>Критерий 2.5.1:</strong> для 18, 15, 20 и 11 выводятся «зачёт с отличием», «зачёт», «зачёт с отличием», «нужна доработка». Для <code>-1</code> — «ошибка в данных».</p>
+<hr />
+<h2>2.5.2. Цикл for</h2>
+<p><code>for</code> перебирает элементы последовательности. <code>range(1, 11)</code> даёт числа от 1 до 10: правая граница не входит.</p>
+<p><strong>Ячейка — continue:</strong></p>
 <pre><code class="language-python">total = 0
 for n in range(1, 11):
     if n % 2 == 0:
         continue
     total += n
-print(&quot;сумма нечётных 1..10 =&quot;, total)  # 25</code></pre>
-<p><strong>Критерий E:</strong> для баллов 18, 15 и 20 выводятся «зачёт с отличием», «зачёт», «зачёт с отличием»; сумма нечётных равна 25.</p>
-<hr>
+print(&quot;сумма нечётных 1..10 =&quot;, total)
+</code></pre>
+<p><code>continue</code> сразу переходит к следующему числу и не выполняет остаток тела цикла.</p>
+<p><strong>Ячейка — отбор:</strong></p>
+<pre><code class="language-python">passed = []
+for row in students:
+    if row[&quot;score&quot;] &gt;= 12:
+        passed.append(row[&quot;name&quot;])
+print(passed)
+</code></pre>
+<p><strong>Практика 2.5.2.</strong> Соберите список имён тех, кому нужна доработка, через ту же функцию <code>grade</code>. Ожидается <code>["Глеб"]</code>.</p>
+<p><strong>Критерий 2.5.2:</strong> сумма нечётных равна <strong>25</strong>, в <code>passed</code> три имени: Анна, Борис, Вера.</p>
+<hr />
+<h2>2.5.3. break и while</h2>
+<p><code>break</code> заканчивает цикл целиком. <code>while</code> повторяется, пока условие истинно. У цикла <code>while</code> должен быть шаг, который когда-нибудь сделает условие ложным.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">found = None
+for row in students:
+    if row[&quot;score&quot;] == 20:
+        found = row[&quot;name&quot;]
+        break
+print(&quot;первый с баллом 20:&quot;, found)
+</code></pre>
+<p><strong>Ячейка — накопление до порога:</strong></p>
+<pre><code class="language-python">total = 0
+index = 0
+while index &lt; len(students) and total &lt; 40:
+    total += students[index][&quot;score&quot;]
+    index += 1
+print(&quot;сумма:&quot;, total, &quot;взято записей:&quot;, index)
+</code></pre>
+<p>Анна и Борис дают 33, вместе с Верой — 53. Цикл остановится на третьей записи: сумма впервые станет не меньше 40.</p>
+<p><strong>Практика 2.5.3.</strong> Найдите первое имя с баллом меньше 12 и остановите цикл через <code>break</code>. Если такого нет, напечатайте <code>"все сдали"</code>.</p>
+<p><strong>Критерий 2.5.3:</strong> найденное имя — Глеб; во втором примере сумма <strong>53</strong> и взято <strong>3</strong> записи.</p>
+<hr />
+<h2>2.5.4. Вложенное ветвление</h2>
+<p>Внутри ветки можно снова спросить условие. Для двух независимых признаков удобнее два последовательных <code>if</code>, а не глубокая лесенка.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def comment(score: int, attempts: int) -&gt; str:
+    if score &gt;= 12:
+        if attempts == 1:
+            return &quot;сдано с первой попытки&quot;
+        return &quot;сдано не с первой попытки&quot;
+    return &quot;пока не сдано&quot;
+
+print(comment(18, 1))
+print(comment(15, 2))
+print(comment(11, 1))
+</code></pre>
+<p><strong>Практика 2.5.4.</strong> Расширьте таблицу полем <code>attempts</code>: Анна — 1, Борис — 2, Вера — 1, Глеб — 3. Напечатайте имя и результат <code>comment</code>.</p>
+<p><strong>Критерий 2.5.4:</strong> три строки выше печатают «сдано с первой попытки», «сдано не с первой попытки», «пока не сдано». У Глеба в таблице — «пока не сдано».</p>
+<hr />
+<h2>2.5.5. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
+<ol>
+<li>Чем <code>elif</code> отличается от второго отдельного <code>if</code>.</li>
+<li>Чем <code>continue</code> отличается от <code>break</code>.</li>
+<li>Почему у цикла <code>while</code> нужен шаг вроде <code>index += 1</code>.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>grade</code> различает отличием, зачёт, доработку и ошибку</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Сумма нечётных 1..10 равна 25</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>break</code> находит Глеба</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>while</code> останавливается на сумме 53 и трёх записях</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>comment</code> учитывает и балл, и число попыток</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Три ответа самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Все баллы от 12 получают «с отличием»</td>
+<td>Более строгая проверка <code>&gt;= 18</code> стоит выше <code>&gt;= 12</code></td>
+</tr>
+<tr>
+<td>Сумма нечётных равна 30</td>
+<td>В сумму попали и чётные: <code>continue</code> стоит после <code>total += n</code></td>
+</tr>
+<tr>
+<td>Цикл <code>while</code> не заканчивается</td>
+<td>В теле нет изменения переменной из условия</td>
+</tr>
+<tr>
+<td><code>break</code> не срабатывает</td>
+<td>Условие сравнивает строку с числом или смотрит не тот ключ словаря</td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель описывает правило оценки ветвлением и останавливает перебор, как только нужная запись найдена.</p>
   </article>
 </body>
 </html>
