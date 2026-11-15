@@ -11,8 +11,7 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.5 Управление потоком выполнение и ветвление</h1>
-<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
-<p><strong>Цель:</strong> выбирать ветку <code>if</code> / <code>elif</code> / <code>else</code>, повторять действия циклом <code>for</code> и <code>while</code> и управлять циклом через <code>break</code> и <code>continue</code>.</p>
+<p><strong>Цель:</strong> выбирать ветку <code>if</code> / <code>elif</code> / <code>else</code>, записывать короткий выбор тернарным оператором и сопоставлением <code>match</code>, присваивать значение по ходу выражения моржовым оператором <code>:=</code>, повторять действия циклом <code>for</code> и <code>while</code> и управлять циклом через <code>break</code> и <code>continue</code>.</p>
 <p><strong>Опора:</strong> ноутбук в VS Code, ядро — <code>./.venv/Scripts/python.exe</code>. Рабочая папка — корень курса.</p>
 <p><strong>Итоговый артефакт:</strong> <code>module-2-5/lab25-flow.ipynb</code> со всеми ячейками и сохранённым выводом.</p>
 <hr />
@@ -105,12 +104,68 @@ print(comment(11, 1))
 <p><strong>Практика 2.5.4.</strong> Расширьте таблицу полем <code>attempts</code>: Анна — 1, Борис — 2, Вера — 1, Глеб — 3. Напечатайте имя и результат <code>comment</code>.</p>
 <p><strong>Критерий 2.5.4:</strong> три строки выше печатают «сдано с первой попытки», «сдано не с первой попытки», «пока не сдано». У Глеба в таблице — «пока не сдано».</p>
 <hr />
-<h2>2.5.5. Самопроверка</h2>
+<h2>2.5.5. Тернарный оператор</h2>
+<p>Тернарный оператор — выражение с двумя вариантами: значение <code>если</code> условие истинно, иначе другое значение. Его пишут там, где выбор помещается в одну строку. Несколько порогов по-прежнему удобнее записывать через <code>if</code> / <code>elif</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def short_grade(score: int) -&gt; str:
+    return &quot;зачёт&quot; if score &gt;= 12 else &quot;нужна доработка&quot;
+
+for student in students:
+    print(student[&quot;name&quot;], short_grade(student[&quot;score&quot;]))
+</code></pre>
+<p>То же выражение можно сразу положить в список:</p>
+<pre><code class="language-python">labels = [&quot;зачёт&quot; if student[&quot;score&quot;] &gt;= 12 else &quot;доработка&quot; for student in students]
+print(labels)
+</code></pre>
+<p><strong>Практика 2.5.5.</strong> Одной тернарной записью получите список <code>&quot;ошибка&quot;</code> для отрицательного балла и <code>&quot;балл принят&quot;</code> для остальных. Проверьте на <code>[-1, 11, 18]</code>.</p>
+<p><strong>Критерий 2.5.5:</strong> у Анны, Бориса и Веры метка «зачёт», у Глеба — «нужна доработка». Список <code>labels</code> равен <code>[&quot;зачёт&quot;, &quot;зачёт&quot;, &quot;зачёт&quot;, &quot;доработка&quot;]</code>. Для <code>[-1, 11, 18]</code> практика даёт <code>[&quot;ошибка&quot;, &quot;балл принят&quot;, &quot;балл принят&quot;]</code>.</p>
+<hr />
+<h2>2.5.6. Сопоставление match</h2>
+<p><code>match</code> сравнивает значение с образцами сверху вниз и выполняет первую подошедшую ветку. Образец <code>case _</code> принимает всё, что не подошло раньше. Условие к уже пойманному значению пишут через <code>if</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def band(score: int) -&gt; str:
+    match score:
+        case n if n &lt; 0:
+            return &quot;ошибка в данных&quot;
+        case 18 | 19 | 20:
+            return &quot;верх диапазона&quot;
+        case n if n &gt;= 12:
+            return &quot;зачёт&quot;
+        case _:
+            return &quot;нужна доработка&quot;
+
+for score in (20, 18, 15, 11, -1):
+    print(score, band(score))
+</code></pre>
+<p>Ветка <code>18 | 19 | 20</code> срабатывает только на эти три числа. Балл 15 до неё не доходит и попадает в <code>n if n &gt;= 12</code>.</p>
+<p><strong>Практика 2.5.6.</strong> Добавьте сопоставление канала. Для значений <code>&quot;поиск&quot;</code>, <code>&quot;реклама&quot;</code> и <code>&quot;письмо&quot;</code> верните короткие подписи, для любого другого текста — <code>&quot;другой канал&quot;</code>. Проверьте на списке <code>[&quot;поиск&quot;, &quot;письмо&quot;, &quot;визит&quot;]</code>.</p>
+<p><strong>Критерий 2.5.6:</strong> пары выше печатают «верх диапазона», «верх диапазона», «зачёт», «нужна доработка», «ошибка в данных». Неизвестный канал получает подпись «другой канал».</p>
+<hr />
+<h2>2.5.7. Моржовый оператор</h2>
+<p>Оператор <code>:=</code> присваивает значение имени и тут же отдаёт это значение в выражение. Им пользуются, когда одно и то же значение нужно и проверить, и сохранить. Обычное <code>=</code> по-прежнему стоит отдельной строкой.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">passed = []
+for student in students:
+    if (score := student[&quot;score&quot;]) &gt;= 12:
+        passed.append((student[&quot;name&quot;], score))
+print(passed)
+</code></pre>
+<p>Скобки вокруг <code>score := ...</code> нужны, чтобы присваивание относилось только к баллу, а сравнение <code>&gt;= 12</code> шло уже с сохранённым числом.</p>
+<p>То же имя доступно в списковом включении:</p>
+<pre><code class="language-python">high = [student[&quot;name&quot;] for student in students if (score := student[&quot;score&quot;]) &gt;= 18]
+print(high)
+</code></pre>
+<p><strong>Практика 2.5.7.</strong> Пройдите <code>students</code> циклом <code>while</code> и остановитесь на первом балле меньше 12. Балл читайте моржовым оператором. Напечатайте имя этого слушателя и сам балл.</p>
+<p><strong>Критерий 2.5.7:</strong> <code>passed</code> содержит Анну, Бориса и Веру с баллами 18, 15 и 20. <code>high</code> равен <code>[&quot;Анна&quot;, &quot;Вера&quot;]</code>. Практика останавливается на Глебе и балле 11.</p>
+<hr />
+<h2>2.5.8. Самопроверка</h2>
 <p>В конце ноутбука ответьте в markdown:</p>
 <ol>
 <li>Чем <code>elif</code> отличается от второго отдельного <code>if</code>.</li>
 <li>Чем <code>continue</code> отличается от <code>break</code>.</li>
 <li>Почему у цикла <code>while</code> нужен шаг вроде <code>index += 1</code>.</li>
+<li>Когда достаточно тернарного оператора, а когда нужен <code>match</code>.</li>
+<li>Зачем в условии <code>if (score := student[&quot;score&quot;]) &gt;= 12</code> стоят скобки вокруг <code>:=</code>.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -149,7 +204,22 @@ print(comment(11, 1))
 </tr>
 <tr>
 <td>6</td>
-<td>Три ответа самопроверки</td>
+<td>Тернарный оператор делит баллы на зачёт и доработку</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>match</code> различает верх диапазона, зачёт, доработку и ошибку</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Моржовый оператор сохраняет балл и сразу сравнивает его с порогом</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Пять ответов самопроверки</td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -178,6 +248,14 @@ print(comment(11, 1))
 <tr>
 <td><code>break</code> не срабатывает</td>
 <td>Условие сравнивает строку с числом или смотрит не тот ключ словаря</td>
+</tr>
+<tr>
+<td>Балл 15 попадает в «верх диапазона»</td>
+<td>Ветка <code>18 | 19 | 20</code> стоит раньше общего условия <code>n &gt;= 12</code>, и 15 в неё не входит</td>
+</tr>
+<tr>
+<td><code>match</code> не запускается</td>
+<td>Нужен Python 3.10 или новее: <code>python --version</code></td>
 </tr>
 </tbody>
 </table>

@@ -11,8 +11,7 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.6 Отладка</h1>
-<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
-<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные и находить ошибку шагами отладчика, а не догадкой по <code>print</code>.</p>
+<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные, перехватывать ожидаемую ошибку через <code>try</code> / <code>except</code> / <code>else</code> и проверять условие оператором <code>assert</code>.</p>
 <p><strong>Опора:</strong> расширение <strong>Python</strong> и интерпретатор <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-2-6/</code>):</p>
 <table>
@@ -147,12 +146,46 @@ total / len(values)
 <p>Второе выражение показывает среднее, не меняя файл. Так проверяют догадку до правки кода.</p>
 <p><strong>Критерий 2.6.5:</strong> консоль на остановке печатает список из четырёх баллов и число <code>16.0</code>.</p>
 <hr />
-<h2>2.6.6. Самопроверка</h2>
+<h2>2.6.6. try, except и else</h2>
+<p><code>try</code> выполняет код, в котором ошибка ожидаема. <code>except</code> ловит конкретный тип ошибки. Ветка <code>else</code> выполняется только если исключения не было: в неё ставят действия, которые имеют смысл лишь после успешного разбора.</p>
+<p>Добавьте в ноутбук ячейку:</p>
+<pre><code class="language-python">def read_score(text: str) -&gt; int | None:
+    try:
+        score = int(text)
+    except ValueError:
+        print(&quot;не число:&quot;, text)
+        return None
+    else:
+        print(&quot;разобрано:&quot;, score)
+        return score
+
+for text in (&quot;18&quot;, &quot;нет&quot;, &quot;9&quot;):
+    read_score(text)
+</code></pre>
+<p>Строка <code>&quot;нет&quot;</code> не прерывает цикл: <code>int</code> выбрасывает <code>ValueError</code>, его забирает <code>except</code>. Для <code>&quot;18&quot;</code> и <code>&quot;9&quot;</code> печатается «разобрано».</p>
+<p><strong>Практика 2.6.6.</strong> Разберите список <code>[&quot;18&quot;, &quot;&quot;, &quot;15&quot;]</code>. Пустую строку поймайте тем же <code>except ValueError</code> и напечатайте <code>&quot;пустой балл&quot;</code>. Остальные значения верните числами.</p>
+<p><strong>Критерий 2.6.6:</strong> для <code>&quot;18&quot;</code> и <code>&quot;9&quot;</code> есть строка «разобрано», для <code>&quot;нет&quot;</code> — «не число», цикл доходит до конца. В практике пустая строка даёт «пустой балл», а не обрыв ячейки.</p>
+<hr />
+<h2>2.6.7. assert</h2>
+<p><code>assert</code> проверяет условие, которое в этом месте программы уже обязано быть истинным. Если оно ложно, Python поднимает <code>AssertionError</code> и показывает текст после запятой. Это проверка для разработчика, а не замена <code>if</code> при разборе данных пользователя.</p>
+<pre><code class="language-python">def average(values: list[int]) -&gt; float:
+    assert values, &quot;список оценок пуст&quot;
+    assert all(score &gt;= 0 for score in values), &quot;балл не может быть отрицательным&quot;
+    return sum(values) / len(values)
+
+print(average([18, 15, 20, 11]))
+</code></pre>
+<p>Пустой список или отрицательный балл останавливают функцию на <code>assert</code>, до деления выполнение не доходит. Такой сбой удобно ловить точкой останова на строке <code>assert</code>: в <strong>Variables</strong> видно <code>values</code>.</p>
+<p><strong>Практика 2.6.7.</strong> Вызовите <code>average([])</code> и <code>average([18, -1])</code> в отдельных ячейках. Для каждого вызова запишите в <code>lab26-debug.md</code> текст <code>AssertionError</code>. Затем поймайте отрицательный балл через <code>try</code> / <code>except AssertionError</code> и напечатайте <code>&quot;данные отклонены&quot;</code>.</p>
+<p><strong>Критерий 2.6.7:</strong> <code>average([18, 15, 20, 11])</code> печатает <code>16.0</code>. Пустой список и балл <code>-1</code> дают <code>AssertionError</code> с разными текстами. После <code>except</code> ячейка печатает «данные отклонены» и не обрывается.</p>
+<hr />
+<h2>2.6.8. Самопроверка</h2>
 <p>В <code>lab26-debug.md</code> ответьте:</p>
 <ol>
 <li>Чем Step Over отличается от Step Into.</li>
 <li>Зачем условная точка останова, если обычная уже останавливает программу.</li>
 <li>Почему выражение в Debug Console не заменяет исправление в файле.</li>
+<li>Когда выполняется ветка <code>else</code> у <code>try</code> и чем <code>assert</code> отличается от <code>if</code>.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -191,7 +224,17 @@ total / len(values)
 </tr>
 <tr>
 <td>6</td>
-<td>Три ответа в <code>lab26-debug.md</code></td>
+<td><code>read_score</code> разбирает числа и не падает на строке <code>&quot;нет&quot;</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>assert</code> останавливает пустой список и отрицательный балл</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Четыре ответа в <code>lab26-debug.md</code></td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -224,6 +267,14 @@ total / len(values)
 <tr>
 <td>После правки всё ещё старый результат</td>
 <td>Остановлен предыдущий сеанс: кнопка Stop, затем новый запуск</td>
+</tr>
+<tr>
+<td><code>except</code> не ловит ошибку</td>
+<td>В <code>except</code> указан другой тип: <code>int(&quot;нет&quot;)</code> даёт <code>ValueError</code>, не <code>TypeError</code></td>
+</tr>
+<tr>
+<td><code>assert</code> молчит при ложном условии</td>
+<td>Запуск с флагом <code>-O</code> отключает проверки <code>assert</code></td>
 </tr>
 </tbody>
 </table>
