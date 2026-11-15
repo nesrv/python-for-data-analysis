@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>2.4 Простое рисование графиков</title>
-  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="course.css?v=4">
 </head>
 <body>
   <article class="doc">
@@ -70,6 +70,8 @@ plt.show()
 <p><code>subplots()</code> возвращает фигуру и оси. Рисовать лучше на <code>ax</code>, а не смешивать вызовы <code>plt.plot</code> и <code>ax.plot</code> в одном рисунке.</p>
 <p><strong>Практика 2.4.1.</strong> Добавьте маркер точек: <code>ax.plot(days, values, marker="o")</code>. Выполните ячейку ещё раз.</p>
 <p><strong>Критерий 2.4.1:</strong> под ячейкой видна ломаная из пяти точек, папка <code>module-2-4/figures</code> создана.</p>
+<p>Так выглядит линия с маркерами:</p>
+<p><img alt="Ломаная из пяти точек" src="assets/module-2-4/line-markers.png" /></p>
 <hr />
 <h2>2.4.2. Подписи и сохранение</h2>
 <p>Подпись без единиц измерения на занятии не принимают: по рисунку должно быть понятно, что отложено по осям.</p>
@@ -90,6 +92,8 @@ print(line_path.resolve(), &quot;байт:&quot;, line_path.stat().st_size)
 </code></pre>
 <p><code>figsize</code> задаёт размер в дюймах. <code>tight_layout()</code> поджимает поля, чтобы подпись оси не обрезалась. <code>dpi=120</code> задаёт чёткость файла.</p>
 <p><strong>Критерий 2.4.2:</strong> файл <code>figures/line.png</code> открывается в VS Code, на нём есть заголовок и подписи обеих осей.</p>
+<p>Образец <code>line.png</code>:</p>
+<p><img alt="Линейный график с подписями осей" src="assets/module-2-4/line.png" /></p>
 <hr />
 <h2>2.4.3. Столбчатая диаграмма</h2>
 <p>Для категорий по горизонтальной оси удобны столбцы. Данные можно задать прямо в ноутбуке: загрузка CSV разбирается в разделе 3.1.</p>
@@ -122,6 +126,8 @@ fig.savefig(bar_path, dpi=120)
 plt.show()
 </code></pre>
 <p><strong>Критерий 2.4.3:</strong> на <code>bar.png</code> четыре столбца, подписи — имена, над столбцами числа 18, 15, 20 и 11.</p>
+<p>Образец <code>bar.png</code>:</p>
+<p><img alt="Столбчатая диаграмма баллов" src="assets/module-2-4/bar.png" /></p>
 <hr />
 <h2>2.4.4. Рассеяние и легенда</h2>
 <p>Диаграмма рассеяния показывает пары чисел без линии между ними. Два ряда на одних осях различают цветом и подписью в легенде.</p>
@@ -154,6 +160,8 @@ plt.show()
 </code></pre>
 <p>Эту ячейку выполняйте после ячейки с <code>scatter</code>, не перезапуская ядро между ними: переменные <code>ax</code> и <code>fig</code> должны остаться в памяти. Надёжнее вставить <code>plot</code> в ту же ячейку перед <code>savefig</code>.</p>
 <p><strong>Критерий 2.4.4:</strong> на рисунке две серии точек и чёрная линия, в легенде три подписи.</p>
+<p>Образец <code>scatter.png</code>:</p>
+<p><img alt="Диаграмма рассеяния и линия среднего" src="assets/module-2-4/scatter.png" /></p>
 <hr />
 <h2>2.4.5. Два графика на одной фигуре</h2>
 <p><code>subplots(1, 2)</code> создаёт одну фигуру и два набора осей рядом. Так сравнивают одни и те же баллы столбцами и линией.</p>
@@ -171,6 +179,8 @@ plt.show()
 </code></pre>
 <p><strong>Практика 2.4.5.</strong> В markdown одним предложением ответьте, какой из двух графиков уместнее для имён людей и почему линия между «Анной» и «Борисом» может ввести в заблуждение.</p>
 <p><strong>Критерий 2.4.5:</strong> файл <code>figures/pair.png</code> содержит два рисунка с заголовками «столбцы» и «линия».</p>
+<p>Образец <code>pair.png</code>:</p>
+<p><img alt="Столбцы и линия на одной фигуре" src="assets/module-2-4/pair.png" /></p>
 <hr />
 <h2>2.4.6. Самопроверка</h2>
 <p>В конце ноутбука ответьте в markdown:</p>
