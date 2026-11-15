@@ -1,59 +1,78 @@
 # Модуль 1. Введение и настройка рабочей среды
 
-**Цель:** подготовить удобную среду для курса: Python в изолированном окружении, **IPython**, **Jupyter** в редакторе **Visual Studio Code**.
+**Объём занятия:** 2 академических часа (~120 минут) **активной практики** в Visual Studio Code.
+
+**Цель:** каждый слушатель сам настраивает окружение курса: виртуальное окружение Python, IPython, Jupyter (ноутбуки в VS Code) и сдаёт минимальный набор артефактов.
+
+**Итоговые артефакты** (в папке `module-1/` в корне проекта):
+
+| Файл | Назначение |
+|------|------------|
+| `practice-env-check.txt` | Текстовый отчёт о версиях и пути к интерпретатору |
+| `practice-ipython-log.txt` | Сохранённый вывод сессии IPython |
+| `lab01-environment.ipynb` | Ноутбук с выполненными ячейками и markdown-описанием среды |
+
+Преподаватель проверяет наличие файлов и корректность путей (интерпретатор из `.venv`).
+
+При работе на удалённом АРМ (см. `help.md` в корне курса) шаги те же; терминал — **Терминал** → **Создать терминал** (`Ctrl+``).
 
 ---
 
-## 1. Что установить заранее
+## Подготовка
 
-1. **Python 3.10+** с [python.org](https://www.python.org/downloads/) (при установке отметьте **Add Python to PATH**).
-2. **Visual Studio Code** с [code.visualstudio.com](https://code.visualstudio.com/).
+### Что должно быть установлено
 
-Проверка в терминале VS Code (`Терминал` → `Создать терминал` или `` Ctrl+` ``):
+1. **Python 3.10+** — [python.org/downloads](https://www.python.org/downloads/) (галочка **Add Python to PATH**).
+2. **Visual Studio Code** — [code.visualstudio.com](https://code.visualstudio.com/).
+
+**Практика 0.1**: откройте VS Code, терминал, выполните:
 
 ```powershell
 python --version
 ```
 
-Должна отобразиться версия Python 3.x.
+Зафиксируйте версию — она попадёт в `practice-env-check.txt`.
+
+### Расширения VS Code
+
+`Ctrl+Shift+X`, установить:
+
+- **Python** (Microsoft)
+- **Jupyter** (Microsoft)
+
+Перезапустите VS Code при необходимости.
+
+**Практика 0.2**: **Файл** → **Открыть папку** → каталог курса (например `IT-cloud`). Создайте подпапку `module-1`, если её ещё нет. В проводнике слева должны быть видны `program.md`, `module-1` и т.д.
+
+**Практика 0.3**: в терминале VS Code:
+
+```powershell
+code --version
+```
+
+Если команда не найдена — это не критично; главное, что редактор открыт с нужной папкой.
 
 ---
 
-## 2. Расширения VS Code для Python и Jupyter
+## Блок A. Виртуальное окружение
 
-1. Откройте панель расширений: `Ctrl+Shift+X`.
-2. Установите:
-   - **Python** (Microsoft) — подсветка, отладка, выбор интерпретатора.
-   - **Jupyter** (Microsoft) — открытие и запуск `.ipynb` прямо в VS Code.
+Виртуальное окружение изолирует пакеты курса от системного Python.
 
-После установки перезапустите VS Code, если редактор это предложит.
+### Теория (устно)
 
----
+Один проект — своё окружение в `.venv`. VS Code должен использовать **этот** `python.exe` и в терминале, и в ноутбуках.
 
-## 3. Рабочая папка и открытие проекта
+### Практика A.1 — создание окружения
 
-1. Создайте папку для курса (например `IT-cloud`).
-2. В VS Code: **Файл** → **Открыть папку** → выберите эту папку.
-
-Так вы получите единый корень проекта: терминал по умолчанию откроется в нём, пути к файлам будут короткими.
-
----
-
-## 4. Создание виртуального окружения Python
-
-Виртуальное окружение изолирует библиотеки курса от системного Python.
-
-### Через встроенный терминал VS Code
-
-В корне проекта выполните (Windows PowerShell):
+В терминале VS Code (корень проекта):
 
 ```powershell
 python -m venv .venv
 ```
 
-Появится папка `.venv` с копией интерпретатора и местом для пакетов.
+Убедитесь, что появилась папка `.venv` (её можно скрыть в `.gitignore` позже).
 
-### Активация окружения
+### Практика A.2 — активация
 
 **PowerShell:**
 
@@ -61,128 +80,300 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Если PowerShell запрещает скрипты, один раз для текущего пользователя можно разрешить выполнение:
+Префикс `(.venv)` в начале строки — признак успеха.
+
+Если ошибка политики выполнения:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-**Командная строка cmd:**
+Повторите активацию. Альтернатива — **cmd**: `.venv\Scripts\activate.bat`.
 
-```cmd
-.venv\Scripts\activate.bat
+### Практика A.3 — интерпретатор в VS Code
+
+1. `Ctrl+Shift+P` → **Python: Select Interpreter**.
+2. Выбрать `./.venv/Scripts/python.exe` (**Recommended**).
+
+В статусной строке внизу отображается выбранный Python.
+
+### Практика A.4 — отчёт `practice-env-check.txt`
+
+С **активным** `.venv` выполните и **сохраните полный вывод** в файл `module-1/practice-env-check.txt`:
+
+```powershell
+python --version
+python -c "import sys; print(sys.executable)"
+where python
+pip --version
 ```
 
-В начале строки терминала появится префикс `(.venv)` — значит, окружение активно.
+**Критерий приёмки A:** в файле путь к `python.exe` содержит `\IT-cloud\.venv\` (или ваш корень проекта + `\.venv\`).
 
-### Привязка интерпретатора в VS Code
+### Самопроверка A
 
-1. `Ctrl+Shift+P` → команда **Python: Select Interpreter**.
-2. Выберите `./.venv/Scripts/python.exe` (или пункт с пометкой **Recommended**).
+Откройте новый терминал (`+` на панели терминала). Если префикса `(.venv)` нет — снова активируйте окружение. Запустите:
 
-В статусной строке внизу будет отображаться выбранный Python — удобно проверять, что используется именно venv.
+```powershell
+python -c "print('venv ok')"
+```
 
 ---
 
-## 5. Установка IPython
+## Блок B. IPython
 
-С **активированным** `.venv` в терминале:
+IPython — улучшенная интерактивная оболочка: подсказки, история, магические команды.
+
+### Практика B.1 — установка
 
 ```powershell
 python -m pip install --upgrade pip
 pip install ipython
-```
-
-Проверка:
-
-```powershell
 ipython --version
 ```
 
-Запуск интерактивной оболочки:
+Добавьте строку с версией IPython в конец `practice-env-check.txt`.
+
+### Практика B.2 — сессия в терминале
 
 ```powershell
 ipython
 ```
 
-Выход: `exit` или `Ctrl+D`.
+Внутри IPython выполните **по порядку** (фиксируйте вывод для файла `practice-ipython-log.txt`):
 
-**В VS Code:** после выбора интерпретатора `.venv` команда **Python: Start REPL** (`Ctrl+Shift+P`) открывает REPL с тем же Python; для полноценного IPython удобнее запускать `ipython` из терминала.
+```python
+2 ** 10
+name = "course"
+name.upper()
+```
+
+Магические команды:
+
+```python
+%who
+%timeit sum(range(1000))
+```
+
+Подсказка по объекту:
+
+```python
+len?
+```
+
+Выйти: `exit` или `Ctrl+D`.
+
+**Практика B.3 — сохранить лог**
+
+В PowerShell удобно один раз перезаписать лог так (из корня проекта, `.venv` активен):
+
+```powershell
+ipython -c "print(2**10); name='course'; print(name.upper());" | Out-File -Encoding utf8 module-1\practice-ipython-log.txt
+```
+
+Затем **допишите вручную** в тот же файл две строки вывода из интерактива: результат `%timeit ...` и фрагмент справки `len?` (скопируйте из терминала).
+
+**Критерий приёмки B:** в логе есть `1024`, `COURSE`, замер `timeit`.
+
+### Дополнительно в VS Code
+
+`Ctrl+Shift+P` → **Python: Start REPL** — обычный REPL выбранного интерпретатора; для полного IPython надёжнее команда `ipython` в терминале.
 
 ---
 
-## 6. Установка и настройка Jupyter Notebooks
+## Блок C. Jupyter в VS Code
 
-### Установка пакетов
-
-В активированном окружении:
+### Практика C.1 — пакеты
 
 ```powershell
 pip install notebook jupyterlab ipykernel
+jupyter --version
 ```
 
-`ipykernel` регистрирует ваше окружение как «ядро» для Jupyter.
+Кратко зафиксируйте вывод `jupyter --version` в `practice-env-check.txt`.
 
-### Регистрация ядра для текущего venv (по желанию)
-
-Если нужно явное имя ядра в списке VS Code:
+Опционально — понятное имя ядра:
 
 ```powershell
 python -m ipykernel install --user --name=it-cloud --display-name "Python (IT-cloud)"
 ```
 
-Дальше в Jupyter в VS Code можно выбрать ядро **Python (IT-cloud)**.
+### Практика C.2 — ноутбук `lab01-environment.ipynb`
 
-### Работа с `.ipynb` в VS Code
+1. **Файл** → **Новый файл** → сохранить как `module-1/lab01-environment.ipynb`.
+2. Вверху справа выбрать ядро: `./.venv/.../python.exe` или **Python (IT-cloud)**.
 
-1. Создайте файл, например `module-1/demo.ipynb` (**Файл** → **Новый файл** → сохраните с расширением `.ipynb`).
-2. Откройте его — откроется встроенный редактор ноутбуков.
-3. В правом верхнем углу выберите **ядро**: интерпретатор из `.venv` (или созданное выше ядро **Python (IT-cloud)**).
-4. Добавьте ячейку кода (`+ Code`), наберите, например:
+**Ячейка Markdown (первая):** заголовок «Модуль 1. Моя среда», ФИО, дата.
+
+**Ячейка кода 1:**
 
 ```python
 import sys
-print(sys.executable)
+import platform
+print("executable:", sys.executable)
+print("platform:", platform.platform())
+print("python:", sys.version.split()[0])
 ```
 
-Нажмите **Run** у ячейки или `Shift+Enter`. В выводе должен быть путь к `python.exe` внутри `.venv`.
+Выполнить: **Run** или `Shift+Enter`.
 
-### Запуск классического Jupyter в браузере (альтернатива)
+**Ячейка кода 2:**
 
-Из терминала с активным `.venv`:
+```python
+# Арифметика и типы — проверка, что ядро живое
+a, b = 14, 3
+print("деление:", a / b, "остаток:", a % b)
+type(a / b), type(a % b)
+```
+
+**Ячейка кода 3:**
+
+```python
+import IPython
+print("IPython", IPython.__version__)
+```
+
+**Ячейка Markdown (итог):** одно предложение: «Интерпретатор из .venv: да/нет» — по фактическому пути из ячейки 1.
+
+**Критерий приёмки C:** ноутбук сохранён, у всех ячеек кода есть вывод; `sys.executable` указывает на `.venv`.
+
+### Практика C.3 — работа с ячейками
+
+- Добавить ячейку **сверху** (Markdown): оглавление из 3 пунктов.
+- Изменить числа в ячейке 2, **перезапустить только эту ячейку**.
+- **Restart Kernel** и **Run All** — убедиться, что вывод воспроизводится.
+
+### Практика C.4 — Jupyter в браузере (демо или по желанию)
 
 ```powershell
 jupyter lab
 ```
 
-или
+Открыть созданный `lab01-environment.ipynb`, выполнить одну ячейку, закрыть вкладку. Остановить сервер в терминале: `Ctrl+C`, подтвердить завершение.
 
-```powershell
-jupyter notebook
+На занятии **основной режим — Jupyter в VS Code**; браузер — запасной вариант.
+
+---
+
+## Блок D. Самостоятельное мини-задание
+
+**Задание D1.** В том же `lab01-environment.ipynb` добавьте ячейку кода:
+
+```python
+def env_summary():
+    import sys, os
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__) if "__file__" in dir() else ".", ".."))
+    # в ноутбуке __file__ часто отсутствует — используем текущую директорию:
+    cwd = os.getcwd()
+    in_venv = ".venv" in sys.executable.replace("/", "\\")
+    return {
+        "cwd": cwd,
+        "executable": sys.executable,
+        "in_venv": in_venv,
+    }
+
+env_summary()
 ```
 
-Браузер откроется сам; работа ведётся в веб-интерфейсе. В курсе достаточно **режима VS Code**, если не сказано иначе.
+Если `__file__` вызывает путаницу — упростите до:
+
+```python
+import sys, os
+{
+    "cwd": os.getcwd(),
+    "executable": sys.executable,
+    "in_venv": ".venv" in sys.executable,
+}
+```
+
+**Задание D2.** Markdown-ячейка: ответьте (2–3 предложения), зачем изолировать пакеты в venv при работе над несколькими проектами.
+
+**Задание D3.** Создайте файл `module-1/hello.py`:
+
+```python
+def main():
+    print("Hello from module-1")
+
+if __name__ == "__main__":
+    main()
+```
+
+Запуск из терминала (`.venv` активен):
+
+```powershell
+python module-1\hello.py
+```
+
+**Критерий приёмки D:** `in_venv` в выводе — `True`; скрипт печатает приветствие.
+
+### Типовые проблемы (разбор по ходу блока D)
+
+| Симптом | Действие |
+|---------|----------|
+| Не то ядро в ноутбуке | Клик по имени ядра вверху → `./.venv/.../python.exe` |
+| `pip` ставит не в venv | Проверить `(.venv)`; `python -m pip install ...` |
+| `Activate.ps1` не выполняется | `Set-ExecutionPolicy` или cmd + `activate.bat` |
+| `python` не найден | `py -3 --version`; переустановка с PATH |
+| После Restart Kernel пустой вывод | **Run All** |
 
 ---
 
-## 7. Краткий чеклист
+## Завершение занятия
 
-| Шаг | Действие |
-|-----|----------|
-| 1 | Установлены Python и VS Code |
-| 2 | Установлены расширения **Python** и **Jupyter** |
-| 3 | Открыта папка проекта в VS Code |
-| 4 | Создано окружение `python -m venv .venv` |
-| 5 | Активировано окружение, выбран интерпретатор в VS Code |
-| 6 | Выполнено `pip install ipython notebook jupyterlab ipykernel` |
-| 7 | Создан тестовый `.ipynb`, ядро — из `.venv`, ячейка выполняется |
+### Итоговый чеклист слушателя
+
+| № | Действие | Готово |
+|---|----------|--------|
+| 1 | Python и VS Code, расширения Python + Jupyter | ☐ |
+| 2 | Папка курса открыта в VS Code | ☐ |
+| 3 | `.venv` создано и активируется | ☐ |
+| 4 | Интерпретатор VS Code = `.venv\Scripts\python.exe` | ☐ |
+| 5 | IPython установлен, есть `practice-ipython-log.txt` | ☐ |
+| 6 | Jupyter-пакеты установлены | ☐ |
+| 7 | `lab01-environment.ipynb` с выводом всех ячеек | ☐ |
+| 8 | `practice-env-check.txt` с версиями и путями | ☐ |
+| 9 | `hello.py` запускается из терминала | ☐ |
+
+### Чеклист преподавателя
+
+- Обойти 2–3 рабочих места: путь в `sys.executable` — из `.venv`.
+- Попросить одного слушателя показать **Select Interpreter** и выбор ядра в ноутбуке.
+- Убедиться, что артефакты лежат в **своей** папке/репозитории слушателя, а не скопированы.
 
 ---
 
-## 8. Типичные проблемы
+## Справочник команд (кратко)
 
-- **В VS Code не то ядро в ноутбуке** — нажмите на название ядра вверху ноутбука и выберите `./.venv/.../python.exe`.
-- **`Activate.ps1` не выполняется** — см. раздел про `Set-ExecutionPolicy` или используйте cmd.
-- **`python` не найден** — переустановите Python с опцией PATH или укажите полный путь к `py -3`.
+Создание и активация venv:
 
-После успешной проверки чеклиста рабочая среда для дальнейших модулей готова.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Установка инструментов модуля:
+
+```powershell
+python -m pip install --upgrade pip
+pip install ipython notebook jupyterlab ipykernel
+```
+
+Проверки:
+
+```powershell
+python --version
+ipython --version
+jupyter --version
+```
+
+Ноутбук: создать `module-1/lab01-environment.ipynb` в VS Code, ядро из `.venv`.
+
+---
+
+## Домашняя доработка (если не уложились в 2 часа)
+
+1. Добавить в `module-1/` файл `.gitignore` со строками `.venv/` и `__pycache__/`.
+2. Установить расширение **Python Environment Manager** (по желанию) и сравнить список окружений с ручной настройкой.
+3. В IPython прочитать справку: `help("modules")` — одна строка в `practice-ipython-log.txt`.
+
+После выполнения чеклиста рабочая среда готова для **Модуля 2. Основы Python**.
