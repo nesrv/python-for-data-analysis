@@ -11,26 +11,252 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.4 Простое рисование графиков</h1>
-    <pre><code class="language-python">import matplotlib.pyplot as plt
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> построить линейный график, столбчатую диаграмму и диаграмму рассеяния в matplotlib, подписать оси и сохранить рисунок в файл.</p>
+<p><strong>Опора:</strong> окружение <code>.venv</code> и ноутбуки из модуля 1. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-4/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lab24-plots.ipynb</code></td>
+<td>Ноутбук со всеми графиками и сохранённым выводом</td>
+</tr>
+<tr>
+<td><code>figures/line.png</code></td>
+<td>Линейный график</td>
+</tr>
+<tr>
+<td><code>figures/bar.png</code></td>
+<td>Столбчатая диаграмма</td>
+</tr>
+<tr>
+<td><code>figures/scatter.png</code></td>
+<td>Диаграмма рассеяния с двумя рядами</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Подготовка</h2>
+<p>В активированном <code>.venv</code> установите библиотеку, если её ещё нет:</p>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+python -m pip install matplotlib
+</code></pre>
+<p>Создайте ноутбук <code>module-2-4/lab24-plots.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.4 Простое рисование графиков».</p>
+<p>Пути к картинкам заданы от корня курса. Если <code>Path.cwd()</code> — папка <code>module-2-4</code>, уберите префикс <code>module-2-4/</code> у путей к <code>figures</code>.</p>
+<p>В VS Code график появляется под ячейкой после <code>plt.show()</code> или если ячейка заканчивается объектом рисунка. Файл на диске появляется только после <code>savefig</code>.</p>
+<hr />
+<h2>2.4.1. Первая линия</h2>
+<p><code>pyplot</code> рисует на текущих осях. Точки соединяются в том порядке, в каком они перечислены.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import matplotlib.pyplot as plt
 from pathlib import Path
 
-names = [row[&quot;name&quot;] for row in loaded]
-scores = [int(row[&quot;score&quot;]) for row in loaded]
+figures = Path(&quot;module-2-4&quot;) / &quot;figures&quot;
+figures.mkdir(parents=True, exist_ok=True)
+
+days = [1, 2, 3, 4, 5]
+values = [3, 5, 4, 7, 6]
+
+fig, ax = plt.subplots()
+ax.plot(days, values)
+plt.show()
+</code></pre>
+<p><code>subplots()</code> возвращает фигуру и оси. Рисовать лучше на <code>ax</code>, а не смешивать вызовы <code>plt.plot</code> и <code>ax.plot</code> в одном рисунке.</p>
+<p><strong>Практика 2.4.1.</strong> Добавьте маркер точек: <code>ax.plot(days, values, marker="o")</code>. Выполните ячейку ещё раз.</p>
+<p><strong>Критерий 2.4.1:</strong> под ячейкой видна ломаная из пяти точек, папка <code>module-2-4/figures</code> создана.</p>
+<hr />
+<h2>2.4.2. Подписи и сохранение</h2>
+<p>Подпись без единиц измерения на занятии не принимают: по рисунку должно быть понятно, что отложено по осям.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(days, values, marker=&quot;o&quot;, color=&quot;#2F6FED&quot;)
+ax.set_title(&quot;Значения по дням&quot;)
+ax.set_xlabel(&quot;день&quot;)
+ax.set_ylabel(&quot;значение&quot;)
+ax.set_xticks(days)
+ax.grid(True, axis=&quot;y&quot;, alpha=0.3)
+fig.tight_layout()
+
+line_path = figures / &quot;line.png&quot;
+fig.savefig(line_path, dpi=120)
+plt.show()
+print(line_path.resolve(), &quot;байт:&quot;, line_path.stat().st_size)
+</code></pre>
+<p><code>figsize</code> задаёт размер в дюймах. <code>tight_layout()</code> поджимает поля, чтобы подпись оси не обрезалась. <code>dpi=120</code> задаёт чёткость файла.</p>
+<p><strong>Критерий 2.4.2:</strong> файл <code>figures/line.png</code> открывается в VS Code, на нём есть заголовок и подписи обеих осей.</p>
+<hr />
+<h2>2.4.3. Столбчатая диаграмма</h2>
+<p>Для категорий по горизонтальной оси удобны столбцы. Данные можно задать прямо в ноутбуке: загрузка CSV разбирается в разделе 3.1.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">names = [&quot;Анна&quot;, &quot;Борис&quot;, &quot;Вера&quot;, &quot;Глеб&quot;]
+scores = [18, 15, 20, 11]
 
 fig, ax = plt.subplots(figsize=(6, 3))
 ax.bar(names, scores, color=&quot;#2F6FED&quot;)
 ax.set_title(&quot;Баллы&quot;)
-ax.set_ylabel(&quot;score&quot;)
+ax.set_ylabel(&quot;балл&quot;)
+ax.set_ylim(0, 24)
 fig.tight_layout()
 
-fig_path = Path(&quot;module-2/figures/simple.png&quot;)
-fig_path.parent.mkdir(parents=True, exist_ok=True)
-fig.savefig(fig_path, dpi=120)
+bar_path = figures / &quot;bar.png&quot;
+fig.savefig(bar_path, dpi=120)
 plt.show()
-print(&quot;график:&quot;, fig_path.resolve())</code></pre>
-<p>В VS Code график появляется под ячейкой. Файл <code>simple.png</code> нужен как артефакт.</p>
-<p><strong>Критерий D:</strong> три столбца, подписи — имена из CSV, файл сохранён.</p>
-<hr>
+</code></pre>
+<p><code>set_ylim</code> оставляет запас над самым высоким столбцом, иначе подпись значения легко упирается в край.</p>
+<p><strong>Практика 2.4.3.</strong> Над каждым столбцом подпишите балл. Координата по вертикали — сам балл, по горизонтали — позиция столбца.</p>
+<pre><code class="language-python">fig, ax = plt.subplots(figsize=(6, 3))
+bars = ax.bar(names, scores, color=&quot;#2F6FED&quot;)
+ax.set_title(&quot;Баллы&quot;)
+ax.set_ylabel(&quot;балл&quot;)
+ax.set_ylim(0, 24)
+for bar, score in zip(bars, scores):
+    ax.text(bar.get_x() + bar.get_width() / 2, score + 0.4, str(score), ha=&quot;center&quot;)
+fig.tight_layout()
+fig.savefig(bar_path, dpi=120)
+plt.show()
+</code></pre>
+<p><strong>Критерий 2.4.3:</strong> на <code>bar.png</code> четыре столбца, подписи — имена, над столбцами числа 18, 15, 20 и 11.</p>
+<hr />
+<h2>2.4.4. Рассеяние и легенда</h2>
+<p>Диаграмма рассеяния показывает пары чисел без линии между ними. Два ряда на одних осях различают цветом и подписью в легенде.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">hours = [1, 2, 3, 4, 5, 6]
+group_a = [2, 3, 4, 4, 6, 7]
+group_b = [1, 2, 2, 3, 3, 5]
+
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.scatter(hours, group_a, label=&quot;группа A&quot;)
+ax.scatter(hours, group_b, label=&quot;группа B&quot;, marker=&quot;s&quot;)
+ax.set_title(&quot;Часы и результат&quot;)
+ax.set_xlabel(&quot;часы&quot;)
+ax.set_ylabel(&quot;результат&quot;)
+ax.legend()
+ax.grid(True, alpha=0.3)
+fig.tight_layout()
+
+scatter_path = figures / &quot;scatter.png&quot;
+fig.savefig(scatter_path, dpi=120)
+plt.show()
+</code></pre>
+<p>Аргумент <code>label</code> сам по себе текст на рисунок не выводит. Его показывает <code>ax.legend()</code>.</p>
+<p><strong>Практика 2.4.4.</strong> Добавьте на те же оси линию среднего ряда: для каждого часа среднее групп A и B. У линии должна быть подпись «среднее». Сохраните файл ещё раз.</p>
+<pre><code class="language-python">mean_row = [(a + b) / 2 for a, b in zip(group_a, group_b)]
+ax.plot(hours, mean_row, color=&quot;black&quot;, label=&quot;среднее&quot;)
+ax.legend()
+fig.savefig(scatter_path, dpi=120)
+plt.show()
+</code></pre>
+<p>Эту ячейку выполняйте после ячейки с <code>scatter</code>, не перезапуская ядро между ними: переменные <code>ax</code> и <code>fig</code> должны остаться в памяти. Надёжнее вставить <code>plot</code> в ту же ячейку перед <code>savefig</code>.</p>
+<p><strong>Критерий 2.4.4:</strong> на рисунке две серии точек и чёрная линия, в легенде три подписи.</p>
+<hr />
+<h2>2.4.5. Два графика на одной фигуре</h2>
+<p><code>subplots(1, 2)</code> создаёт одну фигуру и два набора осей рядом. Так сравнивают одни и те же баллы столбцами и линией.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">fig, axes = plt.subplots(1, 2, figsize=(8, 3))
+axes[0].bar(names, scores, color=&quot;#2F6FED&quot;)
+axes[0].set_title(&quot;столбцы&quot;)
+axes[1].plot(names, scores, marker=&quot;o&quot;, color=&quot;#C43E3E&quot;)
+axes[1].set_title(&quot;линия&quot;)
+for axis in axes:
+    axis.set_ylabel(&quot;балл&quot;)
+fig.tight_layout()
+fig.savefig(figures / &quot;pair.png&quot;, dpi=120)
+plt.show()
+</code></pre>
+<p><strong>Практика 2.4.5.</strong> В markdown одним предложением ответьте, какой из двух графиков уместнее для имён людей и почему линия между «Анной» и «Борисом» может ввести в заблуждение.</p>
+<p><strong>Критерий 2.4.5:</strong> файл <code>figures/pair.png</code> содержит два рисунка с заголовками «столбцы» и «линия».</p>
+<hr />
+<h2>2.4.6. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
+<ol>
+<li>Зачем вызывать <code>savefig</code>, если график уже виден под ячейкой.</li>
+<li>Чем <code>ax.bar</code> отличается от <code>ax.plot</code> для списка имён.</li>
+<li>Почему подпись ряда не появляется, пока не вызван <code>legend</code>.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Установлен matplotlib, ядро ноутбука — <code>.venv</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>figures/line.png</code> с подписями осей</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>figures/bar.png</code>: четыре столбца и числа над ними</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>figures/scatter.png</code>: две серии и линия среднего, легенда на месте</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>figures/pair.png</code>: столбцы и линия рядом</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Три ответа самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>No module named matplotlib</code></td>
+<td><code>python -m pip install matplotlib</code> в <code>.venv</code>, ядро ноутбука переключено на этот интерпретатор</td>
+</tr>
+<tr>
+<td>Под ячейкой пусто</td>
+<td>В ячейке есть <code>plt.show()</code> и числа в списках не пустые</td>
+</tr>
+<tr>
+<td>Подпись оси обрезана</td>
+<td>Перед <code>savefig</code> вызван <code>fig.tight_layout()</code></td>
+</tr>
+<tr>
+<td>В легенде нет подписи</td>
+<td>У ряда указан <code>label</code>, затем вызван <code>ax.legend()</code></td>
+</tr>
+<tr>
+<td>Картинка сохранилась не в <code>module-2-4/figures</code></td>
+<td>Сверить <code>Path.cwd()</code> с префиксом пути</td>
+</tr>
+<tr>
+<td>Кириллица на графике квадратиками</td>
+<td>Шрифт matplotlib не содержит кириллицу; для занятия достаточно подписей, которые уже отображаются в VS Code. Если квадратики есть, задайте шрифт: <code>plt.rcParams["font.family"] = "Segoe UI"</code> и выполните ячейку снова</td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель строит три типа графика по спискам чисел, подписывает оси и сохраняет рисунок в PNG.</p>
   </article>
 </body>
 </html>
