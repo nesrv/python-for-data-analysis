@@ -1,6 +1,6 @@
 # 2.3. Чтение и запись данных
 
-**Цель:** читать и записывать текст, CSV и JSON через `pathlib`, не терять кодировку и закрывать файлы через `with`.
+**Цель:** читать и записывать текст методами файлового объекта, сохранять данные в JSON и pickle, не терять кодировку и закрывать файлы через `with`. Загрузка CSV вынесена в раздел 3.1.
 
 **Опора:** окружение `.venv` и ноутбуки из модуля 1. Ядро Jupyter — `./.venv/Scripts/python.exe`. Рабочая папка VS Code — корень курса.
 
@@ -10,9 +10,9 @@
 |------|------------|
 | `lab23-io.ipynb` | Ноутбук со всеми разделами и сохранённым выводом |
 | `data/notes.txt` | Текстовый файл, записанный из Python |
-| `data/notes.csv` | Таблица оценок |
-| `data/summary.txt` | Сводка, посчитанная по CSV |
-| `data/group.json` | Те же данные в JSON |
+| `data/lines.txt` | Файл, собранный через `write` и `print` |
+| `data/group.json` | Словарь с оценками в JSON |
+| `data/group.pickle` | Тот же словарь в формате pickle |
 
 ---
 
@@ -134,51 +134,59 @@ except FileExistsError as error:
 
 ---
 
-## 2.3.4. CSV
+## 2.3.4. read, readline, readlines, write и print
 
-CSV — текст, в котором поля разделены запятой, а первая строка часто содержит имена столбцов. Модуль `csv` учитывает кавычки и перевод строки внутри поля. В Windows при записи передают `newline=""`, иначе между строками появляется лишняя пустая строка.
+У открытого текстового файла есть методы чтения и записи. `write` и `print` сами перевод строки не подставляют одинаково: `write` пишет ровно переданную строку, `print` по умолчанию добавляет `\n` в конец.
 
 **Ячейка — запись:**
 
 ```python
-import csv
-
-table = data_dir / "notes.csv"
-rows = [
-    {"name": "Анна", "score": 18},
-    {"name": "Борис", "score": 15},
-    {"name": "Вера", "score": 20},
-    {"name": "Глеб", "score": 11},
-]
-with table.open("w", encoding="utf-8", newline="") as file:
-    writer = csv.DictWriter(file, fieldnames=["name", "score"])
-    writer.writeheader()
-    writer.writerows(rows)
-print(table.read_text(encoding="utf-8"))
+lines_path = data_dir / "lines.txt"
+with lines_path.open("w", encoding="utf-8") as file:
+    file.write("первая\n")
+    file.write("вторая\n")
+    print("третья", file=file)
 ```
 
-**Ячейка — чтение и сводка:**
+`print(..., file=file)` направляет текст в файл, а не в ячейку ноутбука.
+
+**Ячейка — три способа прочитать:**
 
 ```python
-with table.open(encoding="utf-8", newline="") as file:
-    loaded = list(csv.DictReader(file))
+with lines_path.open(encoding="utf-8") as file:
+    whole = file.read()
+print("read:", repr(whole))
 
-scores = [int(row["score"]) for row in loaded]
-lines = [
-    f"записей: {len(loaded)}",
-    f"сумма баллов: {sum(scores)}",
-    f"максимум: {max(scores)}",
-]
-summary = data_dir / "summary.txt"
-summary.write_text("\n".join(lines) + "\n", encoding="utf-8")
-print(summary.read_text(encoding="utf-8"))
+with lines_path.open(encoding="utf-8") as file:
+    first = file.readline()
+    second = file.readline()
+print("readline:", repr(first), repr(second))
+
+with lines_path.open(encoding="utf-8") as file:
+    rows = file.readlines()
+print("readlines:", rows, "строк:", len(rows))
 ```
 
-`DictReader` отдаёт каждую строку словарём. Числа из CSV приходят строками, поэтому балл переводят через `int`.
+`read` возвращает весь оставшийся текст одной строкой. `readline` — одну строку вместе с `\n` в конце; пустая строка `""` означает конец файла. `readlines` — список всех строк, тоже с `\n`. После `read` указатель стоит в конце: повторный `read` в том же `with` вернёт `""`. Поэтому каждый пример открывает файл заново.
 
-**Практика 2.3.4.** Допишите в сводку строку `сдавших: N`, где N — число баллов `>= 12`.
+**Практика 2.3.4.** Допишите в `lines.txt` строку `четвёртая` через `print` в режиме `"a"`. Прочитайте файл через `readline` в цикле, пока строка не пустая, и напечатайте число строк без символа перевода строки (`strip`).
 
-**Критерий 2.3.4:** сумма баллов **64**, максимум **20**, сдавших **3**.
+```python
+with lines_path.open("a", encoding="utf-8") as file:
+    print("четвёртая", file=file)
+
+count = 0
+with lines_path.open(encoding="utf-8") as file:
+    while True:
+        line = file.readline()
+        if line == "":
+            break
+        print(line.strip())
+        count += 1
+print("всего:", count)
+```
+
+**Критерий 2.3.4:** `readlines` сначала даёт три элемента, после практики в файле четыре строки, последняя — `четвёртая`.
 
 ---
 
@@ -191,7 +199,13 @@ JSON хранит списки, словари, числа, строки и ло
 ```python
 import json
 
-payload = {"course": "2.3", "students": rows}
+students = [
+    {"name": "Анна", "score": 18},
+    {"name": "Борис", "score": 15},
+    {"name": "Вера", "score": 20},
+    {"name": "Глеб", "score": 11},
+]
+payload = {"course": "2.3", "students": students}
 json_path = data_dir / "group.json"
 json_path.write_text(
     json.dumps(payload, ensure_ascii=False, indent=2),
@@ -204,7 +218,7 @@ print(restored["students"][0]["score"], type(restored["students"][0]["score"]))
 
 `ensure_ascii=False` оставляет кириллицу символами, а не последовательностями `\u....`. `indent=2` делает файл читаемым в редакторе.
 
-Число в JSON после чтения снова имеет тип `int`, в отличие от CSV.
+Число в JSON после чтения снова имеет тип `int`.
 
 **Практика 2.3.5.** Запишите тот же словарь через `json.dump` в файл `module-2-3/data/group-dump.json` и прочитайте его через `json.load`. Сравните два словаря оператором `==`.
 
@@ -243,19 +257,48 @@ print("как utf-8:", raw.decode("utf-8").splitlines()[0])
 
 Байты файла и строка — разные объекты. `read_bytes` не применяет кодировку. Для текста курса используйте UTF-8 и в Python, и в статусной строке VS Code (справа внизу при открытии файла).
 
-**Практика 2.3.6.** Откройте `notes.csv` в VS Code и убедитесь, что кодировка UTF-8. Если редактор предлагает другую, переключите её и пересохраните файл только если текст уже отображается верно.
+**Практика 2.3.6.** Откройте `notes.txt` в VS Code и убедитесь, что кодировка UTF-8. Если редактор предлагает другую, переключите её и пересохраните файл только если текст уже отображается верно.
 
 **Критерий 2.3.6:** отсутствующий файл даёт `FileNotFoundError`; первая строка, прочитанная из байтов как UTF-8, равна `Анна: 18`.
 
 ---
 
-## 2.3.7. Самопроверка
+## 2.3.7. Pickle
+
+Модуль `pickle` сохраняет объект Python в двоичный файл и восстанавливает его обратно: словарь, список, число, строку. Файл открывают в режиме `"wb"` при записи и `"rb"` при чтении. Кодировку для pickle не указывают: это не текст, в редакторе он выглядит как набор байтов.
+
+Pickle выполняют только для своих файлов. Загрузка чужого `.pickle` может запустить код из файла. В курсе так не делают.
+
+**Ячейка:**
+
+```python
+import pickle
+
+pickle_path = data_dir / "group.pickle"
+with pickle_path.open("wb") as file:
+    pickle.dump(payload, file)
+
+with pickle_path.open("rb") as file:
+    from_pickle = pickle.load(file)
+
+print(from_pickle == payload)
+print(from_pickle["students"][0]["name"], type(from_pickle["students"][0]["score"]))
+print("размер, байт:", pickle_path.stat().st_size)
+```
+
+**Практика 2.3.7.** Сохраните в тот же каталог список `[1, "текст", True]` в файл `values.pickle` и прочитайте его. Напечатайте типы трёх элементов.
+
+**Критерий 2.3.7:** словарь из pickle совпадает с `payload`, балл имеет тип `int`, у трёх элементов списка типы `int`, `str` и `bool`.
+
+---
+
+## 2.3.8. Самопроверка
 
 В конце ноутбука ответьте в markdown:
 
-1. Чем `write_text` отличается от режима `"a"`.
-2. Почему при записи CSV передают `newline=""` и зачем балл из `DictReader` переводить в `int`.
-3. Чем число в CSV отличается от числа в JSON после чтения.
+1. Чем `read` отличается от `readline` и от `readlines`.
+2. Чем `file.write("строка")` отличается от `print("строка", file=file)`.
+3. Чем файл pickle отличается от JSON и почему нельзя загружать чужой `.pickle`.
 
 ### Чеклист
 
@@ -264,19 +307,21 @@ print("как utf-8:", raw.decode("utf-8").splitlines()[0])
 | 1 | Папка `module-2-3/data` создана из ноутбука | ☐ |
 | 2 | `notes.txt`: четыре строки, кириллица на месте | ☐ |
 | 3 | `log.txt` и проверка режима `"x"` | ☐ |
-| 4 | `notes.csv` и `summary.txt`: сумма 64, сдавших 3 | ☐ |
+| 4 | `lines.txt`: четыре строки, последняя прочитана через `readline` | ☐ |
 | 5 | `group.json` и `group-dump.json`, словари равны | ☐ |
-| 6 | Разобран `FileNotFoundError` | ☐ |
-| 7 | Три ответа самопроверки | ☐ |
+| 6 | `group.pickle` и `values.pickle` загружаются обратно | ☐ |
+| 7 | Разобран `FileNotFoundError` | ☐ |
+| 8 | Три ответа самопроверки | ☐ |
 
 ### Типовые ошибки
 
 | Симптом | Что проверить |
 |---------|----------------|
 | Файл появляется не в `module-2-3/data` | `Path.cwd()` и префикс пути |
-| Пустые строки через одну в CSV | В `open` для CSV не передан `newline=""` |
 | Кракозябры в блокноте Windows | Файл записан без `encoding="utf-8"` |
 | `FileNotFoundError` при чтении только что записанного | Путь чтения и путь записи различаются |
 | `json.dumps` показывает `\u0410...` | Не передан `ensure_ascii=False` |
+| `TypeError` у `pickle.dump` | Файл открыт как текст (`"w"`), нужен `"wb"` |
+| `UnpicklingError` | Файл записан не через `pickle` или обрезан |
 
-После занятия слушатель сам сохраняет таблицу оценок в CSV и JSON и читает её обратно тем же окружением.
+После занятия слушатель читает текст по строкам и целиком, пишет через `write` и `print` и сохраняет объект в JSON и pickle. Таблицы CSV разбираются в разделе 3.1.

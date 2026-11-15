@@ -11,17 +11,47 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.3 Чтение и запись данных</h1>
-<p><strong>Цель:</strong> читать и записывать текст, CSV и JSON через <code>pathlib</code>, не терять кодировку и закрывать файлы через <code>with</code>.</p>
+<p><strong>Цель:</strong> читать и записывать текст методами файлового объекта, сохранять данные в JSON и pickle, не терять кодировку и закрывать файлы через <code>with</code>. Загрузка CSV вынесена в раздел 3.1.</p>
 <p><strong>Опора:</strong> окружение <code>.venv</code> и ноутбуки из модуля 1. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-2-3/</code>):</p>
-<table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>lab23-io.ipynb</code></td><td>Ноутбук со всеми разделами и сохранённым выводом</td></tr><tr><td><code>data/notes.txt</code></td><td>Текстовый файл, записанный из Python</td></tr><tr><td><code>data/notes.csv</code></td><td>Таблица оценок</td></tr><tr><td><code>data/summary.txt</code></td><td>Сводка, посчитанная по CSV</td></tr><tr><td><code>data/group.json</code></td><td>Те же данные в JSON</td></tr></tbody></table>
-<hr>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lab23-io.ipynb</code></td>
+<td>Ноутбук со всеми разделами и сохранённым выводом</td>
+</tr>
+<tr>
+<td><code>data/notes.txt</code></td>
+<td>Текстовый файл, записанный из Python</td>
+</tr>
+<tr>
+<td><code>data/lines.txt</code></td>
+<td>Файл, собранный через <code>write</code> и <code>print</code></td>
+</tr>
+<tr>
+<td><code>data/group.json</code></td>
+<td>Словарь с оценками в JSON</td>
+</tr>
+<tr>
+<td><code>data/group.pickle</code></td>
+<td>Тот же словарь в формате pickle</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2>Подготовка</h2>
 <p>Откройте корень курса в VS Code, активируйте окружение и создайте ноутбук <code>module-2-3/lab23-io.ipynb</code>. Выберите ядро <code>.venv</code>.</p>
-<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1</code></pre>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+</code></pre>
 <p>Первая ячейка — markdown: ФИО, дата, заголовок «2.3 Чтение и запись данных».</p>
 <p>Пути в ячейках заданы от корня курса (<code>module-2-3/data/...</code>). Если <code>Path.cwd()</code> — сама папка <code>module-2-3</code>, уберите префикс <code>module-2-3/</code> и оставьте <code>data/...</code>.</p>
-<hr>
+<hr />
 <h2>2.3.1. Путь к файлу</h2>
 <p>Файл на диске адресуют путём. <code>pathlib.Path</code> собирает путь из частей, создаёт папки и не зависит от того, какой в системе разделитель каталогов.</p>
 <p><strong>Ячейка:</strong></p>
@@ -34,32 +64,61 @@ notes = data_dir / &quot;notes.txt&quot;
 print(&quot;каталог:&quot;, data_dir.resolve())
 print(&quot;файл:&quot;, notes)
 print(&quot;существует:&quot;, notes.exists())
-print(&quot;родитель:&quot;, notes.parent.name, &quot;имя:&quot;, notes.name, &quot;суффикс:&quot;, notes.suffix)</code></pre>
+print(&quot;родитель:&quot;, notes.parent.name, &quot;имя:&quot;, notes.name, &quot;суффикс:&quot;, notes.suffix)
+</code></pre>
 <p><code>mkdir(..., exist_ok=True)</code> не падает, если папка уже есть. <code>parents=True</code> создаёт и промежуточные каталоги.</p>
 <p><strong>Практика 2.3.1.</strong> Напечатайте текущий каталог через <code>Path.cwd()</code> и одной фразой в markdown запишите, от какой папки вы будете строить пути в этом ноутбуке.</p>
 <p><strong>Критерий 2.3.1:</strong> папка <code>module-2-3/data</code> есть на диске, у пути к <code>notes.txt</code> суффикс <code>.txt</code>.</p>
-<hr>
+<hr />
 <h2>2.3.2. Текст: запись и чтение</h2>
 <p>Текст в курсе пишут и читают в кодировке UTF-8. Так кириллица одинаково открывается в VS Code и в Python.</p>
 <p><strong>Ячейка — запись целиком:</strong></p>
 <pre><code class="language-python">notes.write_text(&quot;Анна: 18\nБорис: 15\nВера: 20\n&quot;, encoding=&quot;utf-8&quot;)
-print(notes.read_text(encoding=&quot;utf-8&quot;))</code></pre>
+print(notes.read_text(encoding=&quot;utf-8&quot;))
+</code></pre>
 <p><code>write_text</code> создаёт файл или полностью заменяет его содержимое.</p>
 <p><strong>Ячейка — по строкам:</strong></p>
 <pre><code class="language-python">lines = notes.read_text(encoding=&quot;utf-8&quot;).splitlines()
-print(len(lines), lines[0])</code></pre>
+print(len(lines), lines[0])
+</code></pre>
 <p><code>splitlines()</code> убирает символы перевода строки. Пустая строка в конце файла отдельным элементом не становится, если после последней строки ничего нет.</p>
 <p><strong>Практика 2.3.2.</strong> Добавьте в файл четвёртую строку <code>Глеб: 11</code>, не стирая уже записанные три. Прочитайте файл и напечатайте число строк.</p>
-<p>Подсказка: режим дозаписи — <code>&quot;a&quot;</code>, а не повторный <code>write_text</code>.</p>
+<p>Подсказка: режим дозаписи — <code>"a"</code>, а не повторный <code>write_text</code>.</p>
 <pre><code class="language-python">with notes.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as file:
     file.write(&quot;Глеб: 11\n&quot;)
-print(len(notes.read_text(encoding=&quot;utf-8&quot;).splitlines()))</code></pre>
+print(len(notes.read_text(encoding=&quot;utf-8&quot;).splitlines()))
+</code></pre>
 <p><strong>Критерий 2.3.2:</strong> в <code>notes.txt</code> четыре строки, первая — <code>Анна: 18</code>, последняя — <code>Глеб: 11</code>.</p>
-<hr>
+<hr />
 <h2>2.3.3. Режим открытия и <code>with</code></h2>
 <p><code>open</code> возвращает файловый объект. Его нужно закрыть: иначе буфер может не дописаться на диск. Конструкция <code>with</code> закрывает файл и при обычном выходе, и при исключении.</p>
-<table><thead><tr><th>Режим</th><th>Действие</th></tr></thead><tbody><tr><td><code>&quot;r&quot;</code></td><td>Чтение. Файл должен существовать</td></tr><tr><td><code>&quot;w&quot;</code></td><td>Запись с нуля. Содержимое стирается</td></tr><tr><td><code>&quot;a&quot;</code></td><td>Дозапись в конец</td></tr><tr><td><code>&quot;x&quot;</code></td><td>Создание только нового файла. Если файл есть — ошибка</td></tr></tbody></table>
-<p>Для текста к режиму добавляют кодировку: <code>encoding=&quot;utf-8&quot;</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Режим</th>
+<th>Действие</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"r"</code></td>
+<td>Чтение. Файл должен существовать</td>
+</tr>
+<tr>
+<td><code>"w"</code></td>
+<td>Запись с нуля. Содержимое стирается</td>
+</tr>
+<tr>
+<td><code>"a"</code></td>
+<td>Дозапись в конец</td>
+</tr>
+<tr>
+<td><code>"x"</code></td>
+<td>Создание только нового файла. Если файл есть — ошибка</td>
+</tr>
+</tbody>
+</table>
+<p>Для текста к режиму добавляют кодировку: <code>encoding="utf-8"</code>.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">log_path = data_dir / &quot;log.txt&quot;
 with log_path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
@@ -69,55 +128,70 @@ with log_path.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as file:
     file.write(&quot;ещё строка\n&quot;)
 
 with log_path.open(&quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
-    print(file.read())</code></pre>
+    print(file.read())
+</code></pre>
 <p><strong>Ячейка — файл уже есть:</strong></p>
 <pre><code class="language-python">try:
     with log_path.open(&quot;x&quot;, encoding=&quot;utf-8&quot;) as file:
         file.write(&quot;не запишется\n&quot;)
 except FileExistsError as error:
-    print(type(error).__name__)</code></pre>
-<p><strong>Критерий 2.3.3:</strong> в <code>log.txt</code> две строки, <code>open(&quot;x&quot;)</code> по существующему файлу даёт <code>FileExistsError</code>.</p>
-<hr>
-<h2>2.3.4. CSV</h2>
-<p>CSV — текст, в котором поля разделены запятой, а первая строка часто содержит имена столбцов. Модуль <code>csv</code> учитывает кавычки и перевод строки внутри поля. В Windows при записи передают <code>newline=&quot;&quot;</code>, иначе между строками появляется лишняя пустая строка.</p>
+    print(type(error).__name__)
+</code></pre>
+<p><strong>Критерий 2.3.3:</strong> в <code>log.txt</code> две строки, <code>open("x")</code> по существующему файлу даёт <code>FileExistsError</code>.</p>
+<hr />
+<h2>2.3.4. read, readline, readlines, write и print</h2>
+<p>У открытого текстового файла есть методы чтения и записи. <code>write</code> и <code>print</code> сами перевод строки не подставляют одинаково: <code>write</code> пишет ровно переданную строку, <code>print</code> по умолчанию добавляет <code>\n</code> в конец.</p>
 <p><strong>Ячейка — запись:</strong></p>
-<pre><code class="language-python">import csv
+<pre><code class="language-python">lines_path = data_dir / &quot;lines.txt&quot;
+with lines_path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
+    file.write(&quot;первая\n&quot;)
+    file.write(&quot;вторая\n&quot;)
+    print(&quot;третья&quot;, file=file)
+</code></pre>
+<p><code>print(..., file=file)</code> направляет текст в файл, а не в ячейку ноутбука.</p>
+<p><strong>Ячейка — три способа прочитать:</strong></p>
+<pre><code class="language-python">with lines_path.open(encoding=&quot;utf-8&quot;) as file:
+    whole = file.read()
+print(&quot;read:&quot;, repr(whole))
 
-table = data_dir / &quot;notes.csv&quot;
-rows = [
-    {&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18},
-    {&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15},
-    {&quot;name&quot;: &quot;Вера&quot;, &quot;score&quot;: 20},
-    {&quot;name&quot;: &quot;Глеб&quot;, &quot;score&quot;: 11},
-]
-with table.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
-    writer = csv.DictWriter(file, fieldnames=[&quot;name&quot;, &quot;score&quot;])
-    writer.writeheader()
-    writer.writerows(rows)
-print(table.read_text(encoding=&quot;utf-8&quot;))</code></pre>
-<p><strong>Ячейка — чтение и сводка:</strong></p>
-<pre><code class="language-python">with table.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
-    loaded = list(csv.DictReader(file))
+with lines_path.open(encoding=&quot;utf-8&quot;) as file:
+    first = file.readline()
+    second = file.readline()
+print(&quot;readline:&quot;, repr(first), repr(second))
 
-scores = [int(row[&quot;score&quot;]) for row in loaded]
-lines = [
-    f&quot;записей: {len(loaded)}&quot;,
-    f&quot;сумма баллов: {sum(scores)}&quot;,
-    f&quot;максимум: {max(scores)}&quot;,
-]
-summary = data_dir / &quot;summary.txt&quot;
-summary.write_text(&quot;\n&quot;.join(lines) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
-print(summary.read_text(encoding=&quot;utf-8&quot;))</code></pre>
-<p><code>DictReader</code> отдаёт каждую строку словарём. Числа из CSV приходят строками, поэтому балл переводят через <code>int</code>.</p>
-<p><strong>Практика 2.3.4.</strong> Допишите в сводку строку <code>сдавших: N</code>, где N — число баллов <code>&gt;= 12</code>.</p>
-<p><strong>Критерий 2.3.4:</strong> сумма баллов <strong>64</strong>, максимум <strong>20</strong>, сдавших <strong>3</strong>.</p>
-<hr>
+with lines_path.open(encoding=&quot;utf-8&quot;) as file:
+    rows = file.readlines()
+print(&quot;readlines:&quot;, rows, &quot;строк:&quot;, len(rows))
+</code></pre>
+<p><code>read</code> возвращает весь оставшийся текст одной строкой. <code>readline</code> — одну строку вместе с <code>\n</code> в конце; пустая строка <code>""</code> означает конец файла. <code>readlines</code> — список всех строк, тоже с <code>\n</code>. После <code>read</code> указатель стоит в конце: повторный <code>read</code> в том же <code>with</code> вернёт <code>""</code>. Поэтому каждый пример открывает файл заново.</p>
+<p><strong>Практика 2.3.4.</strong> Допишите в <code>lines.txt</code> строку <code>четвёртая</code> через <code>print</code> в режиме <code>"a"</code>. Прочитайте файл через <code>readline</code> в цикле, пока строка не пустая, и напечатайте число строк без символа перевода строки (<code>strip</code>).</p>
+<pre><code class="language-python">with lines_path.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as file:
+    print(&quot;четвёртая&quot;, file=file)
+
+count = 0
+with lines_path.open(encoding=&quot;utf-8&quot;) as file:
+    while True:
+        line = file.readline()
+        if line == &quot;&quot;:
+            break
+        print(line.strip())
+        count += 1
+print(&quot;всего:&quot;, count)
+</code></pre>
+<p><strong>Критерий 2.3.4:</strong> <code>readlines</code> сначала даёт три элемента, после практики в файле четыре строки, последняя — <code>четвёртая</code>.</p>
+<hr />
 <h2>2.3.5. JSON</h2>
 <p>JSON хранит списки, словари, числа, строки и логические значения. Его удобно читать целиком: <code>json.loads</code> / <code>json.dumps</code> или <code>json.load</code> / <code>json.dump</code> для файла. Ключи JSON — строки.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">import json
 
-payload = {&quot;course&quot;: &quot;2.3&quot;, &quot;students&quot;: rows}
+students = [
+    {&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18},
+    {&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15},
+    {&quot;name&quot;: &quot;Вера&quot;, &quot;score&quot;: 20},
+    {&quot;name&quot;: &quot;Глеб&quot;, &quot;score&quot;: 11},
+]
+payload = {&quot;course&quot;: &quot;2.3&quot;, &quot;students&quot;: students}
 json_path = data_dir / &quot;group.json&quot;
 json_path.write_text(
     json.dumps(payload, ensure_ascii=False, indent=2),
@@ -125,41 +199,152 @@ json_path.write_text(
 )
 restored = json.loads(json_path.read_text(encoding=&quot;utf-8&quot;))
 print(restored[&quot;course&quot;], len(restored[&quot;students&quot;]))
-print(restored[&quot;students&quot;][0][&quot;score&quot;], type(restored[&quot;students&quot;][0][&quot;score&quot;]))</code></pre>
+print(restored[&quot;students&quot;][0][&quot;score&quot;], type(restored[&quot;students&quot;][0][&quot;score&quot;]))
+</code></pre>
 <p><code>ensure_ascii=False</code> оставляет кириллицу символами, а не последовательностями <code>\u....</code>. <code>indent=2</code> делает файл читаемым в редакторе.</p>
-<p>Число в JSON после чтения снова имеет тип <code>int</code>, в отличие от CSV.</p>
+<p>Число в JSON после чтения снова имеет тип <code>int</code>.</p>
 <p><strong>Практика 2.3.5.</strong> Запишите тот же словарь через <code>json.dump</code> в файл <code>module-2-3/data/group-dump.json</code> и прочитайте его через <code>json.load</code>. Сравните два словаря оператором <code>==</code>.</p>
 <pre><code class="language-python">dump_path = data_dir / &quot;group-dump.json&quot;
 with dump_path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
     json.dump(payload, file, ensure_ascii=False, indent=2)
 with dump_path.open(encoding=&quot;utf-8&quot;) as file:
     from_dump = json.load(file)
-print(from_dump == restored)</code></pre>
+print(from_dump == restored)
+</code></pre>
 <p><strong>Критерий 2.3.5:</strong> сравнение даёт <code>True</code>, в файле видны имена кириллицей.</p>
-<hr>
+<hr />
 <h2>2.3.6. Ошибки чтения</h2>
 <p><strong>Ячейка — нет файла:</strong></p>
 <pre><code class="language-python">missing = data_dir / &quot;missing.txt&quot;
 try:
     missing.read_text(encoding=&quot;utf-8&quot;)
 except FileNotFoundError as error:
-    print(type(error).__name__, error.filename)</code></pre>
+    print(type(error).__name__, error.filename)
+</code></pre>
 <p><strong>Ячейка — неверная кодировка.</strong> Файл <code>notes.txt</code> записан в UTF-8. Чтение как <code>cp1251</code> может не упасть, но текст будет другим, либо дать <code>UnicodeDecodeError</code> на байтах, которых в этой кодировке нет. Проверьте оба исхода так:</p>
 <pre><code class="language-python">raw = notes.read_bytes()
 print(&quot;первые байты:&quot;, raw[:12])
-print(&quot;как utf-8:&quot;, raw.decode(&quot;utf-8&quot;).splitlines()[0])</code></pre>
+print(&quot;как utf-8:&quot;, raw.decode(&quot;utf-8&quot;).splitlines()[0])
+</code></pre>
 <p>Байты файла и строка — разные объекты. <code>read_bytes</code> не применяет кодировку. Для текста курса используйте UTF-8 и в Python, и в статусной строке VS Code (справа внизу при открытии файла).</p>
-<p><strong>Практика 2.3.6.</strong> Откройте <code>notes.csv</code> в VS Code и убедитесь, что кодировка UTF-8. Если редактор предлагает другую, переключите её и пересохраните файл только если текст уже отображается верно.</p>
+<p><strong>Практика 2.3.6.</strong> Откройте <code>notes.txt</code> в VS Code и убедитесь, что кодировка UTF-8. Если редактор предлагает другую, переключите её и пересохраните файл только если текст уже отображается верно.</p>
 <p><strong>Критерий 2.3.6:</strong> отсутствующий файл даёт <code>FileNotFoundError</code>; первая строка, прочитанная из байтов как UTF-8, равна <code>Анна: 18</code>.</p>
-<hr>
-<h2>2.3.7. Самопроверка</h2>
+<hr />
+<h2>2.3.7. Pickle</h2>
+<p>Модуль <code>pickle</code> сохраняет объект Python в двоичный файл и восстанавливает его обратно: словарь, список, число, строку. Файл открывают в режиме <code>"wb"</code> при записи и <code>"rb"</code> при чтении. Кодировку для pickle не указывают: это не текст, в редакторе он выглядит как набор байтов.</p>
+<p>Pickle выполняют только для своих файлов. Загрузка чужого <code>.pickle</code> может запустить код из файла. В курсе так не делают.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import pickle
+
+pickle_path = data_dir / &quot;group.pickle&quot;
+with pickle_path.open(&quot;wb&quot;) as file:
+    pickle.dump(payload, file)
+
+with pickle_path.open(&quot;rb&quot;) as file:
+    from_pickle = pickle.load(file)
+
+print(from_pickle == payload)
+print(from_pickle[&quot;students&quot;][0][&quot;name&quot;], type(from_pickle[&quot;students&quot;][0][&quot;score&quot;]))
+print(&quot;размер, байт:&quot;, pickle_path.stat().st_size)
+</code></pre>
+<p><strong>Практика 2.3.7.</strong> Сохраните в тот же каталог список <code>[1, "текст", True]</code> в файл <code>values.pickle</code> и прочитайте его. Напечатайте типы трёх элементов.</p>
+<p><strong>Критерий 2.3.7:</strong> словарь из pickle совпадает с <code>payload</code>, балл имеет тип <code>int</code>, у трёх элементов списка типы <code>int</code>, <code>str</code> и <code>bool</code>.</p>
+<hr />
+<h2>2.3.8. Самопроверка</h2>
 <p>В конце ноутбука ответьте в markdown:</p>
-<ol><li>Чем <code>write_text</code> отличается от режима <code>&quot;a&quot;</code>.</li><li>Почему при записи CSV передают <code>newline=&quot;&quot;</code> и зачем балл из <code>DictReader</code> переводить в <code>int</code>.</li><li>Чем число в CSV отличается от числа в JSON после чтения.</li></ol>
+<ol>
+<li>Чем <code>read</code> отличается от <code>readline</code> и от <code>readlines</code>.</li>
+<li>Чем <code>file.write("строка")</code> отличается от <code>print("строка", file=file)</code>.</li>
+<li>Чем файл pickle отличается от JSON и почему нельзя загружать чужой <code>.pickle</code>.</li>
+</ol>
 <h3>Чеклист</h3>
-<table><thead><tr><th>№</th><th>Действие</th><th>Готово</th></tr></thead><tbody><tr><td>1</td><td>Папка <code>module-2-3/data</code> создана из ноутбука</td><td>☐</td></tr><tr><td>2</td><td><code>notes.txt</code>: четыре строки, кириллица на месте</td><td>☐</td></tr><tr><td>3</td><td><code>log.txt</code> и проверка режима <code>&quot;x&quot;</code></td><td>☐</td></tr><tr><td>4</td><td><code>notes.csv</code> и <code>summary.txt</code>: сумма 64, сдавших 3</td><td>☐</td></tr><tr><td>5</td><td><code>group.json</code> и <code>group-dump.json</code>, словари равны</td><td>☐</td></tr><tr><td>6</td><td>Разобран <code>FileNotFoundError</code></td><td>☐</td></tr><tr><td>7</td><td>Три ответа самопроверки</td><td>☐</td></tr></tbody></table>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Папка <code>module-2-3/data</code> создана из ноутбука</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>notes.txt</code>: четыре строки, кириллица на месте</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>log.txt</code> и проверка режима <code>"x"</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>lines.txt</code>: четыре строки, последняя прочитана через <code>readline</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>group.json</code> и <code>group-dump.json</code>, словари равны</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>group.pickle</code> и <code>values.pickle</code> загружаются обратно</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Разобран <code>FileNotFoundError</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Три ответа самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
 <h3>Типовые ошибки</h3>
-<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td>Файл появляется не в <code>module-2-3/data</code></td><td><code>Path.cwd()</code> и префикс пути</td></tr><tr><td>Пустые строки через одну в CSV</td><td>В <code>open</code> для CSV не передан <code>newline=&quot;&quot;</code></td></tr><tr><td>Кракозябры в блокноте Windows</td><td>Файл записан без <code>encoding=&quot;utf-8&quot;</code></td></tr><tr><td><code>FileNotFoundError</code> при чтении только что записанного</td><td>Путь чтения и путь записи различаются</td></tr><tr><td><code>json.dumps</code> показывает <code>\u0410...</code></td><td>Не передан <code>ensure_ascii=False</code></td></tr></tbody></table>
-<p>После занятия слушатель сам сохраняет таблицу оценок в CSV и JSON и читает её обратно тем же окружением.</p>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Файл появляется не в <code>module-2-3/data</code></td>
+<td><code>Path.cwd()</code> и префикс пути</td>
+</tr>
+<tr>
+<td>Кракозябры в блокноте Windows</td>
+<td>Файл записан без <code>encoding="utf-8"</code></td>
+</tr>
+<tr>
+<td><code>FileNotFoundError</code> при чтении только что записанного</td>
+<td>Путь чтения и путь записи различаются</td>
+</tr>
+<tr>
+<td><code>json.dumps</code> показывает <code>\u0410...</code></td>
+<td>Не передан <code>ensure_ascii=False</code></td>
+</tr>
+<tr>
+<td><code>TypeError</code> у <code>pickle.dump</code></td>
+<td>Файл открыт как текст (<code>"w"</code>), нужен <code>"wb"</code></td>
+</tr>
+<tr>
+<td><code>UnpicklingError</code></td>
+<td>Файл записан не через <code>pickle</code> или обрезан</td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель читает текст по строкам и целиком, пишет через <code>write</code> и <code>print</code> и сохраняет объект в JSON и pickle. Таблицы CSV разбираются в разделе 3.1.</p>
   </article>
 </body>
 </html>
