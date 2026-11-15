@@ -8,6 +8,7 @@
 - [2. Преподаватель Серов Н.Е.](https://nesrv.github.io/python-for-data-analysis/slide2.html)
 - [3. Python для анализа данных](https://nesrv.github.io/python-for-data-analysis/slide3.html)
 - [4. Оглавление](https://nesrv.github.io/python-for-data-analysis/slide4.html)
+- [5. Вы научитесь](https://nesrv.github.io/python-for-data-analysis/slide5.html)
 
 ## Методички
 
