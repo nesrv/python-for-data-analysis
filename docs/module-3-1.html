@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3.1 Загрузка CSV и JSON</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-3.html">← Модуль 3</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>3.1 Загрузка CSV и JSON</h1>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> загрузить таблицу из CSV и словарь из JSON, записать оба формата из Python и не перепутать разделитель, кодировку и типы полей.</p>
+<p><strong>Опора:</strong> пути, <code>with</code> и UTF-8 из раздела 2.3. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-3-1/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Назначение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lab31-csv.ipynb</code></td>
+<td>Ноутбук со всеми разделами и сохранённым выводом</td>
+</tr>
+<tr>
+<td><code>data/notes.csv</code></td>
+<td>Таблица оценок, записанная модулем <code>csv</code></td>
+</tr>
+<tr>
+<td><code>data/summary.txt</code></td>
+<td>Сводка по загруженной таблице</td>
+</tr>
+<tr>
+<td><code>data/notes-semicolon.csv</code></td>
+<td>Тот же набор с разделителем <code>;</code></td>
+</tr>
+<tr>
+<td><code>data/incoming.csv</code></td>
+<td>Файл «как от внешней системы»: <code>;</code>, кавычки, пустое поле</td>
+</tr>
+<tr>
+<td><code>data/group.json</code></td>
+<td>Те же оценки в JSON</td>
+</tr>
+<tr>
+<td><code>data/group-dump.json</code></td>
+<td>Тот же словарь, записанный через <code>json.dump</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Подготовка</h2>
+<p>Откройте корень курса в VS Code, активируйте окружение и создайте ноутбук <code>module-3-1/lab31-csv.ipynb</code>. Выберите ядро <code>.venv</code>.</p>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+</code></pre>
+<p>Первая ячейка — markdown: ФИО, дата, заголовок «3.1 Загрузка CSV и JSON».</p>
+<p>Пути заданы от корня курса (<code>module-3-1/data/...</code>). Если <code>Path.cwd()</code> — сама папка <code>module-3-1</code>, уберите префикс <code>module-3-1/</code>.</p>
+<hr />
+<h2>3.1.1. Что лежит в CSV</h2>
+<p>CSV — текст. Строка таблицы — строка файла, поля разделены запятой (или другим символом). Первая строка часто содержит имена столбцов. Перевод строки и запятая внутри поля берутся в кавычки. Модуль <code>csv</code> разбирает эти правила. Обычный <code>split(",")</code> — нет.</p>
+<p>В Windows при записи передают <code>newline=""</code>. Иначе между строками появляется лишняя пустая строка: перевод строки добавляет и модуль <code>csv</code>, и текстовый режим файла.</p>
+<p><strong>Ячейка — запись:</strong></p>
+<pre><code class="language-python">import csv
+from pathlib import Path
+
+data_dir = Path(&quot;module-3-1&quot;) / &quot;data&quot;
+data_dir.mkdir(parents=True, exist_ok=True)
+
+rows = [
+    {&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18},
+    {&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15},
+    {&quot;name&quot;: &quot;Вера&quot;, &quot;score&quot;: 20},
+    {&quot;name&quot;: &quot;Глеб&quot;, &quot;score&quot;: 11},
+]
+table = data_dir / &quot;notes.csv&quot;
+with table.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    writer = csv.DictWriter(file, fieldnames=[&quot;name&quot;, &quot;score&quot;])
+    writer.writeheader()
+    writer.writerows(rows)
+print(table.read_text(encoding=&quot;utf-8&quot;))
+</code></pre>
+<p>Откройте <code>notes.csv</code> в VS Code. В статусной строке должна быть кодировка UTF-8.</p>
+<p><strong>Критерий 3.1.1:</strong> в файле пять строк (заголовок и четыре записи), между ними нет пустых строк, имена читаются по-русски.</p>
+<hr />
+<h2>3.1.2. Загрузка в словари</h2>
+<p><code>csv.DictReader</code> сопоставляет поля с заголовком и отдаёт каждую запись словарём. Все значения приходят строками, в том числе числа.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">with table.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    loaded = list(csv.DictReader(file))
+
+print(loaded[0])
+print(type(loaded[0][&quot;score&quot;]).__name__)
+
+scores = [int(row[&quot;score&quot;]) for row in loaded]
+lines = [
+    f&quot;записей: {len(loaded)}&quot;,
+    f&quot;сумма баллов: {sum(scores)}&quot;,
+    f&quot;максимум: {max(scores)}&quot;,
+]
+summary = data_dir / &quot;summary.txt&quot;
+summary.write_text(&quot;\n&quot;.join(lines) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+print(summary.read_text(encoding=&quot;utf-8&quot;))
+</code></pre>
+<p><strong>Практика 3.1.2.</strong> Допишите в сводку строку <code>сдавших: N</code>, где N — число баллов <code>&gt;= 12</code>.</p>
+<p><strong>Критерий 3.1.2:</strong> тип поля <code>score</code> до <code>int</code> — <code>str</code>. Сумма баллов <strong>64</strong>, максимум <strong>20</strong>, сдавших <strong>3</strong>.</p>
+<hr />
+<h2>3.1.3. Загрузка по номерам столбцов</h2>
+<p><code>csv.reader</code> отдаёт список строк, без имён полей. Так читают файл без заголовка или когда имена ненадёжны. Индекс столбца легко перепутать, поэтому при наличии заголовка предпочтителен <code>DictReader</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">with table.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    raw_rows = list(csv.reader(file))
+
+header, body = raw_rows[0], raw_rows[1:]
+print(header)
+print(body[0][0], int(body[0][1]))
+print(&quot;строк данных:&quot;, len(body))
+</code></pre>
+<p><strong>Практика 3.1.3.</strong> По <code>body</code> посчитайте сумму второго столбца и сравните её с суммой из <code>summary.txt</code>. Результаты должны совпасть.</p>
+<p><strong>Критерий 3.1.3:</strong> заголовок <code>['name', 'score']</code>, сумма по индексу <code>1</code> равна <strong>64</strong>.</p>
+<hr />
+<h2>3.1.4. Другой разделитель и кавычки</h2>
+<p>Экспорт из таблиц на русской локали часто использует <code>;</code>, потому что запятая занята десятичным разделителем. Поле с разделителем внутри берут в кавычки. Кавычка внутри поля удваивается.</p>
+<p><strong>Ячейка — запись с <code>;</code>:</strong></p>
+<pre><code class="language-python">semicolon = data_dir / &quot;notes-semicolon.csv&quot;
+with semicolon.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    writer = csv.DictWriter(
+        file,
+        fieldnames=[&quot;name&quot;, &quot;score&quot;, &quot;comment&quot;],
+        delimiter=&quot;;&quot;,
+    )
+    writer.writeheader()
+    writer.writerow({&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18, &quot;comment&quot;: &quot;зачёт; досрочно&quot;})
+    writer.writerow({&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15, &quot;comment&quot;: &quot;зачёт&quot;})
+print(semicolon.read_text(encoding=&quot;utf-8&quot;))
+</code></pre>
+<p>В файле комментарий Анны стоит в кавычках: внутри есть символ <code>;</code>.</p>
+<p><strong>Ячейка — чтение с тем же разделителем:</strong></p>
+<pre><code class="language-python">with semicolon.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    semi_rows = list(csv.DictReader(file, delimiter=&quot;;&quot;))
+print(semi_rows[0][&quot;comment&quot;])
+print(len(semi_rows[0]))
+</code></pre>
+<p>Если забыть <code>delimiter=";"</code>, вся строка склеится в один столбец, а комментарий разъедется на лишние поля. Проверьте это отдельной ячейкой: прочитайте тот же файл с разделителем по умолчанию и напечатайте <code>len(wrong_row)</code>.</p>
+<p><strong>Практика 3.1.4.</strong> Создайте <code>module-3-1/data/incoming.csv</code> вручную в редакторе, кодировка UTF-8:</p>
+<pre><code class="language-text">name;city;score
+Анна;Москва;18
+&quot;Борис; младший&quot;;Казань;
+Вера;Тверь;20
+</code></pre>
+<p>У Бориса в городе пустое поле, в имени есть точка с запятой. Загрузите файл через <code>DictReader</code> с <code>delimiter=";"</code>. Напечатайте имя Бориса и значение <code>score</code>. Пустая строка — не ноль: в расчёт среднего её не включают.</p>
+<pre><code class="language-python">incoming = data_dir / &quot;incoming.csv&quot;
+with incoming.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    people = list(csv.DictReader(file, delimiter=&quot;;&quot;))
+
+print(people[1][&quot;name&quot;], repr(people[1][&quot;score&quot;]))
+numbers = [int(row[&quot;score&quot;]) for row in people if row[&quot;score&quot;] != &quot;&quot;]
+print(&quot;среднее:&quot;, sum(numbers) / len(numbers))
+</code></pre>
+<p><strong>Критерий 3.1.4:</strong> комментарий Анны равен <code>зачёт; досрочно</code> и это одно поле. Имя из входящего файла — <code>Борис; младший</code>. Среднее по двум заполненным баллам — <strong>19</strong>.</p>
+<hr />
+<h2>3.1.5. Кодировка и ошибки загрузки</h2>
+<p>Файл без BOM в кодировке UTF-8 открывают с <code>encoding="utf-8"</code>. Файл из старого Excel на русской Windows часто оказывается в <code>cp1251</code>. Неверная кодировка либо портит кириллицу, либо даёт <code>UnicodeDecodeError</code>.</p>
+<p><strong>Ячейка — нет файла:</strong></p>
+<pre><code class="language-python">missing = data_dir / &quot;missing.csv&quot;
+try:
+    with missing.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+        list(csv.reader(file))
+except FileNotFoundError as error:
+    print(type(error).__name__)
+</code></pre>
+<p><strong>Ячейка — байты и кодировка:</strong></p>
+<pre><code class="language-python">raw = table.read_bytes()
+print(raw[:20])
+print(raw.decode(&quot;utf-8&quot;).splitlines()[0])
+</code></pre>
+<p><strong>Практика 3.1.5.</strong> Прочитайте <code>notes.csv</code> с <code>encoding="cp1251"</code> внутри <code>try</code>. Если исключения нет, напечатайте первую строку и сравните её с чтением в UTF-8. В markdown запишите, совпали ли строки.</p>
+<p><strong>Критерий 3.1.5:</strong> отсутствующий файл даёт <code>FileNotFoundError</code>. Первая строка, декодированная из байтов как UTF-8, начинается с <code>name,score</code>.</p>
+<hr />
+<h2>3.1.6. JSON</h2>
+<p>JSON хранит списки, словари, числа, строки и логические значения. Его читают целиком: <code>json.loads</code> и <code>json.dumps</code> работают со строкой, <code>json.load</code> и <code>json.dump</code> — с файлом. Ключи JSON — строки. В отличие от CSV, число после чтения снова имеет тип <code>int</code>, а не <code>str</code>.</p>
+<p>Возьмите уже загруженный список <code>rows</code> из раздела 3.1.1. Если ячейка выполнялась в другом сеансе, соберите список заново из <code>loaded</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import json
+
+payload = {&quot;course&quot;: &quot;3.1&quot;, &quot;students&quot;: rows}
+json_path = data_dir / &quot;group.json&quot;
+json_path.write_text(
+    json.dumps(payload, ensure_ascii=False, indent=2),
+    encoding=&quot;utf-8&quot;,
+)
+restored = json.loads(json_path.read_text(encoding=&quot;utf-8&quot;))
+print(restored[&quot;course&quot;], len(restored[&quot;students&quot;]))
+print(restored[&quot;students&quot;][0][&quot;score&quot;], type(restored[&quot;students&quot;][0][&quot;score&quot;]))
+</code></pre>
+<p><code>ensure_ascii=False</code> оставляет кириллицу символами, а не последовательностями <code>\u....</code>. <code>indent=2</code> делает файл читаемым в редакторе.</p>
+<p><strong>Практика 3.1.6.</strong> Запишите тот же словарь через <code>json.dump</code> в <code>module-3-1/data/group-dump.json</code> и прочитайте его через <code>json.load</code>. Сравните словари оператором <code>==</code>. Затем сравните тип балла в JSON и тип балла в строке CSV до вызова <code>int</code>.</p>
+<pre><code class="language-python">dump_path = data_dir / &quot;group-dump.json&quot;
+with dump_path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
+    json.dump(payload, file, ensure_ascii=False, indent=2)
+with dump_path.open(encoding=&quot;utf-8&quot;) as file:
+    from_dump = json.load(file)
+print(from_dump == restored)
+print(&quot;json:&quot;, type(from_dump[&quot;students&quot;][0][&quot;score&quot;]).__name__)
+print(&quot;csv:&quot;, type(loaded[0][&quot;score&quot;]).__name__)
+</code></pre>
+<p><strong>Критерий 3.1.6:</strong> сравнение словарей даёт <code>True</code>, в файле имена видны кириллицей, тип балла в JSON — <code>int</code>, в CSV — <code>str</code>.</p>
+<hr />
+<h2>3.1.7. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
+<ol>
+<li>Почему при записи CSV передают <code>newline=""</code> и зачем балл из <code>DictReader</code> переводить в <code>int</code>.</li>
+<li>Чем опасен <code>split(",")</code> по сравнению с <code>csv.reader</code>, если в поле есть запятая.</li>
+<li>Что будет, если файл с разделителем <code>;</code> прочитать без <code>delimiter=";"</code>.</li>
+<li>Чем число в CSV отличается от числа в JSON после чтения и чем <code>json.dumps</code> отличается от <code>json.dump</code>.</li>
+</ol>
+<h3>Чеклист</h3>
+<table>
+<thead>
+<tr>
+<th>№</th>
+<th>Действие</th>
+<th>Готово</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>notes.csv</code> записан модулем <code>csv</code>, без пустых строк между записями</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>summary.txt</code>: сумма 64, максимум 20, сдавших 3</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Сумма по <code>csv.reader</code> совпала со сводкой</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>notes-semicolon.csv</code>: комментарий с <code>;</code> остался одним полем</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>incoming.csv</code>: имя <code>Борис; младший</code>, среднее 19</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Разобраны <code>FileNotFoundError</code> и кодировка</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>group.json</code> и <code>group-dump.json</code> совпадают, балл в JSON имеет тип <code>int</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Ответы самопроверки</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Типовые ошибки</h3>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Пустые строки через одну в CSV</td>
+<td>В <code>open</code> передан <code>newline=""</code></td>
+</tr>
+<tr>
+<td>Кракозябры</td>
+<td><code>encoding="utf-8"</code> и та же кодировка в статусной строке VS Code</td>
+</tr>
+<tr>
+<td>Все столбцы склеились в один</td>
+<td>Для файла с <code>;</code> указан <code>delimiter=";"</code></td>
+</tr>
+<tr>
+<td><code>ValueError</code> на <code>int("")</code></td>
+<td>Пустое поле отфильтровано до перевода в число</td>
+</tr>
+<tr>
+<td>Файл появился не в <code>module-3-1/data</code></td>
+<td><code>Path.cwd()</code> и префикс пути</td>
+</tr>
+<tr>
+<td><code>json.dumps</code> показывает <code>\u0410...</code></td>
+<td>Не передан <code>ensure_ascii=False</code></td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель загружает CSV с заголовком, другим разделителем и пустыми полями и сохраняет ту же таблицу в JSON, где числа остаются числами.</p>
+  </article>
+</body>
+</html>

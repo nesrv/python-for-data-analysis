@@ -11,7 +11,7 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>2.3 Чтение и запись данных</h1>
-<p><strong>Цель:</strong> читать и записывать текст методами файлового объекта, сохранять данные в JSON и pickle, не терять кодировку и закрывать файлы через <code>with</code>. Загрузка CSV вынесена в раздел 3.1.</p>
+<p><strong>Цель:</strong> читать и записывать текст методами файлового объекта, сохранять объект в pickle, не терять кодировку и закрывать файлы через <code>with</code>. CSV и JSON разбираются в разделе 3.1.</p>
 <p><strong>Опора:</strong> окружение <code>.venv</code> и ноутбуки из модуля 1. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-2-3/</code>):</p>
 <table>
@@ -35,12 +35,8 @@
 <td>Файл, собранный через <code>write</code> и <code>print</code></td>
 </tr>
 <tr>
-<td><code>data/group.json</code></td>
-<td>Словарь с оценками в JSON</td>
-</tr>
-<tr>
 <td><code>data/group.pickle</code></td>
-<td>Тот же словарь в формате pickle</td>
+<td>Словарь с оценками в формате pickle</td>
 </tr>
 </tbody>
 </table>
@@ -180,40 +176,7 @@ print(&quot;всего:&quot;, count)
 </code></pre>
 <p><strong>Критерий 2.3.4:</strong> <code>readlines</code> сначала даёт три элемента, после практики в файле четыре строки, последняя — <code>четвёртая</code>.</p>
 <hr />
-<h2>2.3.5. JSON</h2>
-<p>JSON хранит списки, словари, числа, строки и логические значения. Его удобно читать целиком: <code>json.loads</code> / <code>json.dumps</code> или <code>json.load</code> / <code>json.dump</code> для файла. Ключи JSON — строки.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">import json
-
-students = [
-    {&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18},
-    {&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15},
-    {&quot;name&quot;: &quot;Вера&quot;, &quot;score&quot;: 20},
-    {&quot;name&quot;: &quot;Глеб&quot;, &quot;score&quot;: 11},
-]
-payload = {&quot;course&quot;: &quot;2.3&quot;, &quot;students&quot;: students}
-json_path = data_dir / &quot;group.json&quot;
-json_path.write_text(
-    json.dumps(payload, ensure_ascii=False, indent=2),
-    encoding=&quot;utf-8&quot;,
-)
-restored = json.loads(json_path.read_text(encoding=&quot;utf-8&quot;))
-print(restored[&quot;course&quot;], len(restored[&quot;students&quot;]))
-print(restored[&quot;students&quot;][0][&quot;score&quot;], type(restored[&quot;students&quot;][0][&quot;score&quot;]))
-</code></pre>
-<p><code>ensure_ascii=False</code> оставляет кириллицу символами, а не последовательностями <code>\u....</code>. <code>indent=2</code> делает файл читаемым в редакторе.</p>
-<p>Число в JSON после чтения снова имеет тип <code>int</code>.</p>
-<p><strong>Практика 2.3.5.</strong> Запишите тот же словарь через <code>json.dump</code> в файл <code>module-2-3/data/group-dump.json</code> и прочитайте его через <code>json.load</code>. Сравните два словаря оператором <code>==</code>.</p>
-<pre><code class="language-python">dump_path = data_dir / &quot;group-dump.json&quot;
-with dump_path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
-    json.dump(payload, file, ensure_ascii=False, indent=2)
-with dump_path.open(encoding=&quot;utf-8&quot;) as file:
-    from_dump = json.load(file)
-print(from_dump == restored)
-</code></pre>
-<p><strong>Критерий 2.3.5:</strong> сравнение даёт <code>True</code>, в файле видны имена кириллицей.</p>
-<hr />
-<h2>2.3.6. Ошибки чтения</h2>
+<h2>2.3.5. Ошибки чтения</h2>
 <p><strong>Ячейка — нет файла:</strong></p>
 <pre><code class="language-python">missing = data_dir / &quot;missing.txt&quot;
 try:
@@ -227,15 +190,22 @@ print(&quot;первые байты:&quot;, raw[:12])
 print(&quot;как utf-8:&quot;, raw.decode(&quot;utf-8&quot;).splitlines()[0])
 </code></pre>
 <p>Байты файла и строка — разные объекты. <code>read_bytes</code> не применяет кодировку. Для текста курса используйте UTF-8 и в Python, и в статусной строке VS Code (справа внизу при открытии файла).</p>
-<p><strong>Практика 2.3.6.</strong> Откройте <code>notes.txt</code> в VS Code и убедитесь, что кодировка UTF-8. Если редактор предлагает другую, переключите её и пересохраните файл только если текст уже отображается верно.</p>
-<p><strong>Критерий 2.3.6:</strong> отсутствующий файл даёт <code>FileNotFoundError</code>; первая строка, прочитанная из байтов как UTF-8, равна <code>Анна: 18</code>.</p>
+<p><strong>Практика 2.3.5.</strong> Откройте <code>notes.txt</code> в VS Code и убедитесь, что кодировка UTF-8. Если редактор предлагает другую, переключите её и пересохраните файл только если текст уже отображается верно.</p>
+<p><strong>Критерий 2.3.5:</strong> отсутствующий файл даёт <code>FileNotFoundError</code>; первая строка, прочитанная из байтов как UTF-8, равна <code>Анна: 18</code>.</p>
 <hr />
-<h2>2.3.7. Pickle</h2>
+<h2>2.3.6. Pickle</h2>
 <p>Модуль <code>pickle</code> сохраняет объект Python в двоичный файл и восстанавливает его обратно: словарь, список, число, строку. Файл открывают в режиме <code>"wb"</code> при записи и <code>"rb"</code> при чтении. Кодировку для pickle не указывают: это не текст, в редакторе он выглядит как набор байтов.</p>
 <p>Pickle выполняют только для своих файлов. Загрузка чужого <code>.pickle</code> может запустить код из файла. В курсе так не делают.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">import pickle
 
+payload = {
+    &quot;course&quot;: &quot;2.3&quot;,
+    &quot;students&quot;: [
+        {&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18},
+        {&quot;name&quot;: &quot;Борис&quot;, &quot;score&quot;: 15},
+    ],
+}
 pickle_path = data_dir / &quot;group.pickle&quot;
 with pickle_path.open(&quot;wb&quot;) as file:
     pickle.dump(payload, file)
@@ -247,15 +217,15 @@ print(from_pickle == payload)
 print(from_pickle[&quot;students&quot;][0][&quot;name&quot;], type(from_pickle[&quot;students&quot;][0][&quot;score&quot;]))
 print(&quot;размер, байт:&quot;, pickle_path.stat().st_size)
 </code></pre>
-<p><strong>Практика 2.3.7.</strong> Сохраните в тот же каталог список <code>[1, "текст", True]</code> в файл <code>values.pickle</code> и прочитайте его. Напечатайте типы трёх элементов.</p>
-<p><strong>Критерий 2.3.7:</strong> словарь из pickle совпадает с <code>payload</code>, балл имеет тип <code>int</code>, у трёх элементов списка типы <code>int</code>, <code>str</code> и <code>bool</code>.</p>
+<p><strong>Практика 2.3.6.</strong> Сохраните в тот же каталог список <code>[1, "текст", True]</code> в файл <code>values.pickle</code> и прочитайте его. Напечатайте типы трёх элементов.</p>
+<p><strong>Критерий 2.3.6:</strong> словарь из pickle совпадает с <code>payload</code>, балл имеет тип <code>int</code>, у трёх элементов списка типы <code>int</code>, <code>str</code> и <code>bool</code>.</p>
 <hr />
-<h2>2.3.8. Самопроверка</h2>
+<h2>2.3.7. Самопроверка</h2>
 <p>В конце ноутбука ответьте в markdown:</p>
 <ol>
 <li>Чем <code>read</code> отличается от <code>readline</code> и от <code>readlines</code>.</li>
 <li>Чем <code>file.write("строка")</code> отличается от <code>print("строка", file=file)</code>.</li>
-<li>Чем файл pickle отличается от JSON и почему нельзя загружать чужой <code>.pickle</code>.</li>
+<li>Почему нельзя загружать чужой <code>.pickle</code>.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -289,21 +259,16 @@ print(&quot;размер, байт:&quot;, pickle_path.stat().st_size)
 </tr>
 <tr>
 <td>5</td>
-<td><code>group.json</code> и <code>group-dump.json</code>, словари равны</td>
-<td>☐</td>
-</tr>
-<tr>
-<td>6</td>
 <td><code>group.pickle</code> и <code>values.pickle</code> загружаются обратно</td>
 <td>☐</td>
 </tr>
 <tr>
-<td>7</td>
+<td>6</td>
 <td>Разобран <code>FileNotFoundError</code></td>
 <td>☐</td>
 </tr>
 <tr>
-<td>8</td>
+<td>7</td>
 <td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
@@ -331,10 +296,6 @@ print(&quot;размер, байт:&quot;, pickle_path.stat().st_size)
 <td>Путь чтения и путь записи различаются</td>
 </tr>
 <tr>
-<td><code>json.dumps</code> показывает <code>\u0410...</code></td>
-<td>Не передан <code>ensure_ascii=False</code></td>
-</tr>
-<tr>
 <td><code>TypeError</code> у <code>pickle.dump</code></td>
 <td>Файл открыт как текст (<code>"w"</code>), нужен <code>"wb"</code></td>
 </tr>
@@ -344,7 +305,7 @@ print(&quot;размер, байт:&quot;, pickle_path.stat().st_size)
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель читает текст по строкам и целиком, пишет через <code>write</code> и <code>print</code> и сохраняет объект в JSON и pickle. Таблицы CSV разбираются в разделе 3.1.</p>
+<p>После занятия слушатель читает текст по строкам и целиком, пишет через <code>write</code> и <code>print</code> и сохраняет объект в pickle. CSV и JSON разбираются в разделе 3.1.</p>
   </article>
 </body>
 </html>
