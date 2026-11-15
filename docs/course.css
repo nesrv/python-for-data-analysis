@@ -239,7 +239,7 @@ a { color: var(--ink); }
   margin: 1.4em 0;
 }
 
-.topics { padding-left: 1.2em; }
+.topics { margin: 0; padding-left: 0; list-style: none; }
 .topics li { margin: 0.55em 0; font-size: 18px; }
 .topics a {
   color: #1a4fd8;
