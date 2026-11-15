@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2.5 Управление потоком выполнение и ветвление</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-2.html">← Модуль 2</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>2.5 Управление потоком выполнение и ветвление</h1>
+    <p><strong>Ячейка E1:</strong></p>
+<pre><code class="language-python">def grade(score: int) -&gt; str:
+    if score &gt;= 18:
+        return &quot;зачёт с отличием&quot;
+    if score &gt;= 12:
+        return &quot;зачёт&quot;
+    return &quot;нужна доработка&quot;
+
+for row in loaded:
+    s = int(row[&quot;score&quot;])
+    print(row[&quot;name&quot;], s, &quot;-&gt;&quot;, grade(s))</code></pre>
+<p><strong>Ячейка E2 — цикл и пропуск:</strong></p>
+<pre><code class="language-python">total = 0
+for n in range(1, 11):
+    if n % 2 == 0:
+        continue
+    total += n
+print(&quot;сумма нечётных 1..10 =&quot;, total)  # 25</code></pre>
+<p><strong>Критерий E:</strong> для баллов 18, 15 и 20 выводятся «зачёт с отличием», «зачёт», «зачёт с отличием»; сумма нечётных равна 25.</p>
+<hr>
+  </article>
+</body>
+</html>

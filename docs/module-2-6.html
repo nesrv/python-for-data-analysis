@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2.6 Отладка</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-2.html">← Модуль 2</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>2.6 Отладка</h1>
+    <p>Создайте <code>module-2/debug_demo.py</code>:</p>
+<pre><code class="language-python">def grade(score: int) -&gt; str:
+    if score &gt;= 18:
+        label = &quot;зачёт с отличием&quot;
+    elif score &gt;= 12:
+        label = &quot;зачёт&quot;
+    else:
+        label = &quot;нужна доработка&quot;
+    return label
+
+
+def main():
+    scores = [18, 15, 9]
+    for score in scores:
+        result = grade(score)
+        print(score, result)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()</code></pre>
+<ol><li>Щёлкните слева от строки <code>result = grade(score)</code> — красная точка останова.</li><li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) → <strong>Python File</strong>. Интерпретатор — <code>.venv</code>.</li><li>На остановке в панели <strong>Variables</strong> посмотрите <code>score</code>. Шаг <strong>Step Over</strong> (<code>F10</code>), затем <strong>Continue</strong> (<code>F5</code>).</li><li>Убедитесь, что в консоли отладки три строки.</li></ol>
+<p><strong>Критерий F:</strong> точка останова срабатывает на каждой итерации; для <code>9</code> в переменной <code>label</code> после шага внутрь функции — «нужна доработка».</p>
+<hr>
+  </article>
+</body>
+</html>

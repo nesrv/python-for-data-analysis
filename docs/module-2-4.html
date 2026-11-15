@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2.4 Простое рисование графиков</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-2.html">← Модуль 2</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>2.4 Простое рисование графиков</h1>
+    <pre><code class="language-python">import matplotlib.pyplot as plt
+from pathlib import Path
+
+names = [row[&quot;name&quot;] for row in loaded]
+scores = [int(row[&quot;score&quot;]) for row in loaded]
+
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.bar(names, scores, color=&quot;#2F6FED&quot;)
+ax.set_title(&quot;Баллы&quot;)
+ax.set_ylabel(&quot;score&quot;)
+fig.tight_layout()
+
+fig_path = Path(&quot;module-2/figures/simple.png&quot;)
+fig_path.parent.mkdir(parents=True, exist_ok=True)
+fig.savefig(fig_path, dpi=120)
+plt.show()
+print(&quot;график:&quot;, fig_path.resolve())</code></pre>
+<p>В VS Code график появляется под ячейкой. Файл <code>simple.png</code> нужен как артефакт.</p>
+<p><strong>Критерий D:</strong> три столбца, подписи — имена из CSV, файл сохранён.</p>
+<hr>
+  </article>
+</body>
+</html>

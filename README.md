@@ -14,6 +14,13 @@
 
 - [Модуль 1. Введение и настройка рабочей среды](https://nesrv.github.io/python-for-data-analysis/module-1.html)
 - [Модуль 2. Основы Python](https://nesrv.github.io/python-for-data-analysis/module-2.html)
+  - [2.1 Типы данных и объекты](https://nesrv.github.io/python-for-data-analysis/module-2-1.html)
+  - [2.2 Загрузка пакетов, пространства имен](https://nesrv.github.io/python-for-data-analysis/module-2-2.html)
+  - [2.3 Чтение и запись данных](https://nesrv.github.io/python-for-data-analysis/module-2-3.html)
+  - [2.4 Простое рисование графиков](https://nesrv.github.io/python-for-data-analysis/module-2-4.html)
+  - [2.5 Управление потоком выполнение и ветвление](https://nesrv.github.io/python-for-data-analysis/module-2-5.html)
+  - [2.6 Отладка](https://nesrv.github.io/python-for-data-analysis/module-2-6.html)
+  - [2.7 Профилирование кода](https://nesrv.github.io/python-for-data-analysis/module-2-7.html)
 - [Модуль 3. Подготовка и доступ к данным](https://nesrv.github.io/python-for-data-analysis/module-3.html)
 - [Модуль 4. Анализ, исследование и визуализация данных](https://nesrv.github.io/python-for-data-analysis/module-4.html)
 - [Модуль 5. Извлечение и манипулирование данными Pandas](https://nesrv.github.io/python-for-data-analysis/module-5.html)

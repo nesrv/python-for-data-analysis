@@ -240,4 +240,6 @@ a { color: var(--ink); }
 }
 
 .topics { padding-left: 1.2em; }
-.topics li { margin: 0.45em 0; }
+.topics li { margin: 0.55em 0; font-size: 18px; }
+.topics a { color: var(--ink-soft); }
+.topics a:hover { color: var(--accent); }

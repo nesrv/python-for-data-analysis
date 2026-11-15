@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2.2 Загрузка пакетов, пространства имен</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-2.html">← Модуль 2</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>2.2 Загрузка пакетов, пространства имен</h1>
+    <p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> подключать модули стандартной библиотеки и пакеты из <code>.venv</code>, понимать, в каком пространстве имён оказывается имя, и собрать небольшой собственный пакет.</p>
+<p><strong>Опора:</strong> окружение <code>.venv</code> и ноутбуки из модуля 1. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-2/</code>):</p>
+<table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>lab22-imports.ipynb</code></td><td>Ноутбук с импортами, <code>sys.path</code> и проверкой пакета</td></tr><tr><td><code>course_tools/__init__.py</code></td><td>Признак пакета</td></tr><tr><td><code>course_tools/grades.py</code></td><td>Модуль со своей функцией</td></tr><tr><td><code>run_grades.py</code></td><td>Скрипт, который импортирует <code>course_tools</code></td></tr></tbody></table>
+<hr>
+<h2>Подготовка</h2>
+<p>Откройте корень курса в VS Code, активируйте окружение и создайте ноутбук <code>module-2-2/lab22-imports.ipynb</code>. Выберите ядро <code>.venv</code>.</p>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1</code></pre>
+<p>Первая ячейка — markdown: ФИО, дата, заголовок «2.2 Загрузка пакетов, пространства имён».</p>
+<hr>
+<h2>2.2.1. Модуль и инструкция import</h2>
+<p>Модуль — файл с кодом Python. Пакет — папка с модулями и файлом <code>__init__.py</code>. Инструкция <code>import</code> выполняет модуль (при первом обращении) и связывает имя в текущем пространстве имён с объектом модуля.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import math
+
+print(type(math).__name__, math.__name__)
+print(&quot;файл:&quot;, math.__file__)
+print(&quot;pi =&quot;, round(math.pi, 5))</code></pre>
+<p>Имя <code>math</code> указывает на модуль. Функция <code>sqrt</code> доступна как атрибут: <code>math.sqrt</code>. Сама по себе она в ноутбук не попадает.</p>
+<p><strong>Ячейка — имя не появляется само:</strong></p>
+<pre><code class="language-python">try:
+    print(sqrt(16))
+except NameError as error:
+    print(type(error).__name__, error)</code></pre>
+<p><strong>Критерий 2.2.1:</strong> напечатаны тип <code>module</code>, путь к <code>math</code> внутри установки Python и текст <code>NameError</code>.</p>
+<hr>
+<h2>2.2.2. Формы импорта</h2>
+<p><strong>Ячейка — модуль целиком и псевдоним:</strong></p>
+<pre><code class="language-python">import statistics as stats
+from pathlib import Path
+
+print(stats.mean([2, 4, 4, 4, 5, 5, 7, 9]))
+print(Path.cwd().name)</code></pre>
+<p><strong>Ячейка — одно имя из модуля:</strong></p>
+<pre><code class="language-python">from math import sqrt
+
+print(sqrt(16))</code></pre>
+<p>После <code>from math import sqrt</code> в пространстве имён ячейки есть имя <code>sqrt</code>. Имени <code>math</code> эта строка не создаёт.</p>
+<p>**Ячейка — почему не используют <code>import *</code>:**</p>
+<pre><code class="language-python">from math import pi as math_pi
+
+pi = 3
+print(&quot;локальное pi =&quot;, pi)
+print(&quot;math.pi =&quot;, math_pi)</code></pre>
+<p><code>from math import *</code> занёс бы в текущее пространство имён десятки имён и мог бы затереть уже занятое <code>pi</code>. В курсе так не пишем: импортируйте модуль или перечисляйте нужные имена.</p>
+<p><strong>Практика 2.2.2.</strong> Импортируйте <code>median</code> из <code>statistics</code> под именем <code>med</code> и посчитайте медиану списка <code>[9, 1, 4]</code>.</p>
+<p><strong>Критерий 2.2.2:</strong> в ноутбуке есть <code>import …</code>, <code>import … as …</code> и <code>from … import …</code>; медиана равна <code>4</code>.</p>
+<hr>
+<h2>2.2.3. Пространства имён</h2>
+<p>Пространство имён — соответствие имени и объекта. У модуля, функции и ячейки ноутбука оно своё. Поиск имени идёт от локального пространства наружу: функция, затем модуль, затем встроенные имена (<code>len</code>, <code>print</code>, <code>int</code>).</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">label = &quot;модуль&quot;
+
+def show():
+    label = &quot;функция&quot;
+    print(&quot;внутри:&quot;, label)
+
+show()
+print(&quot;снаружи:&quot;, label)
+print(&quot;встроенное:&quot;, len([1, 2, 3]))</code></pre>
+<p>Присваивание <code>label = &quot;функция&quot;</code> создаёт локальное имя. Внешнее <code>label</code> не меняется.</p>
+<p><strong>Ячейка — чтение внешнего имени:</strong></p>
+<pre><code class="language-python">factor = 10
+
+def scale(value):
+    return value * factor
+
+print(scale(3))</code></pre>
+<p>Если внутри функции нет присваивания в <code>factor</code>, Python читает имя снаружи.</p>
+<p><strong>Ячейка — что сейчас в пространстве имён:</strong></p>
+<pre><code class="language-python">import math
+names = [name for name in dir() if not name.startswith(&quot;_&quot;)]
+print(sorted(names))</code></pre>
+<p><strong>Практика 2.2.3.</strong> Напишите функцию <code>title()</code>, внутри которой переменная <code>label = &quot;внутри&quot;</code>. Снаружи до вызова задайте <code>label = &quot;снаружи&quot;</code>. Напечатайте оба значения и одной фразой в markdown объясните, почему они разные.</p>
+<p><strong>Критерий 2.2.3:</strong> вызов печатает <code>внутри</code>, затем снаружи остаётся <code>снаружи</code>; <code>scale(3)</code> равно <code>30</code>.</p>
+<hr>
+<h2>2.2.4. Где Python ищет модули</h2>
+<p>Список каталогов поиска лежит в <code>sys.path</code>. Первым обычно идёт каталог скрипта или текущая рабочая папка. Пакеты, установленные в <code>.venv</code>, находятся в <code>site-packages</code> этого окружения.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import sys
+
+print(&quot;исполняемый файл:&quot;, sys.executable)
+print(&quot;--- начало sys.path ---&quot;)
+for item in sys.path[:5]:
+    print(item)</code></pre>
+<p><strong>Критерий 2.2.4:</strong> <code>sys.executable</code> содержит <code>.venv</code>. В markdown отметьте, какой элемент <code>sys.path</code> указывает на <code>site-packages</code>.</p>
+<p>Если в ноутбуке путь другой — смените ядро на интерпретатор <code>.venv</code> и выполните ячейку снова.</p>
+<hr>
+<h2>2.2.5. Свой пакет</h2>
+<p>Создайте в <code>module-2-2</code> пакет из двух файлов.</p>
+<p><code>module-2-2/course_tools/__init__.py</code>:</p>
+<pre><code class="language-python">from course_tools.grades import passed</code></pre>
+<p><code>module-2-2/course_tools/grades.py</code>:</p>
+<pre><code class="language-python">def passed(score: int) -&gt; bool:
+    return score &gt;= 12</code></pre>
+<p><code>module-2-2/run_grades.py</code> запускают из корня курса, поэтому корень <code>module-2-2</code> нужно добавить в путь поиска. Надёжнее запускать скрипт так, чтобы каталог <code>module-2-2</code> был в <code>sys.path</code>. Положите скрипт рядом с пакетом и запускайте его из <code>module-2-2</code>:</p>
+<pre><code class="language-python">from course_tools.grades import passed
+
+scores = [18, 9, 12]
+for score in scores:
+    print(score, &quot;сдано&quot; if passed(score) else &quot;нет&quot;)</code></pre>
+<p>В терминале VS Code:</p>
+<pre><code class="language-powershell">cd module-2-2
+python run_grades.py</code></pre>
+<p>В ноутбуке, открытом из корня курса, пакет не виден, пока каталог <code>module-2-2</code> не попал в <code>sys.path</code>:</p>
+<pre><code class="language-python">import sys
+from pathlib import Path
+
+root = Path.cwd() / &quot;module-2-2&quot;
+if str(root) not in sys.path:
+    sys.path.insert(0, str(root))
+
+from course_tools.grades import passed
+
+print([score for score in (18, 9, 12) if passed(score)])</code></pre>
+<p>Если импорт пакета уже выполнялся с ошибкой, перезапустите ядро ноутбука и выполните ячейку ещё раз. Повторный <code>import</code> не перечитывает изменённый файл.</p>
+<p><strong>Практика 2.2.5.</strong> Добавьте в <code>grades.py</code> функцию <code>label(score)</code>, которая возвращает <code>&quot;зачёт&quot;</code> при <code>score &gt;= 12</code> и <code>&quot;доработка&quot;</code> иначе. Вызовите её из <code>run_grades.py</code> для тех же трёх баллов.</p>
+<p><strong>Критерий 2.2.5:</strong> скрипт печатает для 18 и 12 «сдано» и «зачёт», для 9 — «нет» и «доработка». В ноутбуке список сдавших равен <code>[18, 12]</code>.</p>
+<hr>
+<h2>2.2.6. Установка пакета в окружение</h2>
+<p><code>pip</code> ставит пакет в то окружение, чей <code>python</code> вы запускаете. Проверка перед установкой:</p>
+<pre><code class="language-powershell">python -c &quot;import sys; print(sys.executable)&quot;</code></pre>
+<p>Установите пакет для следующих модулей курса (если его ещё нет):</p>
+<pre><code class="language-powershell">python -m pip install matplotlib
+python -c &quot;import matplotlib; print(matplotlib.__version__); print(matplotlib.__file__)&quot;</code></pre>
+<p>Путь в выводе должен проходить через <code>.venv</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import matplotlib
+print(matplotlib.__name__)
+print(&quot;версия&quot;, matplotlib.__version__)</code></pre>
+<p><strong>Практика 2.2.6.</strong> В markdown ответьте: что изменится, если выполнить <code>pip install</code> без активированного <code>.venv</code> и без <code>python -m pip</code>.</p>
+<p><strong>Критерий 2.2.6:</strong> версия matplotlib печатается, файл пакета лежит внутри <code>.venv</code>.</p>
+<hr>
+<h2>2.2.7. Имя <code>__name__</code></h2>
+<p>У модуля есть имя. Если файл запущен как программа, Python задаёт <code>__name__</code> равным <code>&quot;__main__&quot;</code>. Если файл импортирован, <code>__name__</code> равен имени модуля. Так отделяют код, который должен выполниться только при запуске файла.</p>
+<p>В конец <code>module-2-2/run_grades.py</code> добавьте:</p>
+<pre><code class="language-python">if __name__ == &quot;__main__&quot;:
+    print(&quot;запуск как программа&quot;)</code></pre>
+<p>Вызов <code>from course_tools.grades import passed</code> при импорте модуля эту строку не печатает: она относится к <code>run_grades.py</code>, а не к пакету. Проверьте оба способа:</p>
+<pre><code class="language-powershell">python run_grades.py
+python -c &quot;import run_grades&quot;</code></pre>
+<p>Вторую команду выполняйте из каталога <code>module-2-2</code>. При импорте строка «запуск как программа» не появляется, если весь сценарий с баллами тоже стоит под <code>if __name__ == &quot;__main__&quot;</code>. Перенесите цикл по <code>scores</code> внутрь этой ветки.</p>
+<p><strong>Критерий 2.2.7:</strong> прямой запуск печатает баллы и «запуск как программа»; <code>import run_grades</code> завершается без этой строки.</p>
+<hr>
+<h2>2.2.8. Ленивый импорт (Python 3.15)</h2>
+<p>Обычный <code>import</code> сразу ищет модуль, компилирует его и выполняет код верхнего уровня. В Python 3.15 тот же импорт можно отложить мягким ключевым словом <code>lazy</code> (PEP 810):</p>
+<pre><code class="language-python">lazy import json
+lazy from pathlib import Path</code></pre>
+<p>На строке <code>lazy import</code> модуль не загружается. Интерпретатор связывает имя с лёгким посредником. Загрузка происходит при первом использовании этого имени: <code>json.loads(...)</code> или обращение к <code>Path</code>. Слово <code>lazy</code> — мягкое ключевое слово: оно особое только перед <code>import</code> и <code>from</code>. Переменную по-прежнему можно назвать <code>lazy</code>.</p>
+<p>Проверка версии:</p>
+<pre><code class="language-powershell">python --version</code></pre>
+<p>Дальнейшие ячейки выполняйте, если версия <strong>3.15 или новее</strong>. На 3.12 и 3.13 строка <code>lazy import</code> даёт <code>SyntaxError</code>. В этом случае раздел читают и в markdown записывают фактическую версию: код занятия на этой версии не запускается.</p>
+<p><strong>Ячейка — модуль ещё не в <code>sys.modules</code>:</strong></p>
+<pre><code class="language-python">import sys
+
+lazy import json
+
+print(&quot;до обращения:&quot;, &quot;json&quot; in sys.modules)
+text = json.dumps({&quot;hello&quot;: &quot;world&quot;})
+print(text)
+print(&quot;после обращения:&quot;, &quot;json&quot; in sys.modules)</code></pre>
+<p>До вызова <code>dumps</code> ключа <code>json</code> в <code>sys.modules</code> нет. После вызова модуль загружен.</p>
+<p><strong>Ячейка — <code>lazy from</code>:</strong></p>
+<pre><code class="language-python">import sys
+
+lazy from json import dumps, loads
+
+print(&quot;до обращения:&quot;, &quot;json&quot; in sys.modules)
+print(dumps({&quot;a&quot;: 1}))
+print(&quot;после dumps:&quot;, &quot;json&quot; in sys.modules)</code></pre>
+<p>Первое обращение к любому из имён (<code>dumps</code> или <code>loads</code>) загружает весь модуль <code>json</code>. В объект превращается то имя, к которому обратились. Второе имя остаётся ленивым, пока его не используют.</p>
+<p>Ошибка «модуля нет» возникает не на строке импорта, а в месте первого использования. В трассировке видны обе точки: обращение к имени и исходная строка <code>lazy import</code>.</p>
+<p><code>lazy</code> допустим только на уровне модуля. Такие варианты — синтаксическая ошибка:</p>
+<pre><code class="language-python">def load():
+    lazy import json          # нельзя внутри функции
+
+class Box:
+    lazy import json          # нельзя в теле класса
+
+try:
+    lazy import json          # нельзя в try
+except ImportError:
+    pass
+
+lazy from json import *      # нельзя вместе со звёздочкой
+lazy from __future__ import annotations</code></pre>
+<p>Импорт внутри функции по-прежнему возможен обычным <code>import</code> без <code>lazy</code>: он выполнится в момент вызова функции. Это другой приём, он был и до 3.15.</p>
+<p>Глобальный режим без правки каждого файла: запуск <code>python -X lazy_imports=all</code> или переменная среды <code>PYTHON_LAZY_IMPORTS=all</code>. Значение <code>normal</code> (оно и есть значение по умолчанию) ленивыми делает только импорты со словом <code>lazy</code>. Режим можно запросить из кода: <code>sys.set_lazy_imports(&quot;all&quot;)</code> и прочитать <code>sys.get_lazy_imports()</code>. Фильтр <code>sys.set_lazy_imports_filter(...)</code> решает, какие модули в режиме <code>all</code> остаются ленивыми.</p>
+<p><strong>Практика 2.2.8.</strong> На Python 3.15 добавьте в отдельный файл <code>module-2-2/lazy_demo.py</code> две строки: <code>lazy import statistics</code> и печать <code>statistics.mean([1, 2, 3])</code>. Запустите файл. В markdown напишите, в какой момент модуль <code>statistics</code> попадает в <code>sys.modules</code>. На более старой версии ограничьтесь записью <code>python --version</code> и пометкой «синтаксис недоступен».</p>
+<p><strong>Критерий 2.2.8:</strong> на 3.15 до обращения к <code>json</code> печать <code>False</code>, после <code>dumps</code> — <code>True</code>, среднее в демо равно <code>2</code>. На более старой версии в ноутбуке зафиксирована версия интерпретатора.</p>
+<hr>
+<h2>2.2.9. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
+<ol><li>Чем <code>import math</code> отличается от <code>from math import sqrt</code> с точки зрения имён в текущем пространстве.</li><li>Почему <code>from math import *</code> легко затирает уже существующее имя.</li><li>Зачем файлу пакета <code>__init__.py</code> и зачем скрипту проверка <code>__name__ == &quot;__main__&quot;</code>.</li><li>Чем <code>lazy import json</code> в Python 3.15 отличается от обычного <code>import json</code> и где возникает <code>ModuleNotFoundError</code>, если модуля нет.</li></ol>
+<h3>Чеклист</h3>
+<table><thead><tr><th>№</th><th>Действие</th><th>Готово</th></tr></thead><tbody><tr><td>1</td><td><code>lab22-imports.ipynb</code>: разделы 2.2.1–2.2.4 с выводом</td><td>☐</td></tr><tr><td>2</td><td>Практика 2.2.2: медиана <code>[9, 1, 4]</code> равна 4</td><td>☐</td></tr><tr><td>3</td><td>Практика 2.2.3: локальное и внешнее <code>label</code> различаются</td><td>☐</td></tr><tr><td>4</td><td><code>sys.executable</code> указывает на <code>.venv</code></td><td>☐</td></tr><tr><td>5</td><td>Пакет <code>course_tools</code>, в <code>grades.py</code> есть <code>passed</code> и <code>label</code></td><td>☐</td></tr><tr><td>6</td><td><code>python run_grades.py</code> печатает три результата</td><td>☐</td></tr><tr><td>7</td><td><code>matplotlib.__file__</code> находится в <code>.venv</code></td><td>☐</td></tr><tr><td>8</td><td>Прямой запуск и импорт <code>run_grades</code> ведут себя по-разному</td><td>☐</td></tr><tr><td>9</td><td>Раздел 2.2.8: на 3.15 проверен <code>lazy import</code>, иначе записана версия Python</td><td>☐</td></tr><tr><td>10</td><td>Ответы самопроверки</td><td>☐</td></tr></tbody></table>
+<h3>Типовые ошибки</h3>
+<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td><code>ModuleNotFoundError: course_tools</code></td><td>Запуск из каталога <code>module-2-2</code> или каталог добавлен в <code>sys.path</code></td></tr><tr><td><code>ImportError</code> после правки файла</td><td>Перезапуск ядра: импортированный модуль уже лежит в <code>sys.modules</code></td></tr><tr><td><code>NameError: sqrt</code></td><td>Импортирован модуль <code>math</code>, а не имя <code>sqrt</code></td></tr><tr><td>Пакет встал не в <code>.venv</code></td><td>Активировать окружение или вызывать <code>python -m pip</code></td></tr><tr><td>При <code>import run_grades</code> печатается сценарий</td><td>Код вывода не обёрнут в <code>if __name__ == &quot;__main__&quot;</code></td></tr></tbody></table>
+<p>После занятия слушатель выбирает форму импорта под задачу, не смешивает локальные имена с именами модуля и ставит пакеты в окружение курса.</p>
+  </article>
+</body>
+</html>

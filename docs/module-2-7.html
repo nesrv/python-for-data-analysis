@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2.7 Профилирование кода</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-2.html">← Модуль 2</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>2.7 Профилирование кода</h1>
+    <p>Создайте <code>module-2/profile_demo.py</code>:</p>
+<pre><code class="language-python">def slow_sum(n: int) -&gt; int:
+    total = 0
+    for i in range(n):
+        total += i
+    return total
+
+
+def main():
+    return slow_sum(200_000) + slow_sum(100_000)
+
+
+if __name__ == &quot;__main__&quot;:
+    print(main())</code></pre>
+<p>В терминале с <code>.venv</code>, из корня проекта:</p>
+<pre><code class="language-powershell">python -m cProfile -s cumtime module-2\profile_demo.py</code></pre>
+<p>В выводе найдите строку <code>slow_sum</code>. В ноутбуке добавьте markdown: сколько вызовов <code>slow_sum</code> (ожидается <strong>2</strong>) и что сортировка <code>-s cumtime</code> показывает функции с наибольшим накопленным временем сверху.</p>
+<p>Короткий замер в ячейке:</p>
+<pre><code class="language-python">import timeit
+print(timeit.timeit(&quot;sum(range(10_000))&quot;, number=500))</code></pre>
+<p><strong>Критерий G:</strong> профиль запускается без ошибки, в таблице есть <code>slow_sum</code>, скрипт печатает сумму.</p>
+<hr>
+  </article>
+</body>
+</html>
