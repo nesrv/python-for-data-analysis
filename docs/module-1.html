@@ -90,10 +90,14 @@ name.upper()</code></pre>
 <hr>
 <h2>Блок C. Jupyter в VS Code</h2>
 <h3>Практика C.1 — пакеты</h3>
+<p>Ноутбук (<code>.ipynb</code>) — это файл из ячеек. Код в ячейке выполняет не VS Code сам по себе, а <strong>ядро</strong>: отдельный процесс Python. Команда ниже ставит в уже активированное <code>.venv</code> три пакета, без которых ядро не запустится.</p>
 <pre><code class="language-powershell">pip install notebook jupyterlab ipykernel
 jupyter --version</code></pre>
-<p>Кратко зафиксируйте вывод <code>jupyter --version</code> в <code>practice-env-check.txt</code>.</p>
-<p>Опционально — понятное имя ядра:</p>
+<p>Что означает каждая часть:</p>
+<table><thead><tr><th>Фрагмент</th><th>Зачем</th></tr></thead><tbody><tr><td><code>pip install</code></td><td>Скачать пакеты с PyPI и положить их в текущее окружение <code>.venv</code>. Префикс <code>(.venv)</code> в терминале обязателен, иначе пакеты встанут в другой Python.</td></tr><tr><td><code>notebook</code></td><td>Классический Jupyter Notebook: формат <code>.ipynb</code> и сервер, который открывается в браузере командой <code>jupyter notebook</code>.</td></tr><tr><td><code>jupyterlab</code></td><td>JupyterLab: тот же формат ноутбука, более новый интерфейс в браузере (<code>jupyter lab</code>). На занятии основной режим — ноутбук внутри VS Code, браузер нужен как запасной.</td></tr><tr><td><code>ipykernel</code></td><td>Связка между ноутбуком и Python. Это и есть ядро: VS Code передаёт код ячейки процессу <code>ipykernel</code>, тот считает его вашим <code>.venv</code> и возвращает вывод. Без этого пакета в списке ядер не будет интерпретатора окружения.</td></tr></tbody></table>
+<p>Три имени в одной команде — не три разных установки, а один запуск <code>pip</code>: он ставит все перечисленные пакеты сразу.</p>
+<p><code>jupyter --version</code> печатает версии Jupyter. Если команда не находится, окружение не активировано или установка не прошла: снова <code>.\.venv\Scripts\Activate.ps1</code> и повторите <code>pip install</code>. Кратко зафиксируйте вывод в <code>practice-env-check.txt</code>.</p>
+<p>Опционально — понятное имя ядра в списке VS Code:</p>
 <pre><code class="language-powershell">python -m ipykernel install --user --name=it-cloud --display-name &quot;Python (IT-cloud)&quot;</code></pre>
 <h3>Практика C.2 — ноутбук <code>lab01-environment.ipynb</code></h3>
 <ol><li><strong>Файл</strong> → <strong>Новый файл</strong> → сохранить как <code>module-1/lab01-environment.ipynb</code>.</li><li>Вверху справа выбрать ядро: <code>./.venv/.../python.exe</code> или <strong>Python (IT-cloud)</strong>.</li></ol>
@@ -167,7 +171,7 @@ if __name__ == &quot;__main__&quot;:
 <p>Создание и активация venv:</p>
 <pre><code class="language-powershell">python -m venv .venv
 .\.venv\Scripts\Activate.ps1</code></pre>
-<p>Установка инструментов модуля:</p>
+<p>Установка инструментов модуля. <code>ipython</code> — интерактивная оболочка в терминале. <code>notebook</code> и <code>jupyterlab</code> — ноутбуки <code>.ipynb</code> в браузере. <code>ipykernel</code> — ядро, которое выполняет ячейки ноутбука в VS Code этим же Python из <code>.venv</code>.</p>
 <pre><code class="language-powershell">python -m pip install --upgrade pip
 pip install ipython notebook jupyterlab ipykernel</code></pre>
 <p>Проверки:</p>

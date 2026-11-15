@@ -183,14 +183,27 @@ ipython -c "print(2**10); name='course'; print(name.upper());" | Out-File -Encod
 
 ### Практика C.1 — пакеты
 
+Ноутбук (`.ipynb`) — это файл из ячеек. Код в ячейке выполняет не VS Code сам по себе, а **ядро**: отдельный процесс Python. Команда ниже ставит в уже активированное `.venv` три пакета, без которых ядро не запустится.
+
 ```powershell
 pip install notebook jupyterlab ipykernel
 jupyter --version
 ```
 
-Кратко зафиксируйте вывод `jupyter --version` в `practice-env-check.txt`.
+Что означает каждая часть:
 
-Опционально — понятное имя ядра:
+| Фрагмент | Зачем |
+|----------|--------|
+| `pip install` | Скачать пакеты с PyPI и положить их в текущее окружение `.venv`. Префикс `(.venv)` в терминале обязателен, иначе пакеты встанут в другой Python. |
+| `notebook` | Классический Jupyter Notebook: формат `.ipynb` и сервер, который открывается в браузере командой `jupyter notebook`. |
+| `jupyterlab` | JupyterLab: тот же формат ноутбука, более новый интерфейс в браузере (`jupyter lab`). На занятии основной режим — ноутбук внутри VS Code, браузер нужен как запасной. |
+| `ipykernel` | Связка между ноутбуком и Python. Это и есть ядро: VS Code передаёт код ячейки процессу `ipykernel`, тот считает его вашим `.venv` и возвращает вывод. Без этого пакета в списке ядер не будет интерпретатора окружения. |
+
+Три имени в одной команде — не три разных установки, а один запуск `pip`: он ставит все перечисленные пакеты сразу.
+
+`jupyter --version` печатает версии Jupyter. Если команда не находится, окружение не активировано или установка не прошла: снова `.\.venv\Scripts\Activate.ps1` и повторите `pip install`. Кратко зафиксируйте вывод в `practice-env-check.txt`.
+
+Опционально — понятное имя ядра в списке VS Code:
 
 ```powershell
 python -m ipykernel install --user --name=it-cloud --display-name "Python (IT-cloud)"
@@ -349,7 +362,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Установка инструментов модуля:
+Установка инструментов модуля. `ipython` — интерактивная оболочка в терминале. `notebook` и `jupyterlab` — ноутбуки `.ipynb` в браузере. `ipykernel` — ядро, которое выполняет ячейки ноутбука в VS Code этим же Python из `.venv`.
 
 ```powershell
 python -m pip install --upgrade pip
