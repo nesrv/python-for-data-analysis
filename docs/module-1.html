@@ -11,68 +11,65 @@
     <a class="back" href="slide4.html">← Оглавление</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>Модуль 1. Введение и настройка рабочей среды</h1>
-<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) <strong>активной практики</strong> в Visual Studio Code.</p>
+<p><strong>Формат:</strong> активная практика в Visual Studio Code.</p>
 <p><strong>Цель:</strong> каждый слушатель сам настраивает окружение курса: виртуальное окружение Python, IPython, Jupyter (ноутбуки в VS Code) и сдаёт минимальный набор артефактов.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-1/</code> в корне проекта):</p>
 <table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>practice-env-check.txt</code></td><td>Текстовый отчёт о версиях и пути к интерпретатору</td></tr><tr><td><code>practice-ipython-log.txt</code></td><td>Сохранённый вывод сессии IPython</td></tr><tr><td><code>lab01-environment.ipynb</code></td><td>Ноутбук с выполненными ячейками и markdown-описанием среды</td></tr></tbody></table>
 <p>Преподаватель проверяет наличие файлов и корректность путей (интерпретатор из <code>.venv</code>).</p>
+<p>При работе на удалённом АРМ (см. <code>help.md</code> в корне курса) шаги те же; терминал — <strong>Терминал</strong> → <strong>Создать терминал</strong> (клавиши <strong>Ctrl+`</strong>).</p>
 <hr>
-<h2>Распределение времени (ориентир для группы)</h2>
-<table><thead><tr><th>Время</th><th>Блок</th><th>Содержание</th></tr></thead><tbody><tr><td>0:00–0:10</td><td>Вводный</td><td>VS Code, папка проекта, расширения</td></tr><tr><td>0:10–0:35</td><td>Блок A</td><td>Виртуальное окружение + интерпретатор VS Code</td></tr><tr><td>0:35–0:55</td><td>Блок B</td><td>IPython: установка и первая сессия</td></tr><tr><td>0:55–1:25</td><td>Блок C</td><td>Jupyter в VS Code: ноутбук, ядро, ячейки</td></tr><tr><td>1:25–1:45</td><td>Блок D</td><td>Самостоятельное мини-задание и отладка типовых ошибок</td></tr><tr><td>1:45–2:00</td><td>Фиксация</td><td>Чеклист, сохранение артефактов, вопросы</td></tr></tbody></table>
-<p>При работе на удалённом АРМ (см. <code>help.md</code> в корне курса) шаги те же; терминал — <strong>Терминал</strong> → <strong>Создать терминал</strong> (<code>Ctrl+</code>`).</p>
-<hr>
-<h2>Подготовка (до занятия или первые 10 минут)</h2>
+<h2>Подготовка</h2>
 <h3>Что должно быть установлено</h3>
 <ol><li><strong>Python 3.10+</strong> — <a href="https://www.python.org/downloads/">python.org/downloads</a> (галочка <strong>Add Python to PATH</strong>).</li><li><strong>Visual Studio Code</strong> — <a href="https://code.visualstudio.com/">code.visualstudio.com</a>.</li></ol>
-<p><strong>Практика 0.1</strong> (3 мин): откройте VS Code, терминал, выполните:</p>
+<p><strong>Практика 0.1</strong>: откройте VS Code, терминал, выполните:</p>
 <pre><code class="language-powershell">python --version</code></pre>
 <p>Зафиксируйте версию — она попадёт в <code>practice-env-check.txt</code>.</p>
 <h3>Расширения VS Code</h3>
 <p><code>Ctrl+Shift+X</code>, установить:</p>
 <ul><li><strong>Python</strong> (Microsoft)</li><li><strong>Jupyter</strong> (Microsoft)</li></ul>
 <p>Перезапустите VS Code при необходимости.</p>
-<p><strong>Практика 0.2</strong> (5 мин): <strong>Файл</strong> → <strong>Открыть папку</strong> → каталог курса (например <code>IT-cloud</code>). Создайте подпапку <code>module-1</code>, если её ещё нет. В проводнике слева должны быть видны <code>program.md</code>, <code>module-1</code> и т.д.</p>
-<p><strong>Практика 0.3</strong> (2 мин): в терминале VS Code:</p>
+<p><strong>Практика 0.2</strong>: <strong>Файл</strong> → <strong>Открыть папку</strong> → каталог курса (например <code>IT-cloud</code>). Создайте подпапку <code>module-1</code>, если её ещё нет. В проводнике слева должны быть видны <code>program.md</code>, <code>module-1</code> и т.д.</p>
+<p><strong>Практика 0.3</strong>: в терминале VS Code:</p>
 <pre><code class="language-powershell">code --version</code></pre>
 <p>Если команда не найдена — это не критично; главное, что редактор открыт с нужной папкой.</p>
 <hr>
-<h2>Блок A. Виртуальное окружение (≈25 минут)</h2>
+<h2>Блок A. Виртуальное окружение</h2>
 <p>Виртуальное окружение изолирует пакеты курса от системного Python.</p>
-<h3>Теория (устно, 3 мин)</h3>
+<h3>Теория (устно)</h3>
 <p>Один проект — своё окружение в <code>.venv</code>. VS Code должен использовать <strong>этот</strong> <code>python.exe</code> и в терминале, и в ноутбуках.</p>
-<h3>Практика A.1 — создание окружения (7 мин)</h3>
+<h3>Практика A.1 — создание окружения</h3>
 <p>В терминале VS Code (корень проекта):</p>
 <pre><code class="language-powershell">python -m venv .venv</code></pre>
 <p>Убедитесь, что появилась папка <code>.venv</code> (её можно скрыть в <code>.gitignore</code> позже).</p>
-<h3>Практика A.2 — активация (5 мин)</h3>
+<h3>Практика A.2 — активация</h3>
 <p><strong>PowerShell:</strong></p>
 <pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1</code></pre>
 <p>Префикс <code>(.venv)</code> в начале строки — признак успеха.</p>
 <p>Если ошибка политики выполнения:</p>
 <pre><code class="language-powershell">Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
 <p>Повторите активацию. Альтернатива — <strong>cmd</strong>: <code>.venv\Scripts\activate.bat</code>.</p>
-<h3>Практика A.3 — интерпретатор в VS Code (5 мин)</h3>
+<h3>Практика A.3 — интерпретатор в VS Code</h3>
 <ol><li><code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong>.</li><li>Выбрать <code>./.venv/Scripts/python.exe</code> (<strong>Recommended</strong>).</li></ol>
 <p>В статусной строке внизу отображается выбранный Python.</p>
-<h3>Практика A.4 — отчёт <code>practice-env-check.txt</code> (5 мин)</h3>
+<h3>Практика A.4 — отчёт <code>practice-env-check.txt</code></h3>
 <p>С <strong>активным</strong> <code>.venv</code> выполните и <strong>сохраните полный вывод</strong> в файл <code>module-1/practice-env-check.txt</code>:</p>
 <pre><code class="language-powershell">python --version
 python -c &quot;import sys; print(sys.executable)&quot;
 where python
 pip --version</code></pre>
 <p><strong>Критерий приёмки A:</strong> в файле путь к <code>python.exe</code> содержит <code>\IT-cloud\.venv\</code> (или ваш корень проекта + <code>\.venv\</code>).</p>
-<h3>Самопроверка A (5 мин)</h3>
+<h3>Самопроверка A</h3>
 <p>Откройте новый терминал (<code>+</code> на панели терминала). Если префикса <code>(.venv)</code> нет — снова активируйте окружение. Запустите:</p>
 <pre><code class="language-powershell">python -c &quot;print(&#x27;venv ok&#x27;)&quot;</code></pre>
 <hr>
-<h2>Блок B. IPython (≈20 минут)</h2>
+<h2>Блок B. IPython</h2>
 <p>IPython — улучшенная интерактивная оболочка: подсказки, история, магические команды.</p>
-<h3>Практика B.1 — установка (5 мин)</h3>
+<h3>Практика B.1 — установка</h3>
 <pre><code class="language-powershell">python -m pip install --upgrade pip
 pip install ipython
 ipython --version</code></pre>
 <p>Добавьте строку с версией IPython в конец <code>practice-env-check.txt</code>.</p>
-<h3>Практика B.2 — сессия в терминале (10 мин)</h3>
+<h3>Практика B.2 — сессия в терминале</h3>
 <pre><code class="language-powershell">ipython</code></pre>
 <p>Внутри IPython выполните <strong>по порядку</strong> (фиксируйте вывод для файла <code>practice-ipython-log.txt</code>):</p>
 <pre><code class="language-python">2 ** 10
@@ -84,22 +81,22 @@ name.upper()</code></pre>
 <p>Подсказка по объекту:</p>
 <pre><code class="language-python">len?</code></pre>
 <p>Выйти: <code>exit</code> или <code>Ctrl+D</code>.</p>
-<p><strong>Практика B.3 — сохранить лог (5 мин)</strong></p>
+<p><strong>Практика B.3 — сохранить лог</strong></p>
 <p>В PowerShell удобно один раз перезаписать лог так (из корня проекта, <code>.venv</code> активен):</p>
 <pre><code class="language-powershell">ipython -c &quot;print(2**10); name=&#x27;course&#x27;; print(name.upper());&quot; | Out-File -Encoding utf8 module-1\practice-ipython-log.txt</code></pre>
 <p>Затем <strong>допишите вручную</strong> в тот же файл две строки вывода из интерактива: результат <code>%timeit ...</code> и фрагмент справки <code>len?</code> (скопируйте из терминала).</p>
 <p><strong>Критерий приёмки B:</strong> в логе есть <code>1024</code>, <code>COURSE</code>, замер <code>timeit</code>.</p>
-<h3>Дополнительно в VS Code (по желанию, 2–3 мин)</h3>
+<h3>Дополнительно в VS Code</h3>
 <p><code>Ctrl+Shift+P</code> → <strong>Python: Start REPL</strong> — обычный REPL выбранного интерпретатора; для полного IPython надёжнее команда <code>ipython</code> в терминале.</p>
 <hr>
-<h2>Блок C. Jupyter в VS Code (≈30 минут)</h2>
-<h3>Практика C.1 — пакеты (7 мин)</h3>
+<h2>Блок C. Jupyter в VS Code</h2>
+<h3>Практика C.1 — пакеты</h3>
 <pre><code class="language-powershell">pip install notebook jupyterlab ipykernel
 jupyter --version</code></pre>
 <p>Кратко зафиксируйте вывод <code>jupyter --version</code> в <code>practice-env-check.txt</code>.</p>
 <p>Опционально — понятное имя ядра:</p>
 <pre><code class="language-powershell">python -m ipykernel install --user --name=it-cloud --display-name &quot;Python (IT-cloud)&quot;</code></pre>
-<h3>Практика C.2 — ноутбук <code>lab01-environment.ipynb</code> (15 мин)</h3>
+<h3>Практика C.2 — ноутбук <code>lab01-environment.ipynb</code></h3>
 <ol><li><strong>Файл</strong> → <strong>Новый файл</strong> → сохранить как <code>module-1/lab01-environment.ipynb</code>.</li><li>Вверху справа выбрать ядро: <code>./.venv/.../python.exe</code> или <strong>Python (IT-cloud)</strong>.</li></ol>
 <p><strong>Ячейка Markdown (первая):</strong> заголовок «Модуль 1. Моя среда», ФИО, дата.</p>
 <p><strong>Ячейка кода 1:</strong></p>
@@ -119,14 +116,14 @@ type(a / b), type(a % b)</code></pre>
 print(&quot;IPython&quot;, IPython.__version__)</code></pre>
 <p><strong>Ячейка Markdown (итог):</strong> одно предложение: «Интерпретатор из .venv: да/нет» — по фактическому пути из ячейки 1.</p>
 <p><strong>Критерий приёмки C:</strong> ноутбук сохранён, у всех ячеек кода есть вывод; <code>sys.executable</code> указывает на <code>.venv</code>.</p>
-<h3>Практика C.3 — работа с ячейками (5 мин)</h3>
+<h3>Практика C.3 — работа с ячейками</h3>
 <ul><li>Добавить ячейку <strong>сверху</strong> (Markdown): оглавление из 3 пунктов.</li><li>Изменить числа в ячейке 2, <strong>перезапустить только эту ячейку</strong>.</li><li><strong>Restart Kernel</strong> и <strong>Run All</strong> — убедиться, что вывод воспроизводится.</li></ul>
-<h3>Практика C.4 — Jupyter в браузере (3 мин, демо или по желанию)</h3>
+<h3>Практика C.4 — Jupyter в браузере (демо или по желанию)</h3>
 <pre><code class="language-powershell">jupyter lab</code></pre>
 <p>Открыть созданный <code>lab01-environment.ipynb</code>, выполнить одну ячейку, закрыть вкладку. Остановить сервер в терминале: <code>Ctrl+C</code>, подтвердить завершение.</p>
 <p>На занятии <strong>основной режим — Jupyter в VS Code</strong>; браузер — запасной вариант.</p>
 <hr>
-<h2>Блок D. Самостоятельное мини-задание (≈20 минут)</h2>
+<h2>Блок D. Самостоятельное мини-задание</h2>
 <p><strong>Задание D1.</strong> В том же <code>lab01-environment.ipynb</code> добавьте ячейку кода:</p>
 <pre><code class="language-python">def env_summary():
     import sys, os
@@ -161,7 +158,7 @@ if __name__ == &quot;__main__&quot;:
 <h3>Типовые проблемы (разбор по ходу блока D)</h3>
 <table><thead><tr><th>Симптом</th><th>Действие</th></tr></thead><tbody><tr><td>Не то ядро в ноутбуке</td><td>Клик по имени ядра вверху → <code>./.venv/.../python.exe</code></td></tr><tr><td><code>pip</code> ставит не в venv</td><td>Проверить <code>(.venv)</code>; <code>python -m pip install ...</code></td></tr><tr><td><code>Activate.ps1</code> не выполняется</td><td><code>Set-ExecutionPolicy</code> или cmd + <code>activate.bat</code></td></tr><tr><td><code>python</code> не найден</td><td><code>py -3 --version</code>; переустановка с PATH</td></tr><tr><td>После Restart Kernel пустой вывод</td><td><strong>Run All</strong></td></tr></tbody></table>
 <hr>
-<h2>Завершение занятия (≈15 минут)</h2>
+<h2>Завершение занятия</h2>
 <h3>Итоговый чеклист слушателя</h3>
 <table><thead><tr><th>№</th><th>Действие</th><th>Готово</th></tr></thead><tbody><tr><td>1</td><td>Python и VS Code, расширения Python + Jupyter</td><td>☐</td></tr><tr><td>2</td><td>Папка курса открыта в VS Code</td><td>☐</td></tr><tr><td>3</td><td><code>.venv</code> создано и активируется</td><td>☐</td></tr><tr><td>4</td><td>Интерпретатор VS Code = <code>.venv\Scripts\python.exe</code></td><td>☐</td></tr><tr><td>5</td><td>IPython установлен, есть <code>practice-ipython-log.txt</code></td><td>☐</td></tr><tr><td>6</td><td>Jupyter-пакеты установлены</td><td>☐</td></tr><tr><td>7</td><td><code>lab01-environment.ipynb</code> с выводом всех ячеек</td><td>☐</td></tr><tr><td>8</td><td><code>practice-env-check.txt</code> с версиями и путями</td><td>☐</td></tr><tr><td>9</td><td><code>hello.py</code> запускается из терминала</td><td>☐</td></tr></tbody></table>
 <h3>Чеклист преподавателя</h3>
@@ -180,7 +177,7 @@ ipython --version
 jupyter --version</code></pre>
 <p>Ноутбук: создать <code>module-1/lab01-environment.ipynb</code> в VS Code, ядро из <code>.venv</code>.</p>
 <hr>
-<h2>Домашняя доработка (если не уложились в 2 часа)</h2>
+<h2>Домашняя доработка</h2>
 <ol><li>Добавить в <code>module-1/</code> файл <code>.gitignore</code> со строками <code>.venv/</code> и <code>__pycache__/</code>.</li><li>Установить расширение <strong>Python Environment Manager</strong> (по желанию) и сравнить список окружений с ручной настройкой.</li><li>В IPython прочитать справку: <code>help(&quot;modules&quot;)</code> — одна строка в <code>practice-ipython-log.txt</code>.</li></ol>
 <p>После выполнения чеклиста рабочая среда готова для <strong>Модуля 2. Основы Python</strong>.</p>
   </article>
