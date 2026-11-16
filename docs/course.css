@@ -225,6 +225,7 @@ a { color: var(--ink); }
 }
 
 .doc pre code { background: none; padding: 0; }
+.doc pre code.hljs { background: transparent; }
 
 .doc table {
   border-collapse: collapse;

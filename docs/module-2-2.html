@@ -211,5 +211,8 @@ lazy from __future__ import annotations</code></pre>
 <table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td><code>ModuleNotFoundError: course_tools</code></td><td>Запуск из каталога <code>module-2-2</code> или каталог добавлен в <code>sys.path</code></td></tr><tr><td><code>ImportError</code> после правки файла</td><td>Перезапуск ядра: импортированный модуль уже лежит в <code>sys.modules</code></td></tr><tr><td><code>NameError: sqrt</code></td><td>Импортирован модуль <code>math</code>, а не имя <code>sqrt</code></td></tr><tr><td>Пакет встал не в <code>.venv</code></td><td>Активировать окружение или вызывать <code>python -m pip</code></td></tr><tr><td>При <code>import run_grades</code> печатается сценарий</td><td>Код вывода не обёрнут в <code>if __name__ == &quot;__main__&quot;</code></td></tr></tbody></table>
 <p>После занятия слушатель выбирает форму импорта под задачу, не смешивает локальные имена с именами модуля и ставит пакеты в окружение курса.</p>
   </article>
-</body>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script></body>
 </html>

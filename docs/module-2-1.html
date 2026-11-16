@@ -197,5 +197,8 @@ print(&quot;равно&quot;, a == b, &quot;тот же объект&quot;, a is
 <table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td><code>TypeError: &#x27;str&#x27; object does not support item assignment</code></td><td>Строка неизменяема; соберите новую строку</td></tr><tr><td><code>TypeError: &#x27;tuple&#x27; object does not support item assignment</code></td><td>Для изменяемой последовательности нужен список</td></tr><tr><td><code>type((7))</code> показывает <code>int</code></td><td>Нет запятой: напишите <code>(7,)</code></td></tr><tr><td><code>sort()</code> в <code>print</code> даёт <code>None</code></td><td>Метод меняет список на месте; печатайте список отдельной строкой</td></tr><tr><td><code>KeyError</code></td><td>Ключа нет; для значения по умолчанию используйте <code>.get</code></td></tr></tbody></table>
 <p>После занятия слушатель отличает тип от имени переменной, не путает копию и ссылку и выбирает список, кортеж, словарь или множество под задачу.</p>
   </article>
-</body>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script></body>
 </html>
