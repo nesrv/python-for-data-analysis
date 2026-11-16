@@ -1,304 +1,287 @@
-# 2.8. Замыкания и декораторы
+# 2.8. Классы и магические методы
 
 **Объём занятия:** 2 академических часа (~120 минут) активной практики в Visual Studio Code.
 
-**Цель:** отличать локальную переменную от внешней, удерживать значение во вложенной функции и добавлять поведение функции декоратором.
+**Цель:** описать свой тип через класс, создать экземпляр и научить его вести себя в `bool`, сравнениях, арифметике, индексации и цикле `for`.
 
-**Опора:** разделы 2.6 и 2.7, ноутбук в VS Code, ядро — `./.venv/Scripts/python.exe`.
+**Опора:** ноутбук в VS Code, ядро — `./.venv/Scripts/python.exe`. Рабочая папка — корень курса.
 
-**Итоговый артефакт:** `module-2-8/lab28-closures.ipynb` со всеми ячейками и сохранённым выводом.
+**Итоговый артефакт:** `module-2-8/lab28-classes.ipynb` со всеми ячейками и сохранённым выводом.
 
-Материал опирается на конспекты из `python-2/m2`.
+Материал собран по конспектам `python-2/m4` и `python-2/m6`.
 
 ---
 
 ## Подготовка
 
-Создайте ноутбук `module-2-8/lab28-closures.ipynb` и выберите ядро `.venv`. Первая ячейка — markdown: ФИО, дата, заголовок «2.8 Замыкания и декораторы».
+Создайте ноутбук `module-2-8/lab28-classes.ipynb` и выберите ядро `.venv`. Первая ячейка — markdown: ФИО, дата, заголовок «2.8 Классы и магические методы».
+
+Класс — чертёж объекта: какие данные он хранит и какие действия умеет. Экземпляр — конкретный объект по этому чертежу. Имя класса пишут с большой буквы.
 
 ---
 
-## 2.8.1. Локальная и глобальная переменная
-
-Присваивание внутри функции создаёт локальное имя. Оно не меняет глобальное имя с тем же написанием. `global` явно говорит: менять нужно имя модуля.
+## 2.8.1. Класс и экземпляр
 
 **Ячейка:**
 
 ```python
-name = "Илья"
+class Point:
+    pass
 
-def say_hi():
-    name = "Иван"
-    print("Привет,", name)
-
-def say_bye():
-    print("Пока,", name)
-
-say_hi()
-say_bye()
-print("снаружи:", name)
+origin = Point()
+print(type(Point))
+print(type(origin))
+print(isinstance(origin, Point))
 ```
 
-**Ячейка — global:**
+`type(Point)` — `type`: класс сам является объектом. `type(origin)` — `Point`. `isinstance` проверяет, сделан ли объект по этому чертежу.
 
-```python
-def say_hi_global():
-    global name
-    name = "Иван"
-    print("Привет,", name)
+**Практика 2.8.1.** Создайте второй экземпляр `other = Point()` и проверьте `origin is other`.
 
-say_hi_global()
-say_bye()
-```
-
-**Критерий 2.8.1:** до `global` прощание печатает «Илья». После `say_hi_global` прощание печатает «Иван».
+**Критерий 2.8.1:** `isinstance` истинен, `origin is other` ложен: это два разных объекта одного класса.
 
 ---
 
-## 2.8.2. nonlocal
+## 2.8.2. Атрибуты и self
 
-`nonlocal` берёт имя из ближайшей внешней функции, не из модуля. Для глобального имени оно не подходит: там нужен `global`.
+Данные экземпляра — существительные, методы — глаголы. При вызове через экземпляр Python сам передаёт этот экземпляр первым аргументом. Его имя по соглашению — `self`.
 
 **Ячейка:**
 
 ```python
-x = 0
+class Point:
+    def set_coords(self, x, y):
+        self.x = x
+        self.y = y
 
-def outer():
-    x = 1
+    def get_coords(self):
+        return self.x, self.y
 
-    def inner():
-        nonlocal x
-        x = 2
-        print("inner:", x)
-
-    inner()
-    print("outer:", x)
-
-outer()
-print("global:", x)
+a = Point()
+a.set_coords(3, 4)
+print(a.get_coords())
 ```
 
-Без `nonlocal` присваивание `x = 2` создало бы локальное имя, и `outer` по-прежнему напечатал бы `1`.
+`Point.set_coords(a, 3, 4)` — тот же вызов, первый аргумент указан явно. Если убрать `self` из определения, вызов через экземпляр даст `TypeError`: интерпретатор всё равно подставит объект.
 
-**Критерий 2.8.2:** печать идёт в порядке `inner: 2`, `outer: 2`, `global: 0`.
+**Критерий 2.8.2:** `get_coords` возвращает `(3, 4)`.
 
 ---
 
-## 2.8.3. Замыкание
+## 2.8.3. Инициализатор __init__
 
-Вложенная функция помнит переменные внешней, если внешняя вернула её, а не вызвала сразу. Это замыкание: внутреннее окружение живо, пока на функцию есть ссылка.
+`__init__` вызывается сразу после создания экземпляра. В нём задают начальные поля, чтобы не вызывать отдельный `set_coords`.
 
 **Ячейка:**
 
 ```python
-def say_name(name):
-    def say_goodbye():
-        return "Don't say me goodbye, " + name + "!"
-    return say_goodbye
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
-sergey = say_name("Sergey")
-python = say_name("Python")
-print(sergey())
-print(python())
+    def __repr__(self):
+        return f"Point({self.x}, {self.y})"
+
+a = Point(1, 2)
+b = Point(3, 4)
+print(a, b)
 ```
 
-Два вызова `say_name` дают два независимых окружения.
+`__repr__` задаёт текст, который ноутбук показывает для объекта. Без него печать выглядит как `<Point object at 0x...>`.
 
-**Ячейка — счётчик:**
+**Практика 2.8.3.** Добавьте метод `move(self, dx, dy)`, который меняет координаты на месте и возвращает `self`. Вызовите `Point(1, 2).move(2, 3)`.
 
-```python
-def counter(start=0):
-    def step():
-        nonlocal start
-        start += 1
-        return start
-    return step
-
-c1 = counter(10)
-c2 = counter()
-print(c1(), c2())
-print(c1(), c2())
-print(c1(), c2())
-```
-
-Без `nonlocal` строка `start += 1` пытается читать локальное имя до присваивания и падает с `UnboundLocalError`.
-
-**Практика 2.8.3.** Сделайте `strip_string(chars=" ")`, которая возвращает функцию одной строки. `strip_string()` убирает пробелы. `strip_string(" !?.")` убирает ещё эти знаки. Проверьте обе на `" hello python!.. "`.
-
-**Критерий 2.8.3:** счётчики печатают `11 1`, затем `12 2`, затем `13 3`. Первая обрезка даёт `hello python!..`, вторая — `hello python`.
+**Критерий 2.8.3:** после `move` объект печатается как `Point(3, 5)`.
 
 ---
 
-## 2.8.4. Декоратор
+## 2.8.4. __bool__ и __len__
 
-Декоратор принимает функцию и возвращает новую, которая вызывает исходную и добавляет действия до или после неё.
+`bool` для обычного экземпляра всегда истинен. Свой смысл задают `__bool__` или, если его нет, `__len__`. Ненулевая длина считается истиной.
 
 **Ячейка:**
 
 ```python
-def func_decorator(func):
-    def wrapper(*args, **kwargs):
-        print("перед вызовом")
-        result = func(*args, **kwargs)
-        print("после вызова")
-        return result
-    return wrapper
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
-def some_func(title, tag):
-    print(f"title = {title}, tag = {tag}")
-    return f"<{tag}>{title}</{tag}>"
+    def __len__(self):
+        return self.x * self.x + self.y * self.y
 
-some_func = func_decorator(some_func)
-print(some_func("Python", "h1"))
+print(bool(Point(3, 4)))
+print(bool(Point(0, 0)))
 ```
 
-`*args` и `**kwargs` принимают любое число аргументов. `return result` нужен, иначе снаружи получится `None`.
-
-Запись через `@` делает то же присваивание в момент объявления:
+`__bool__` имеет приоритет над `__len__`. Точка ложна, когда обе координаты нулевые:
 
 ```python
-@func_decorator
-def title_of(text):
-    return text.upper()
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
-print(title_of("функции"))
+    def __bool__(self):
+        return not (self.x == 0 and self.y == 0)
+
+print(bool(Point(0, 1)))
+print(bool(Point(0, 0)))
 ```
 
-**Критерий 2.8.4:** вокруг вызова печатаются две служебные строки, а результат равен `<h1>Python</h1>`. `title_of` возвращает `ФУНКЦИИ`.
+**Критерий 2.8.4:** `Point(3, 4)` истинен, `Point(0, 0)` ложен и через длину, и через `__bool__`.
 
 ---
 
-## 2.8.5. Декоратор с проверкой и замер времени
+## 2.8.5. __eq__ и __hash__
 
-Один и тот же декоратор можно повесить на разные функции. Условие доступа смотрит внешнее имя `user`.
+Два экземпляра с одинаковыми координатами без `__eq__` не равны: `==` сравнивает, тот ли это объект. Хеш можно считать только у неизменяемого значения. Если определён `__eq__` и не определён `__hash__`, объект нельзя положить в множество и использовать как ключ словаря.
 
 **Ячейка:**
 
 ```python
-user = "admin"
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
-def access(func):
-    def wrapper(*args, **kwargs):
-        if user != "admin":
-            return "access denied"
-        return func(*args, **kwargs)
-    return wrapper
+    def __eq__(self, other):
+        return isinstance(other, Point) and self.x == other.x and self.y == other.y
 
-@access
-def read_db():
-    return "reading data base"
+    def __hash__(self):
+        return hash((self.x, self.y))
 
-print(read_db())
-user = "guest"
-print(read_db())
-user = "admin"
+print(Point(1, 2) == Point(1, 2))
+print(len({Point(1, 2), Point(1, 2), Point(0, 0)}))
 ```
 
-**Ячейка — время:**
+Равные объекты обязаны иметь равный хеш. Обратное неверно: одинаковый хеш ещё не значит равенство.
 
-```python
-import time
-
-def test_time(fn):
-    def wrapper(*args, **kwargs):
-        started = time.perf_counter()
-        result = fn(*args, **kwargs)
-        elapsed = time.perf_counter() - started
-        print(f"время работы: {elapsed:.6f} сек")
-        return result
-    return wrapper
-
-@test_time
-def fib(n):
-    a, b = 1, 1
-    for _ in range(2, n):
-        a, b = b, a + b
-    return b
-
-print(fib(20))
-```
-
-Рекурсивный Фибоначчи для замера не используем: он повторяет одни и те же вызовы. Здесь цикл считает 20-е число, декоратор печатает длительность.
-
-**Практика 2.8.5.** Напишите `show_menu`. Он вызывает функцию, получает список пунктов и печатает их с номерами, начиная с 1. Функция `get_menu` только режет строку по пробелам.
-
-```python
-def show_menu(func):
-    def wrapper(text):
-        items = func(text)
-        for index, item in enumerate(items, start=1):
-            print(f"{index}. {item}")
-        return items
-    return wrapper
-
-@show_menu
-def get_menu(text):
-    return text.split()
-
-print(get_menu("Файл Правка Вид"))
-```
-
-**Критерий 2.8.5:** для гостя `read_db` возвращает `access denied`. `fib(20)` равен **6765**. Меню печатает три строки: `1. Файл`, `2. Правка`, `3. Вид`.
+**Критерий 2.8.5:** сравнение двух точек `(1, 2)` истинно. В множестве остаётся **2** элемента.
 
 ---
 
-## 2.8.6. lru_cache
+## 2.8.6. __add__
 
-`functools.lru_cache` запоминает результат по аргументам. Повторный вызов с теми же аргументами не выполняет тело снова. Для рекурсии с повторами это убирает лишние ветки. Глубину в тысячи вызовов на занятии не используют.
+Оператор `+` вызывает `__add__`. Метод должен вернуть новый объект того же класса, а не голое число: иначе имя перестаёт указывать на счёт.
 
 **Ячейка:**
 
 ```python
-from functools import lru_cache
+class BankAccount:
+    def __init__(self, name, balance):
+        self.name = name
+        self.balance = balance
 
-@lru_cache(maxsize=None)
-def fact(n):
-    if n == 1:
-        return 1
-    return n * fact(n - 1)
+    def __add__(self, other):
+        return BankAccount(self.name, self.balance + other)
 
-print(fact(6))
-print(fact.cache_info())
+    def __repr__(self):
+        return f"BankAccount({self.name!r}, {self.balance})"
+
+ivan = BankAccount("Иван", 100)
+ivan = ivan + 300
+print(ivan)
 ```
 
-`cache_info()` показывает, сколько ответов взято из памяти (`hits`) и сколько посчитано заново (`misses`).
+**Практика 2.8.6.** Добавьте `__sub__` для снятия суммы. `BankAccount("Пётр", 200) - 50` должен оставить баланс 150. Отрицательный результат не запрещайте.
 
-**Практика 2.8.6.** Вызовите `fact(6)` второй раз и сравните `hits` до и после.
-
-**Критерий 2.8.6:** `fact(6)` равен **720**. После второго вызова `hits` больше, чем после первого.
+**Критерий 2.8.6:** после пополнения печать показывает `BankAccount('Иван', 400)`. После снятия баланс Петра равен **150**.
 
 ---
 
-## 2.8.7. Самопроверка
+## 2.8.7. __getitem__ и __setitem__
+
+Квадратные скобки вызывают `__getitem__` при чтении и `__setitem__` при записи.
+
+**Ячейка:**
+
+```python
+class Student:
+    def __init__(self, name, marks):
+        self.name = name
+        self.marks = list(marks)
+
+    def __getitem__(self, index):
+        return self.marks[index]
+
+    def __setitem__(self, index, value):
+        self.marks[index] = value
+
+sergey = Student("Сергей", [5, 5, 3, 2, 5])
+print(sergey[2])
+sergey[2] = 4
+print(sergey[2], sergey.marks)
+```
+
+**Критерий 2.8.7:** до записи третий элемент — `3`, после записи список равен `[5, 5, 4, 2, 5]`.
+
+---
+
+## 2.8.8. __iter__ и __next__
+
+Цикл `for` вызывает `iter`, затем `next`, пока не возникнет `StopIteration`. Так делают прогрессию дробных чисел: у `range` шаг только целый.
+
+**Ячейка:**
+
+```python
+class FRange:
+    def __init__(self, start, stop, step=0.5):
+        self.start = start
+        self.stop = stop
+        self.step = step
+
+    def __iter__(self):
+        self.current = self.start
+        return self
+
+    def __next__(self):
+        if self.current >= self.stop:
+            raise StopIteration
+        value = self.current
+        self.current += self.step
+        return value
+
+print(list(FRange(0, 2, 0.5)))
+```
+
+**Практика 2.8.8.** Посчитайте сумму `FRange(1, 3, 1)` циклом `for`. Правая граница, как у `range`, не входит.
+
+**Критерий 2.8.8:** список равен `[0, 0.5, 1.0, 1.5]`. Сумма целого диапазона равна **3**.
+
+---
+
+## 2.8.9. Самопроверка
 
 В конце ноутбука ответьте в markdown:
 
-1. Чем `global` отличается от `nonlocal`.
-2. Почему счётчик без `nonlocal` не может сделать `start += 1`.
-3. Почему декоратор без `return result` превращает полезный результат в `None`.
+1. Чем класс отличается от экземпляра.
+2. Зачем методу первый параметр `self`.
+3. Почему `__add__` лучше возвращает новый `BankAccount`, а не число.
 
 ### Чеклист
 
 | № | Действие | Готово |
 |---|----------|--------|
-| 1 | Локальное имя не затирает глобальное, `global` затирает | ☐ |
-| 2 | `nonlocal` меняет `x` внешней функции и не трогает модуль | ☐ |
-| 3 | Два замыкания `say_name` помнят разные имена | ☐ |
-| 4 | Два счётчика идут независимо: 11/1, 12/2, 13/3 | ☐ |
-| 5 | `@func_decorator` печатает текст до и после вызова и возвращает строку | ☐ |
-| 6 | Меню пронумеровано, `fib(20)` равен 6765 | ☐ |
-| 7 | Повторный `fact(6)` увеличивает `hits` | ☐ |
-| 8 | Три ответа самопроверки | ☐ |
+| 1 | Два `Point()` — разные объекты одного класса | ☐ |
+| 2 | `set_coords` записывает координаты через `self` | ☐ |
+| 3 | `__init__` и `move` дают `Point(3, 5)` | ☐ |
+| 4 | Нулевая точка ложна в `bool` | ☐ |
+| 5 | Равные точки совпадают, в множестве их одна | ☐ |
+| 6 | Счёт пополняется через `+` и уменьшается через `-` | ☐ |
+| 7 | Оценка читается и меняется квадратными скобками | ☐ |
+| 8 | `FRange` даёт четыре дробных шага и сумму 3 | ☐ |
+| 9 | Три ответа самопроверки | ☐ |
 
 ### Типовые ошибки
 
 | Симптом | Что проверить |
 |---------|----------------|
-| `UnboundLocalError` на `start += 1` | Во вложенной функции есть `nonlocal start` |
-| `SyntaxError` на `nonlocal` | Имя объявлено не в функции, а в модуле: нужно `global` |
-| Декоратор не принимает второй аргумент | У `wrapper` есть `*args, **kwargs`, и они переданы в исходную функцию |
-| После декоратора результат `None` | `wrapper` возвращает значение исходной функции |
-| `fact` считает заново каждый раз | Над функцией стоит `@lru_cache`, вызов идёт по тому же имени |
+| `TypeError: set_coords() takes 2 positional arguments but 3 were given` | В методе забыт `self` |
+| `Point(1, 2) == Point(1, 2)` ложно | Нет `__eq__` |
+| `TypeError: unhashable type` | Есть `__eq__`, но нет `__hash__` |
+| После `account = account + 300` нет поля `name` | `__add__` вернул число, а не новый счёт |
+| `for` по `FRange` не заканчивается | В `__next__` нет `StopIteration`, когда значение достигло `stop` |
 
-После занятия слушатель удерживает состояние во вложенной функции и добавляет к готовой функции проверку, печать или замер, не переписывая её тело.
+После занятия слушатель описывает свой тип, создаёт объекты с начальными полями и подключает для них проверки, равенство, сложение, индекс и перебор.

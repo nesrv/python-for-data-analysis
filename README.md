@@ -21,7 +21,7 @@
   - [2.5 Управление потоком выполнение и ветвление](https://nesrv.github.io/python-for-data-analysis/module-2-5.html)
   - [2.6 Функции](https://nesrv.github.io/python-for-data-analysis/module-2-6.html)
   - [2.7 Функции: объект, lambda и функции высшего порядка](https://nesrv.github.io/python-for-data-analysis/module-2-7.html)
-  - [2.8 Замыкания и декораторы](https://nesrv.github.io/python-for-data-analysis/module-2-8.html)
+  - [2.8 Классы и магические методы](https://nesrv.github.io/python-for-data-analysis/module-2-8.html)
   - [2.9 Отладка](https://nesrv.github.io/python-for-data-analysis/module-2-9.html)
   - [2.10 Профилирование кода](https://nesrv.github.io/python-for-data-analysis/module-2-10.html)
   - [2.11 Основы ООП](https://nesrv.github.io/python-for-data-analysis/module-2-11.html)
