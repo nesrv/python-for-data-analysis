@@ -3,189 +3,216 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2.8 Отладка</title>
+  <title>2.8 Замыкания и декораторы</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>2.8 Отладка</h1>
-<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные, перехватывать ожидаемую ошибку через <code>try</code> / <code>except</code> / <code>else</code> и проверять условие оператором <code>assert</code>.</p>
-<p><strong>Опора:</strong> расширение <strong>Python</strong> и интерпретатор <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
-<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-8/</code>):</p>
-<table>
-<thead>
-<tr>
-<th>Файл</th>
-<th>Назначение</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>debug_demo.py</code></td>
-<td>Скрипт, на котором ставят точки останова</td>
-</tr>
-<tr>
-<td><code>bug_average.py</code></td>
-<td>Скрипт с ошибкой, которую находят отладчиком</td>
-</tr>
-<tr>
-<td><code>lab28-debug.md</code></td>
-<td>Короткая заметка: что было в переменных на остановке</td>
-</tr>
-</tbody>
-</table>
+    <h1>2.8 Замыкания и декораторы</h1>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> отличать локальную переменную от внешней, удерживать значение во вложенной функции и добавлять поведение функции декоратором.</p>
+<p><strong>Опора:</strong> разделы 2.6 и 2.7, ноутбук в VS Code, ядро — <code>./.venv/Scripts/python.exe</code>.</p>
+<p><strong>Итоговый артефакт:</strong> <code>module-2-8/lab28-closures.ipynb</code> со всеми ячейками и сохранённым выводом.</p>
+<p>Материал опирается на конспекты из <code>python-2/m2</code>.</p>
 <hr />
 <h2>Подготовка</h2>
-<p>Проверьте интерпретатор: <code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong> → <code>./.venv/Scripts/python.exe</code>. Отладчик запускает тот интерпретатор, который выбран в статусной строке.</p>
+<p>Создайте ноутбук <code>module-2-8/lab28-closures.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.8 Замыкания и декораторы».</p>
 <hr />
-<h2>2.8.1. Точка останова</h2>
-<p>Создайте <code>module-2-8/debug_demo.py</code>:</p>
-<pre><code class="language-python">def grade(score: int) -&gt; str:
-    if score &gt;= 18:
-        label = &quot;зачёт с отличием&quot;
-    elif score &gt;= 12:
-        label = &quot;зачёт&quot;
-    else:
-        label = &quot;нужна доработка&quot;
-    return label
+<h2>2.8.1. Локальная и глобальная переменная</h2>
+<p>Присваивание внутри функции создаёт локальное имя. Оно не меняет глобальное имя с тем же написанием. <code>global</code> явно говорит: менять нужно имя модуля.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">name = &quot;Илья&quot;
 
+def say_hi():
+    name = &quot;Иван&quot;
+    print(&quot;Привет,&quot;, name)
 
-def main():
-    scores = [18, 15, 9]
-    for score in scores:
-        result = grade(score)
-        print(score, result)
+def say_bye():
+    print(&quot;Пока,&quot;, name)
 
-
-if __name__ == &quot;__main__&quot;:
-    main()
+say_hi()
+say_bye()
+print(&quot;снаружи:&quot;, name)
 </code></pre>
+<p><strong>Ячейка — global:</strong></p>
+<pre><code class="language-python">def say_hi_global():
+    global name
+    name = &quot;Иван&quot;
+    print(&quot;Привет,&quot;, name)
+
+say_hi_global()
+say_bye()
+</code></pre>
+<p><strong>Критерий 2.8.1:</strong> до <code>global</code> прощание печатает «Илья». После <code>say_hi_global</code> прощание печатает «Иван».</p>
+<hr />
+<h2>2.8.2. nonlocal</h2>
+<p><code>nonlocal</code> берёт имя из ближайшей внешней функции, не из модуля. Для глобального имени оно не подходит: там нужен <code>global</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">x = 0
+
+def outer():
+    x = 1
+
+    def inner():
+        nonlocal x
+        x = 2
+        print(&quot;inner:&quot;, x)
+
+    inner()
+    print(&quot;outer:&quot;, x)
+
+outer()
+print(&quot;global:&quot;, x)
+</code></pre>
+<p>Без <code>nonlocal</code> присваивание <code>x = 2</code> создало бы локальное имя, и <code>outer</code> по-прежнему напечатал бы <code>1</code>.</p>
+<p><strong>Критерий 2.8.2:</strong> печать идёт в порядке <code>inner: 2</code>, <code>outer: 2</code>, <code>global: 0</code>.</p>
+<hr />
+<h2>2.8.3. Замыкание</h2>
+<p>Вложенная функция помнит переменные внешней, если внешняя вернула её, а не вызвала сразу. Это замыкание: внутреннее окружение живо, пока на функцию есть ссылка.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def say_name(name):
+    def say_goodbye():
+        return &quot;Don't say me goodbye, &quot; + name + &quot;!&quot;
+    return say_goodbye
+
+sergey = say_name(&quot;Sergey&quot;)
+python = say_name(&quot;Python&quot;)
+print(sergey())
+print(python())
+</code></pre>
+<p>Два вызова <code>say_name</code> дают два независимых окружения.</p>
+<p><strong>Ячейка — счётчик:</strong></p>
+<pre><code class="language-python">def counter(start=0):
+    def step():
+        nonlocal start
+        start += 1
+        return start
+    return step
+
+c1 = counter(10)
+c2 = counter()
+print(c1(), c2())
+print(c1(), c2())
+print(c1(), c2())
+</code></pre>
+<p>Без <code>nonlocal</code> строка <code>start += 1</code> пытается читать локальное имя до присваивания и падает с <code>UnboundLocalError</code>.</p>
+<p><strong>Практика 2.8.3.</strong> Сделайте <code>strip_string(chars=" ")</code>, которая возвращает функцию одной строки. <code>strip_string()</code> убирает пробелы. <code>strip_string(" !?.")</code> убирает ещё эти знаки. Проверьте обе на <code>" hello python!.. "</code>.</p>
+<p><strong>Критерий 2.8.3:</strong> счётчики печатают <code>11 1</code>, затем <code>12 2</code>, затем <code>13 3</code>. Первая обрезка даёт <code>hello python!..</code>, вторая — <code>hello python</code>.</p>
+<hr />
+<h2>2.8.4. Декоратор</h2>
+<p>Декоратор принимает функцию и возвращает новую, которая вызывает исходную и добавляет действия до или после неё.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def func_decorator(func):
+    def wrapper(*args, **kwargs):
+        print(&quot;перед вызовом&quot;)
+        result = func(*args, **kwargs)
+        print(&quot;после вызова&quot;)
+        return result
+    return wrapper
+
+def some_func(title, tag):
+    print(f&quot;title = {title}, tag = {tag}&quot;)
+    return f&quot;&lt;{tag}&gt;{title}&lt;/{tag}&gt;&quot;
+
+some_func = func_decorator(some_func)
+print(some_func(&quot;Python&quot;, &quot;h1&quot;))
+</code></pre>
+<p><code>*args</code> и <code>**kwargs</code> принимают любое число аргументов. <code>return result</code> нужен, иначе снаружи получится <code>None</code>.</p>
+<p>Запись через <code>@</code> делает то же присваивание в момент объявления:</p>
+<pre><code class="language-python">@func_decorator
+def title_of(text):
+    return text.upper()
+
+print(title_of(&quot;функции&quot;))
+</code></pre>
+<p><strong>Критерий 2.8.4:</strong> вокруг вызова печатаются две служебные строки, а результат равен <code>&lt;h1&gt;Python&lt;/h1&gt;</code>. <code>title_of</code> возвращает <code>ФУНКЦИИ</code>.</p>
+<hr />
+<h2>2.8.5. Декоратор с проверкой и замер времени</h2>
+<p>Один и тот же декоратор можно повесить на разные функции. Условие доступа смотрит внешнее имя <code>user</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">user = &quot;admin&quot;
+
+def access(func):
+    def wrapper(*args, **kwargs):
+        if user != &quot;admin&quot;:
+            return &quot;access denied&quot;
+        return func(*args, **kwargs)
+    return wrapper
+
+@access
+def read_db():
+    return &quot;reading data base&quot;
+
+print(read_db())
+user = &quot;guest&quot;
+print(read_db())
+user = &quot;admin&quot;
+</code></pre>
+<p><strong>Ячейка — время:</strong></p>
+<pre><code class="language-python">import time
+
+def test_time(fn):
+    def wrapper(*args, **kwargs):
+        started = time.perf_counter()
+        result = fn(*args, **kwargs)
+        elapsed = time.perf_counter() - started
+        print(f&quot;время работы: {elapsed:.6f} сек&quot;)
+        return result
+    return wrapper
+
+@test_time
+def fib(n):
+    a, b = 1, 1
+    for _ in range(2, n):
+        a, b = b, a + b
+    return b
+
+print(fib(20))
+</code></pre>
+<p>Рекурсивный Фибоначчи для замера не используем: он повторяет одни и те же вызовы. Здесь цикл считает 20-е число, декоратор печатает длительность.</p>
+<p><strong>Практика 2.8.5.</strong> Напишите <code>show_menu</code>. Он вызывает функцию, получает список пунктов и печатает их с номерами, начиная с 1. Функция <code>get_menu</code> только режет строку по пробелам.</p>
+<pre><code class="language-python">def show_menu(func):
+    def wrapper(text):
+        items = func(text)
+        for index, item in enumerate(items, start=1):
+            print(f&quot;{index}. {item}&quot;)
+        return items
+    return wrapper
+
+@show_menu
+def get_menu(text):
+    return text.split()
+
+print(get_menu(&quot;Файл Правка Вид&quot;))
+</code></pre>
+<p><strong>Критерий 2.8.5:</strong> для гостя <code>read_db</code> возвращает <code>access denied</code>. <code>fib(20)</code> равен <strong>6765</strong>. Меню печатает три строки: <code>1. Файл</code>, <code>2. Правка</code>, <code>3. Вид</code>.</p>
+<hr />
+<h2>2.8.6. lru_cache</h2>
+<p><code>functools.lru_cache</code> запоминает результат по аргументам. Повторный вызов с теми же аргументами не выполняет тело снова. Для рекурсии с повторами это убирает лишние ветки. Глубину в тысячи вызовов на занятии не используют.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">from functools import lru_cache
+
+@lru_cache(maxsize=None)
+def fact(n):
+    if n == 1:
+        return 1
+    return n * fact(n - 1)
+
+print(fact(6))
+print(fact.cache_info())
+</code></pre>
+<p><code>cache_info()</code> показывает, сколько ответов взято из памяти (<code>hits</code>) и сколько посчитано заново (<code>misses</code>).</p>
+<p><strong>Практика 2.8.6.</strong> Вызовите <code>fact(6)</code> второй раз и сравните <code>hits</code> до и после.</p>
+<p><strong>Критерий 2.8.6:</strong> <code>fact(6)</code> равен <strong>720</strong>. После второго вызова <code>hits</code> больше, чем после первого.</p>
+<hr />
+<h2>2.8.7. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
 <ol>
-<li>Щёлкните слева от номера строки <code>result = grade(score)</code>. Появится красная точка.</li>
-<li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) и запустите <strong>Python File</strong>.</li>
-<li>Выполнение остановится до этой строки. В панели <strong>Variables</strong> найдите <code>score</code>.</li>
-<li><strong>Continue</strong> (<code>F5</code>) переходит к следующей остановке. Пройдите все три числа.</li>
-</ol>
-<p><strong>Практика 2.8.1.</strong> В <code>lab28-debug.md</code> запишите три значения <code>score</code>, которые видели на остановке, и три строки из отладочной консоли.</p>
-<p><strong>Критерий 2.8.1:</strong> остановка срабатывает три раза, в консоли есть пары <code>18 зачёт с отличием</code>, <code>15 зачёт</code>, <code>9 нужна доработка</code>.</p>
-<hr />
-<h2>2.8.2. Шаг внутрь и шаг через</h2>
-<p>На строке вызова <code>grade(score)</code> доступны два шага:</p>
-<table>
-<thead>
-<tr>
-<th>Клавиша</th>
-<th>Команда</th>
-<th>Куда переходит</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>F10</code></td>
-<td>Step Over</td>
-<td>Выполняет вызов целиком и остаётся в <code>main</code></td>
-</tr>
-<tr>
-<td><code>F11</code></td>
-<td>Step Into</td>
-<td>Входит в первую строку <code>grade</code></td>
-</tr>
-<tr>
-<td><code>Shift+F11</code></td>
-<td>Step Out</td>
-<td>Выполняет функцию до <code>return</code> и возвращается к вызывающему коду</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Практика 2.8.2.</strong> Поставьте точку на строке вызова. Нажмите <code>F11</code>. Внутри <code>grade</code> дойдите до присваивания <code>label</code> клавишей <code>F10</code>. Для балла <code>9</code> в <strong>Variables</strong> должно появиться <code>label</code> со значением «нужна доработка». Затем <code>Shift+F11</code> вернёт вас в цикл.</p>
-<p><strong>Критерий 2.8.2:</strong> в заметке записано, что при <code>score == 9</code> переменная <code>label</code> равна «нужна доработка» ещё до выхода из функции.</p>
-<hr />
-<h2>2.8.3. Условная точка останова</h2>
-<p>Останавливаться на каждом элементе неудобно, если ошибка только в одном значении. Правый щелчок по красной точке → <strong>Edit Breakpoint</strong> → выражение <code>score &lt; 12</code>.</p>
-<p>Запустите отладку снова. Остановка будет только для <code>9</code>. Значения 18 и 15 выполнятся без паузы.</p>
-<p><strong>Практика 2.8.3.</strong> Смените условие на <code>score == 15</code>, запустите ещё раз и убедитесь, что пауза одна и в переменной именно 15. После проверки условие можно снять.</p>
-<p><strong>Критерий 2.8.3:</strong> при условии <code>score &lt; 12</code> отладчик останавливается один раз.</p>
-<hr />
-<h2>2.8.4. Поиск ошибки</h2>
-<p>Создайте <code>module-2-8/bug_average.py</code>. Среднее считается неверно: сумма делится не на число элементов.</p>
-<pre><code class="language-python">def average(values: list[int]) -&gt; float:
-    total = 0
-    for value in values:
-        total += value
-    return total / (len(values) - 1)
-
-
-def main():
-    scores = [18, 15, 20, 11]
-    print(&quot;среднее:&quot;, average(scores))
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre>
-<p>Верное среднее — <code>(18 + 15 + 20 + 11) / 4 = 16</code>. Скрипт печатает другое число.</p>
-<ol>
-<li>Поставьте точку останова на строке <code>return</code>.</li>
-<li>Запустите отладчик.</li>
-<li>В <strong>Watch</strong> добавьте выражения <code>total</code>, <code>len(values)</code> и <code>len(values) - 1</code>.</li>
-<li>Сравните делитель с числом оценок.</li>
-</ol>
-<p><strong>Практика 2.8.4.</strong> Исправьте делитель на <code>len(values)</code>. Запустите файл обычным образом, без отладчика:</p>
-<pre><code class="language-powershell">python module-2-8\bug_average.py
-</code></pre>
-<p><strong>Критерий 2.8.4:</strong> до исправления в Watch видно деление на 3 при четырёх оценках. После исправления скрипт печатает <code>среднее: 16.0</code>.</p>
-<hr />
-<h2>2.8.5. Отладочная консоль</h2>
-<p>Пока программа стоит на точке останова, панель <strong>Debug Console</strong> выполняет выражения в этом месте. Это не терминал: команды <code>cd</code> здесь не работают.</p>
-<p>На остановке внутри <code>average</code> наберите:</p>
-<pre><code class="language-python">values
-total / len(values)
-</code></pre>
-<p>Второе выражение показывает среднее, не меняя файл. Так проверяют догадку до правки кода.</p>
-<p><strong>Критерий 2.8.5:</strong> консоль на остановке печатает список из четырёх баллов и число <code>16.0</code>.</p>
-<hr />
-<h2>2.8.6. try, except и else</h2>
-<p><code>try</code> выполняет код, в котором ошибка ожидаема. <code>except</code> ловит конкретный тип ошибки. Ветка <code>else</code> выполняется только если исключения не было: в неё ставят действия, которые имеют смысл лишь после успешного разбора.</p>
-<p>Добавьте в ноутбук ячейку:</p>
-<pre><code class="language-python">def read_score(text: str) -&gt; int | None:
-    try:
-        score = int(text)
-    except ValueError:
-        print(&quot;не число:&quot;, text)
-        return None
-    else:
-        print(&quot;разобрано:&quot;, score)
-        return score
-
-for text in (&quot;18&quot;, &quot;нет&quot;, &quot;9&quot;):
-    read_score(text)
-</code></pre>
-<p>Строка <code>"нет"</code> не прерывает цикл: <code>int</code> выбрасывает <code>ValueError</code>, его забирает <code>except</code>. Для <code>"18"</code> и <code>"9"</code> печатается «разобрано».</p>
-<p><strong>Практика 2.8.6.</strong> Разберите список <code>["18", "", "15"]</code>. Пустую строку поймайте тем же <code>except ValueError</code> и напечатайте <code>"пустой балл"</code>. Остальные значения верните числами.</p>
-<p><strong>Критерий 2.8.6:</strong> для <code>"18"</code> и <code>"9"</code> есть строка «разобрано», для <code>"нет"</code> — «не число», цикл доходит до конца. В практике пустая строка даёт «пустой балл», а не обрыв ячейки.</p>
-<hr />
-<h2>2.8.7. assert</h2>
-<p><code>assert</code> проверяет условие, которое в этом месте программы уже обязано быть истинным. Если оно ложно, Python поднимает <code>AssertionError</code> и показывает текст после запятой. Это проверка для разработчика, а не замена <code>if</code> при разборе данных пользователя.</p>
-<pre><code class="language-python">def average(values: list[int]) -&gt; float:
-    assert values, &quot;список оценок пуст&quot;
-    assert all(score &gt;= 0 for score in values), &quot;балл не может быть отрицательным&quot;
-    return sum(values) / len(values)
-
-print(average([18, 15, 20, 11]))
-</code></pre>
-<p>Пустой список или отрицательный балл останавливают функцию на <code>assert</code>, до деления выполнение не доходит. Такой сбой удобно ловить точкой останова на строке <code>assert</code>: в <strong>Variables</strong> видно <code>values</code>.</p>
-<p><strong>Практика 2.8.7.</strong> Вызовите <code>average([])</code> и <code>average([18, -1])</code> в отдельных ячейках. Для каждого вызова запишите в <code>lab28-debug.md</code> текст <code>AssertionError</code>. Затем поймайте отрицательный балл через <code>try</code> / <code>except AssertionError</code> и напечатайте <code>"данные отклонены"</code>.</p>
-<p><strong>Критерий 2.8.7:</strong> <code>average([18, 15, 20, 11])</code> печатает <code>16.0</code>. Пустой список и балл <code>-1</code> дают <code>AssertionError</code> с разными текстами. После <code>except</code> ячейка печатает «данные отклонены» и не обрывается.</p>
-<hr />
-<h2>2.8.8. Самопроверка</h2>
-<p>В <code>lab28-debug.md</code> ответьте:</p>
-<ol>
-<li>Чем Step Over отличается от Step Into.</li>
-<li>Зачем условная точка останова, если обычная уже останавливает программу.</li>
-<li>Почему выражение в Debug Console не заменяет исправление в файле.</li>
-<li>Когда выполняется ветка <code>else</code> у <code>try</code> и чем <code>assert</code> отличается от <code>if</code>.</li>
+<li>Чем <code>global</code> отличается от <code>nonlocal</code>.</li>
+<li>Почему счётчик без <code>nonlocal</code> не может сделать <code>start += 1</code>.</li>
+<li>Почему декоратор без <code>return result</code> превращает полезный результат в <code>None</code>.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -199,42 +226,42 @@ print(average([18, 15, 20, 11]))
 <tbody>
 <tr>
 <td>1</td>
-<td>Точка в <code>debug_demo.py</code> сработала на трёх баллах</td>
+<td>Локальное имя не затирает глобальное, <code>global</code> затирает</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>2</td>
-<td>Step Into показал <code>label</code> для балла 9</td>
+<td><code>nonlocal</code> меняет <code>x</code> внешней функции и не трогает модуль</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>3</td>
-<td>Условная точка остановила только один проход</td>
+<td>Два замыкания <code>say_name</code> помнят разные имена</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>4</td>
-<td>В <code>bug_average.py</code> ошибка найдена через Watch и исправлена, среднее 16.0</td>
+<td>Два счётчика идут независимо: 11/1, 12/2, 13/3</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>5</td>
-<td>Debug Console на остановке показала 16.0</td>
+<td><code>@func_decorator</code> печатает текст до и после вызова и возвращает строку</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>6</td>
-<td><code>read_score</code> разбирает числа и не падает на строке <code>"нет"</code></td>
+<td>Меню пронумеровано, <code>fib(20)</code> равен 6765</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>7</td>
-<td><code>assert</code> останавливает пустой список и отрицательный балл</td>
+<td>Повторный <code>fact(6)</code> увеличивает <code>hits</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>8</td>
-<td>Четыре ответа в <code>lab28-debug.md</code></td>
+<td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -249,36 +276,28 @@ print(average([18, 15, 20, 11]))
 </thead>
 <tbody>
 <tr>
-<td>Отладчик использует не <code>.venv</code></td>
-<td>Статусная строка и <strong>Python: Select Interpreter</strong></td>
+<td><code>UnboundLocalError</code> на <code>start += 1</code></td>
+<td>Во вложенной функции есть <code>nonlocal start</code></td>
 </tr>
 <tr>
-<td>Точка серая и не срабатывает</td>
-<td>Файл сохранён, запущена именно эта копия, строка выполняется</td>
+<td><code>SyntaxError</code> на <code>nonlocal</code></td>
+<td>Имя объявлено не в функции, а в модуле: нужно <code>global</code></td>
 </tr>
 <tr>
-<td><code>F10</code> не входит в <code>grade</code></td>
-<td>Для входа нужна <code>F11</code></td>
+<td>Декоратор не принимает второй аргумент</td>
+<td>У <code>wrapper</code> есть <code>*args, **kwargs</code>, и они переданы в исходную функцию</td>
 </tr>
 <tr>
-<td>В Watch ошибка имени</td>
-<td>Имя есть только внутри функции; смотрите его на остановке внутри неё</td>
+<td>После декоратора результат <code>None</code></td>
+<td><code>wrapper</code> возвращает значение исходной функции</td>
 </tr>
 <tr>
-<td>После правки всё ещё старый результат</td>
-<td>Остановлен предыдущий сеанс: кнопка Stop, затем новый запуск</td>
-</tr>
-<tr>
-<td><code>except</code> не ловит ошибку</td>
-<td>В <code>except</code> указан другой тип: <code>int("нет")</code> даёт <code>ValueError</code>, не <code>TypeError</code></td>
-</tr>
-<tr>
-<td><code>assert</code> молчит при ложном условии</td>
-<td>Запуск с флагом <code>-O</code> отключает проверки <code>assert</code></td>
+<td><code>fact</code> считает заново каждый раз</td>
+<td>Над функцией стоит <code>@lru_cache</code>, вызов идёт по тому же имени</td>
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель останавливает цикл на нужном значении, читает локальные переменные и проверяет исправление повторным запуском.</p>
+<p>После занятия слушатель удерживает состояние во вложенной функции и добавляет к готовой функции проверку, печать или замер, не переписывая её тело.</p>
   </article>
 </body>
 </html>
