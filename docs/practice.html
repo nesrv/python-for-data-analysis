@@ -11,15 +11,257 @@
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>Практика</h1>
-    <p>Файлы из папки <code>practice</code>.</p>
-    <ul class="topics" style="list-style:none;margin:0;padding:0">
-      <li><a href="practice/m1-1.py">m1-1.py — типы данных</a></li>
-      <li><a href="practice/m1-2.py">m1-2.py — строки и f-string</a></li>
-      <li><a href="practice/m1-3.py">m1-3.py — list, dict, set</a></li>
-      <li><a href="practice/m1-4.py">m1-4.py — словари</a></li>
-      <li><a href="practice/m1-5.py">m1-5.py — чтение текста</a></li>
-      <li><a href="practice/m1-6.py">m1-6.py — CSV</a></li>
-    </ul>
+    <p>Листинги файлов из папки <code>practice</code>.</p>
+    <h2>m1-1.py — типы данных</h2>
+<pre><code class="language-python">&#x27;&#x27;&#x27;
+изменяемые и неизменяемые(хешируемые) тд
+типизация строгая динамическая
+int, float, bool, str, byte
+tuple, frozenset, frozendict
+&#x27;&#x27;&#x27;
+
+# --- типы, Decimal, операторы ---
+from math import sqrt
+from decimal import *
+
+x = Decimal(&#x27;0.1&#x27;)
+y = x + x + x
+
+# print (0.3 == float(y))
+# print(True + 1 + False + 3)
+
+print ([] and (&#x27;Александр&#x27; or &#x27;123&#x27;))
+
+
+class int:
+    def __add__(self, value):
+        return super().__mul__(value)
+
+
+x = int(2)
+x = x + 5  # *
+
+for x in range(1, 10, 0.5):
+    print(x)
+
+# --- методы строк  ---
+
+
+x = &#x27;.,!  Дмитрий, из мск  ..... &#x27;
+x = &#x27;abc123@mail.ru&#x27;
+
+print(&#x27;@&#x27; in x and x.endswith(&#x27;.ru&#x27;) and x.split(&#x27;.&#x27;)[-1].isalpha() and x.split(&#x27;@&#x27;)[0].isalnum())
+
+# --- строки из многострочного текста (бывш. m1-3) ---
+s = &#x27;&#x27;&#x27;
+
+изменяемые и неизменяемые(хешируемые) тд
+типизация строгая динамическая
+int, float, bool, str, byte
+tuple, frozenset, frozendict
+
+
+&#x27;&#x27;&#x27;.strip().splitlines()[-1]
+
+print(s.upper())</code></pre>
+<h2>m1-2.py — строки и f-string</h2>
+<pre><code class="language-python"># --- f-string  ---
+name = &#x27;Dima&#x27;
+age = 30
+
+s = f&quot;Меня зовут {name.upper()}! мне {age ** 2}&quot;
+
+s = &quot;Меня зовут {1}! мне {0}&quot;.format(name, age)
+
+s = fr&quot;Вино \&quot;Ягодка малинка\&quot;{age}&quot;
+
+print(s)
+
+x = 54635343.14432423423
+x = f&#x27;{x:.3f}&#x27;
+print(x)
+
+print(int(123) + &quot;abc&quot;)
+
+# --- tuple  ---
+x = &#x27;Дмитрий&#x27;, (&#x27;Д&#x27;, &#x27;м&#x27;)
+
+print(x * 2 + (&#x27;Д&#x27;, &#x27;м&#x27;))
+
+print((&#x27;Д&#x27;, &#x27;м&#x27;) in x)
+
+a, *b, c = &#x27;Дмитрий&#x27;
+
+print(b)</code></pre>
+<h2>m1-3.py — list, dict, set</h2>
+<pre><code class="language-python"># --- list, dict, set ---
+l = list()
+l = []
+l = [&#x27;123&#x27;, [1,23], (1,2,3), {1,2,4}, {1:1, 2:2}]
+l.append((&#x27;567&#x27;,910))
+l.extend([&#x27;567&#x27;,910])
+l.insert(1, (&#x27;new&#x27;, &#x27;item&#x27;))
+l.remove(&#x27;123&#x27;)
+l.pop()
+print(l)
+x = l.pop(0)
+x = l.pop(0)
+print(x)
+
+# len, in, index, count, sort(), reverse()
+from copy import deepcopy
+
+l = [&#x27;123&#x27;, [1, 23], (1, 2, 3), {1, 2, 4}, {1: 1, 2: 2}]
+
+l1 = deepcopy(l)
+l1[1] = &#x27;new&#x27;
+
+print(l)</code></pre>
+<h2>m1-4.py — словари</h2>
+<pre><code class="language-python"># --- dict  ---
+# ключ неизм тд
+d = dict()
+d = {}
+
+d = {
+    &quot;name&quot;: &#x27;Dima&#x27;,
+    &quot;age&quot;: &quot;30&quot;,
+    &quot;children&quot;: (&#x27;Andrew&#x27;, &#x27;Ann&#x27;),
+    (&quot;depart&quot;, &quot;arm&quot;): [&quot;IT&quot;, &quot;cluster-2&quot;]
+}
+
+print (d.keys())
+print (d.values())
+print (*d.items(), sep=&#x27;\n&#x27;)
+
+d = dict.fromkeys([&#x27;key1&#x27;, &#x27;key2&#x27;], 0)
+print(d)
+
+keys = [&#x27;key1&#x27;, &#x27;key2&#x27;]
+values = [1, 2]
+
+d = dict(zip(keys, values))
+print(d)
+
+print(d[&#x27;key1&#x27;])
+
+print(d.get(&quot;key3&quot;), &#x27;нет&#x27;)
+
+d[&#x27;key4&#x27;] = 4
+d[&#x27;key4&#x27;] = 40
+d.update({&#x27;key1&#x27;: 10, &#x27;key2&#x27;: 20})
+
+x = d.popitem()
+print(&#x27;!&#x27;, x)</code></pre>
+<h2>m1-5.py — чтение текста</h2>
+<pre><code class="language-python"># --- txt: чтение  ---
+# txt, csv, json, pickle
+# w, a
+
+# with open(&quot;txt.txt&quot;) as f:
+#     f.write(&#x27;\n123\n&#x27;)
+#     f.write(&#x27;456&#x27;)
+#     print(&#x27;\n789&#x27;, file=f)
+
+with open(&quot;txt.txt&quot;) as f:
+    s1 = f.read()
+    print(s1)
+
+    f.seek(0)
+    s2 = f.readlines()
+    print(s2)
+
+    f.seek(0)
+    s3 = f.readline().strip()
+    print(s3)
+
+    s3 = f.readline().strip()
+    print(s3)
+
+# --- best_employees: &gt; 4 часов (бывш. m1-9) ---
+# Напишите программу, которая определяет пользователей,
+# работавших в системе более 4 часов, и записывает их
+# имена и фамилии в файл best_employees.txt.
+
+from datetime import datetime, timedelta
+
+with open(&quot;txt.txt&quot;) as f:
+    for s in f:
+        s = s.strip().split(&#x27;, &#x27;)
+        fio, t1, t2 = s
+        t1 = datetime.strptime(t1, &quot;%H:%M&quot;)
+        t2 = datetime.strptime(t2, &quot;%H:%M&quot;)
+        if t1 &gt; t2:
+            t2 += timedelta(days=1)
+            dt = t2 - t1
+        dt = t2 - t1
+
+        if dt.total_seconds() / 3600 &gt; 4:
+            print(fio, dt)
+
+# --- txt: map, включения  ---
+from math import prod
+
+# with open(&quot;txt.txt&quot;) as f:
+#    s = f.readline().split(&#x27;, &#x27;)
+#    s = { int(x): int(x) ** 2 for x in s}
+#    print(s)
+
+with open(&quot;txt.txt&quot;) as f:
+    s = f.readlines()
+    s = map(int, s)
+    print(*s)</code></pre>
+<h2>m1-6.py — CSV</h2>
+<pre><code class="language-python"># --- csv  ---
+import csv
+
+users = [
+    {&quot;name&quot;: &quot;Егор Тимофеев&quot;, &quot;age&quot;: 90},
+    {&quot;name&quot;: &quot;Марина Абрамова&quot;, &quot;age&quot;: 12},
+    {&quot;name&quot;: &quot;Никита Круглов&quot;, &quot;age&quot;: 19}
+]
+
+# with open(&quot;users.csv&quot;, &#x27;w&#x27;, newline=&quot;&quot;) as f:
+#     columns = &quot;name&quot;, &quot;age&quot;
+#     writer = csv.DictWriter(f, fieldnames=columns)
+#     writer.writeheader()
+#     writer.writerows(users)
+
+with open(&quot;users.csv&quot;, encoding=&#x27;utf-8&#x27;) as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        print(row[&quot;name&quot;])
+
+# --- json (бывш. m1-12) ---
+import json
+
+user = &#x27;[{&quot;name&quot;: &quot;Егор Тимофеев&quot;, &quot;age&quot;: 90}, {&quot;name&quot;: &quot;Марина Абрамова&quot;, &quot;age&quot;: 12}, {&quot;name&quot;: &quot;Никита Круглов&quot;, &quot;age&quot;: 19}]&#x27;
+us_l = json.loads(user)
+
+users = [
+    {&quot;name&quot;: &quot;Егор Тимофеев&quot;, &quot;age&quot;: 90, &quot;married&quot;: True},
+    {&quot;name&quot;: &quot;Марина Абрамова&quot;, &quot;age&quot;: 12.5, &quot;children&quot;: (&quot;Петя&quot;, &quot;Вася&quot;)},
+    {&quot;name&quot;: &quot;Никита Круглов&quot;, &quot;age&quot;: 19}
+]
+
+with open(&quot;data.json&quot;, &quot;w&quot;) as f:
+    json.dump(users, f, ensure_ascii=False, indent=4)
+
+with open(&quot;data.json&quot;,) as f:
+    users = json.load(f)
+    print(users)
+
+# --- pickle  ---
+import pickle
+
+user = &#x27;{&quot;name&quot;: &quot;Егор Тимофеев&quot;, &quot;age&quot;: 90}&#x27;
+
+# with open(&quot;data.dat&quot;, &quot;wb&quot;) as f:
+#     pickle.dump(user, f)
+
+with open(&quot;data.dat&quot;, &quot;rb&quot;) as f:
+    user = pickle.load(f)
+    print(user)</code></pre>
   </article>
 </body>
 </html>
