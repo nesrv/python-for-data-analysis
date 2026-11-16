@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2.7 Профилирование кода</title>
+  <title>2.7 Отладка</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>2.7 Профилирование кода</h1>
-<p><strong>Цель:</strong> измерить, какая функция занимает время, сравнить два способа одного и того же подсчёта и отличать профилировщик Python от профилировщика базы данных. Профиль не ищет логическую ошибку: для неё нужен отладчик из раздела 2.6.</p>
-<p><strong>Опора:</strong> терминал VS Code с активированным <code>.venv</code>. Рабочая папка — корень курса.</p>
+    <h1>2.7 Отладка</h1>
+<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные, перехватывать ожидаемую ошибку через <code>try</code> / <code>except</code> / <code>else</code> и проверять условие оператором <code>assert</code>.</p>
+<p><strong>Опора:</strong> расширение <strong>Python</strong> и интерпретатор <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-2-7/</code>):</p>
 <table>
 <thead>
@@ -23,135 +23,169 @@
 </thead>
 <tbody>
 <tr>
-<td><code>profile_demo.py</code></td>
-<td>Две реализации суммы, которые сравнивают</td>
+<td><code>debug_demo.py</code></td>
+<td>Скрипт, на котором ставят точки останова</td>
 </tr>
 <tr>
-<td><code>profile.txt</code></td>
-<td>Сохранённый вывод <code>cProfile</code></td>
+<td><code>bug_average.py</code></td>
+<td>Скрипт с ошибкой, которую находят отладчиком</td>
 </tr>
 <tr>
-<td><code>lab27-profile.ipynb</code></td>
-<td>Замеры <code>timeit</code> и короткий вывод</td>
+<td><code>lab27-debug.md</code></td>
+<td>Короткая заметка: что было в переменных на остановке</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2>Подготовка</h2>
-<p>Создайте ноутбук <code>module-2-7/lab27-profile.ipynb</code>, ядро — <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.7 Профилирование кода».</p>
+<p>Проверьте интерпретатор: <code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong> → <code>./.venv/Scripts/python.exe</code>. Отладчик запускает тот интерпретатор, который выбран в статусной строке.</p>
 <hr />
-<h2>2.7.1. Зачем профиль</h2>
-<p>Время программы складывается из времени функций. <code>cProfile</code> считает, сколько раз функция вызвана и сколько времени на неё пришлось. Сначала смотрят функции с большим накопленным временем, затем решают, есть ли более простой алгоритм.</p>
-<p>Профиль запускают на той же задаче, которую программа решает у пользователя. Замер на пустом списке ничего не говорит о рабочем объёме данных.</p>
-<p><strong>Критерий 2.7.1:</strong> в markdown одной фразой записано, чем профиль отличается от точки останова.</p>
-<hr />
-<h2>2.7.2. cProfile</h2>
-<p>Создайте <code>module-2-7/profile_demo.py</code>:</p>
-<pre><code class="language-python">def slow_sum(n: int) -&gt; int:
-    total = 0
-    for i in range(n):
-        total += i
-    return total
-
-
-def fast_sum(n: int) -&gt; int:
-    return n * (n - 1) // 2
+<h2>2.7.1. Точка останова</h2>
+<p>Создайте <code>module-2-7/debug_demo.py</code>:</p>
+<pre><code class="language-python">def grade(score: int) -&gt; str:
+    if score &gt;= 18:
+        label = &quot;зачёт с отличием&quot;
+    elif score &gt;= 12:
+        label = &quot;зачёт&quot;
+    else:
+        label = &quot;нужна доработка&quot;
+    return label
 
 
 def main():
-    left = slow_sum(200_000)
-    right = slow_sum(100_000)
-    return left + right
+    scores = [18, 15, 9]
+    for score in scores:
+        result = grade(score)
+        print(score, result)
 
 
 if __name__ == &quot;__main__&quot;:
-    print(main())
+    main()
 </code></pre>
-<p>Из корня курса, в активированном <code>.venv</code>:</p>
-<pre><code class="language-powershell">python -m cProfile -s cumtime module-2-7\profile_demo.py
-</code></pre>
-<p><code>-s cumtime</code> сортирует таблицу по накопленному времени: сверху функции, внутри которых программа провела больше всего времени, вместе с вызовами из них.</p>
-<p>Сохраните вывод:</p>
-<pre><code class="language-powershell">python -m cProfile -s cumtime module-2-7\profile_demo.py &gt; module-2-7\profile.txt
-</code></pre>
-<p>В таблице найдите строку <code>slow_sum</code>. Колонка <code>ncalls</code> — число вызовов.</p>
-<p><strong>Практика 2.7.2.</strong> В ноутбуке запишите: сколько раз вызвана <code>slow_sum</code>, какое число напечатал скрипт, какая функция стоит в таблице выше неё.</p>
-<p>Число на выходе — сумма <code>0..199999</code> плюс сумма <code>0..99999</code>, то есть <code>199999 * 200000 / 2 + 99999 * 100000 / 2</code>. Скрипт печатает <strong>24999850000</strong>.</p>
-<p><strong>Критерий 2.7.2:</strong> в <code>profile.txt</code> у <code>slow_sum</code> два вызова, скрипт печатает <code>24999850000</code>.</p>
+<ol>
+<li>Щёлкните слева от номера строки <code>result = grade(score)</code>. Появится красная точка.</li>
+<li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) и запустите <strong>Python File</strong>.</li>
+<li>Выполнение остановится до этой строки. В панели <strong>Variables</strong> найдите <code>score</code>.</li>
+<li><strong>Continue</strong> (<code>F5</code>) переходит к следующей остановке. Пройдите все три числа.</li>
+</ol>
+<p><strong>Практика 2.7.1.</strong> В <code>lab27-debug.md</code> запишите три значения <code>score</code>, которые видели на остановке, и три строки из отладочной консоли.</p>
+<p><strong>Критерий 2.7.1:</strong> остановка срабатывает три раза, в консоли есть пары <code>18 зачёт с отличием</code>, <code>15 зачёт</code>, <code>9 нужна доработка</code>.</p>
 <hr />
-<h2>2.7.3. Сравнение двух реализаций</h2>
-<p>Замените тело <code>main</code>, чтобы обе функции считали одну и ту же величину:</p>
-<pre><code class="language-python">def main():
-    a = slow_sum(300_000)
-    b = fast_sum(300_000)
-    print(&quot;совпали:&quot;, a == b)
-    return a
-</code></pre>
-<p>Снова сохраните профиль в <code>profile.txt</code>. Сравните <code>tottime</code> у <code>slow_sum</code> и <code>fast_sum</code>. <code>tottime</code> — время в самой функции, без учёта других вызовов. У формулы оно заметно меньше, чем у цикла.</p>
-<p><strong>Практика 2.7.3.</strong> В markdown перепишите две строки профиля: имя, <code>ncalls</code>, <code>tottime</code>. Отметьте, какая реализация быстрее на этом запуске.</p>
-<p><strong>Критерий 2.7.3:</strong> скрипт печатает <code>совпали: True</code>. У <code>slow_sum</code> время в <code>tottime</code> больше, чем у <code>fast_sum</code>.</p>
-<hr />
-<h2>2.7.4. timeit</h2>
-<p><code>timeit</code> повторяет один маленький фрагмент много раз и возвращает суммарные секунды. Так сравнивают короткие выражения, не запуская полный профиль.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">import timeit
-
-loop = timeit.timeit(&quot;sum(range(10_000))&quot;, number=500)
-formula = timeit.timeit(&quot;n * (n - 1) // 2&quot;, number=500, setup=&quot;n = 10_000&quot;)
-print(&quot;sum(range):&quot;, loop)
-print(&quot;формула:&quot;, formula)
-print(&quot;цикл медленнее в&quot;, round(loop / formula, 1), &quot;раз&quot;)
-</code></pre>
-<p>Числа от запуска к запуску немного меняются. Вывод «формула быстрее» должен сохраняться.</p>
-<p><strong>Практика 2.7.4.</strong> Повторите замер с <code>number=100</code> и с <code>number=500</code>. В markdown запишите оба отношения. Не сравнивайте абсолютные секунды разных компьютеров между собой.</p>
-<p><strong>Критерий 2.7.4:</strong> в обоих замерах формула занимает меньше времени, чем <code>sum(range(...))</code>.</p>
-<hr />
-<h2>2.7.5. Что не ускоряют вслепую</h2>
-<p>Ускорение имеет смысл там, где профиль показал заметную долю времени. Функция, которая вызвана один раз и занимает доли процента, не стоит переписывания на этом занятии.</p>
-<p><strong>Практика 2.7.5.</strong> В <code>profile.txt</code> после раздела 2.7.3 найдите строку, у которой <code>tottime</code> меньше, чем у <code>slow_sum</code>. Запишите её имя и одну фразу: почему её не переписывают первой.</p>
-<p><strong>Критерий 2.7.5:</strong> в заметке названа функция с меньшим <code>tottime</code>, чем у <code>slow_sum</code>, и сказано, что сначала меняют самую дорогую часть.</p>
-<hr />
-<h2>2.7.6. Профилировщики баз данных</h2>
-<p><code>cProfile</code> видит функции Python. Если время уходит на ожидание ответа PostgreSQL, в профиле Python будет вызов драйвера, но не будет видно, какой запрос долгий и какой план выбрал сервер. Это смотрит профилировщик самой базы.</p>
+<h2>2.7.2. Шаг внутрь и шаг через</h2>
+<p>На строке вызова <code>grade(score)</code> доступны два шага:</p>
 <table>
 <thead>
 <tr>
-<th>Вопрос</th>
-<th>Куда смотреть</th>
+<th>Клавиша</th>
+<th>Команда</th>
+<th>Куда переходит</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Какой план у одного запроса и сколько он занял</td>
-<td><code>EXPLAIN</code> и <code>EXPLAIN ANALYZE</code> в PostgreSQL</td>
+<td><code>F10</code></td>
+<td>Step Over</td>
+<td>Выполняет вызов целиком и остаётся в <code>main</code></td>
 </tr>
 <tr>
-<td>Какие тексты запросов чаще всего выполняются и сколько суммарно длятся</td>
-<td>расширение <code>pg_stat_statements</code></td>
+<td><code>F11</code></td>
+<td>Step Into</td>
+<td>Входит в первую строку <code>grade</code></td>
 </tr>
 <tr>
-<td>Какие запросы дольше заданного порога</td>
-<td>журнал медленных запросов, параметр <code>log_min_duration_statement</code></td>
-</tr>
-<tr>
-<td>Тот же план без отдельной консоли</td>
-<td>план запроса в DBeaver</td>
+<td><code>Shift+F11</code></td>
+<td>Step Out</td>
+<td>Выполняет функцию до <code>return</code> и возвращается к вызывающему коду</td>
 </tr>
 </tbody>
 </table>
-<p><code>EXPLAIN</code> показывает намерение планировщика: последовательный просмотр таблицы, поиск по индексу, соединение таблиц, оценка числа строк. <code>EXPLAIN ANALYZE</code> выполняет запрос и добавляет фактическое время и фактическое число строк. Им пользуются на копии данных или на запросе, который допустимо выполнить ещё раз.</p>
-<p><code>pg_stat_statements</code> копит статистику по уже прошедшим запросам: число вызовов, общее и среднее время. По нему выбирают, какой текст разбирать через <code>EXPLAIN</code> в первую очередь. Это тот же принцип, что и у <code>cProfile</code>: сначала самая дорогая часть, а не первый попавшийся запрос.</p>
-<p>Профилировщик базы не заменяет индекс и не переписывает запрос сам. Он отвечает, где сервер тратит время. Правку текста запроса и структуры таблиц делают отдельно, уже глядя на план.</p>
-<p><strong>Практика 2.7.6.</strong> В ноутбуке тремя фразами запишите, чем <code>cProfile</code>, <code>EXPLAIN ANALYZE</code> и <code>pg_stat_statements</code> отличаются по объекту измерения: функция Python, один запрос, поток запросов на сервере.</p>
-<p><strong>Критерий 2.7.6:</strong> в заметке три разных объекта измерения, и для долгого запроса назван <code>EXPLAIN ANALYZE</code>, а не <code>cProfile</code>.</p>
+<p><strong>Практика 2.7.2.</strong> Поставьте точку на строке вызова. Нажмите <code>F11</code>. Внутри <code>grade</code> дойдите до присваивания <code>label</code> клавишей <code>F10</code>. Для балла <code>9</code> в <strong>Variables</strong> должно появиться <code>label</code> со значением «нужна доработка». Затем <code>Shift+F11</code> вернёт вас в цикл.</p>
+<p><strong>Критерий 2.7.2:</strong> в заметке записано, что при <code>score == 9</code> переменная <code>label</code> равна «нужна доработка» ещё до выхода из функции.</p>
 <hr />
-<h2>2.7.7. Самопроверка</h2>
-<p>В конце ноутбука ответьте:</p>
+<h2>2.7.3. Условная точка останова</h2>
+<p>Останавливаться на каждом элементе неудобно, если ошибка только в одном значении. Правый щелчок по красной точке → <strong>Edit Breakpoint</strong> → выражение <code>score &lt; 12</code>.</p>
+<p>Запустите отладку снова. Остановка будет только для <code>9</code>. Значения 18 и 15 выполнятся без паузы.</p>
+<p><strong>Практика 2.7.3.</strong> Смените условие на <code>score == 15</code>, запустите ещё раз и убедитесь, что пауза одна и в переменной именно 15. После проверки условие можно снять.</p>
+<p><strong>Критерий 2.7.3:</strong> при условии <code>score &lt; 12</code> отладчик останавливается один раз.</p>
+<hr />
+<h2>2.7.4. Поиск ошибки</h2>
+<p>Создайте <code>module-2-7/bug_average.py</code>. Среднее считается неверно: сумма делится не на число элементов.</p>
+<pre><code class="language-python">def average(values: list[int]) -&gt; float:
+    total = 0
+    for value in values:
+        total += value
+    return total / (len(values) - 1)
+
+
+def main():
+    scores = [18, 15, 20, 11]
+    print(&quot;среднее:&quot;, average(scores))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>Верное среднее — <code>(18 + 15 + 20 + 11) / 4 = 16</code>. Скрипт печатает другое число.</p>
 <ol>
-<li>Чем <code>ncalls</code> отличается от <code>tottime</code>.</li>
-<li>Зачем один и тот же подсчёт записан циклом и формулой.</li>
-<li>Почему один запуск <code>timeit</code> с <code>number=1</code> плохо сравнивает короткие выражения.</li>
-<li>Почему медленный запрос к PostgreSQL не разбирают только профилем <code>cProfile</code>.</li>
+<li>Поставьте точку останова на строке <code>return</code>.</li>
+<li>Запустите отладчик.</li>
+<li>В <strong>Watch</strong> добавьте выражения <code>total</code>, <code>len(values)</code> и <code>len(values) - 1</code>.</li>
+<li>Сравните делитель с числом оценок.</li>
+</ol>
+<p><strong>Практика 2.7.4.</strong> Исправьте делитель на <code>len(values)</code>. Запустите файл обычным образом, без отладчика:</p>
+<pre><code class="language-powershell">python module-2-7\bug_average.py
+</code></pre>
+<p><strong>Критерий 2.7.4:</strong> до исправления в Watch видно деление на 3 при четырёх оценках. После исправления скрипт печатает <code>среднее: 16.0</code>.</p>
+<hr />
+<h2>2.7.5. Отладочная консоль</h2>
+<p>Пока программа стоит на точке останова, панель <strong>Debug Console</strong> выполняет выражения в этом месте. Это не терминал: команды <code>cd</code> здесь не работают.</p>
+<p>На остановке внутри <code>average</code> наберите:</p>
+<pre><code class="language-python">values
+total / len(values)
+</code></pre>
+<p>Второе выражение показывает среднее, не меняя файл. Так проверяют догадку до правки кода.</p>
+<p><strong>Критерий 2.7.5:</strong> консоль на остановке печатает список из четырёх баллов и число <code>16.0</code>.</p>
+<hr />
+<h2>2.7.6. try, except и else</h2>
+<p><code>try</code> выполняет код, в котором ошибка ожидаема. <code>except</code> ловит конкретный тип ошибки. Ветка <code>else</code> выполняется только если исключения не было: в неё ставят действия, которые имеют смысл лишь после успешного разбора.</p>
+<p>Добавьте в ноутбук ячейку:</p>
+<pre><code class="language-python">def read_score(text: str) -&gt; int | None:
+    try:
+        score = int(text)
+    except ValueError:
+        print(&quot;не число:&quot;, text)
+        return None
+    else:
+        print(&quot;разобрано:&quot;, score)
+        return score
+
+for text in (&quot;18&quot;, &quot;нет&quot;, &quot;9&quot;):
+    read_score(text)
+</code></pre>
+<p>Строка <code>"нет"</code> не прерывает цикл: <code>int</code> выбрасывает <code>ValueError</code>, его забирает <code>except</code>. Для <code>"18"</code> и <code>"9"</code> печатается «разобрано».</p>
+<p><strong>Практика 2.7.6.</strong> Разберите список <code>["18", "", "15"]</code>. Пустую строку поймайте тем же <code>except ValueError</code> и напечатайте <code>"пустой балл"</code>. Остальные значения верните числами.</p>
+<p><strong>Критерий 2.7.6:</strong> для <code>"18"</code> и <code>"9"</code> есть строка «разобрано», для <code>"нет"</code> — «не число», цикл доходит до конца. В практике пустая строка даёт «пустой балл», а не обрыв ячейки.</p>
+<hr />
+<h2>2.7.7. assert</h2>
+<p><code>assert</code> проверяет условие, которое в этом месте программы уже обязано быть истинным. Если оно ложно, Python поднимает <code>AssertionError</code> и показывает текст после запятой. Это проверка для разработчика, а не замена <code>if</code> при разборе данных пользователя.</p>
+<pre><code class="language-python">def average(values: list[int]) -&gt; float:
+    assert values, &quot;список оценок пуст&quot;
+    assert all(score &gt;= 0 for score in values), &quot;балл не может быть отрицательным&quot;
+    return sum(values) / len(values)
+
+print(average([18, 15, 20, 11]))
+</code></pre>
+<p>Пустой список или отрицательный балл останавливают функцию на <code>assert</code>, до деления выполнение не доходит. Такой сбой удобно ловить точкой останова на строке <code>assert</code>: в <strong>Variables</strong> видно <code>values</code>.</p>
+<p><strong>Практика 2.7.7.</strong> Вызовите <code>average([])</code> и <code>average([18, -1])</code> в отдельных ячейках. Для каждого вызова запишите в <code>lab27-debug.md</code> текст <code>AssertionError</code>. Затем поймайте отрицательный балл через <code>try</code> / <code>except AssertionError</code> и напечатайте <code>"данные отклонены"</code>.</p>
+<p><strong>Критерий 2.7.7:</strong> <code>average([18, 15, 20, 11])</code> печатает <code>16.0</code>. Пустой список и балл <code>-1</code> дают <code>AssertionError</code> с разными текстами. После <code>except</code> ячейка печатает «данные отклонены» и не обрывается.</p>
+<hr />
+<h2>2.7.8. Самопроверка</h2>
+<p>В <code>lab27-debug.md</code> ответьте:</p>
+<ol>
+<li>Чем Step Over отличается от Step Into.</li>
+<li>Зачем условная точка останова, если обычная уже останавливает программу.</li>
+<li>Почему выражение в Debug Console не заменяет исправление в файле.</li>
+<li>Когда выполняется ветка <code>else</code> у <code>try</code> и чем <code>assert</code> отличается от <code>if</code>.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -165,37 +199,42 @@ print(&quot;цикл медленнее в&quot;, round(loop / formula, 1), &quo
 <tbody>
 <tr>
 <td>1</td>
-<td><code>profile_demo.py</code> запускается и печатает число</td>
+<td>Точка в <code>debug_demo.py</code> сработала на трёх баллах</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>2</td>
-<td><code>profile.txt</code> содержит <code>slow_sum</code> с двумя вызовами на первом варианте <code>main</code></td>
+<td>Step Into показал <code>label</code> для балла 9</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>3</td>
-<td>После замены <code>main</code> скрипт печатает <code>совпали: True</code></td>
+<td>Условная точка остановила только один проход</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>4</td>
-<td><code>timeit</code> показывает, что формула быстрее цикла</td>
+<td>В <code>bug_average.py</code> ошибка найдена через Watch и исправлена, среднее 16.0</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>5</td>
-<td>В заметке указана функция, которую не оптимизируют первой</td>
+<td>Debug Console на остановке показала 16.0</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>6</td>
-<td>В заметке разделены <code>cProfile</code>, <code>EXPLAIN ANALYZE</code> и <code>pg_stat_statements</code></td>
+<td><code>read_score</code> разбирает числа и не падает на строке <code>"нет"</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>7</td>
-<td>Четыре ответа самопроверки</td>
+<td><code>assert</code> останавливает пустой список и отрицательный балл</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Четыре ответа в <code>lab27-debug.md</code></td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -210,27 +249,36 @@ print(&quot;цикл медленнее в&quot;, round(loop / formula, 1), &quo
 </thead>
 <tbody>
 <tr>
-<td><code>profile.txt</code> пустой или в неожиданной кодировке</td>
-<td>Перенаправление сделано из PowerShell в корне курса; откройте файл в VS Code как UTF-8</td>
+<td>Отладчик использует не <code>.venv</code></td>
+<td>Статусная строка и <strong>Python: Select Interpreter</strong></td>
 </tr>
 <tr>
-<td>В таблице нет <code>slow_sum</code></td>
-<td>Запущен не <code>module-2-7\profile_demo.py</code></td>
+<td>Точка серая и не срабатывает</td>
+<td>Файл сохранён, запущена именно эта копия, строка выполняется</td>
 </tr>
 <tr>
-<td><code>совпали: False</code></td>
-<td>Формула считает сумму <code>0 .. n-1</code>, как и цикл <code>range(n)</code></td>
+<td><code>F10</code> не входит в <code>grade</code></td>
+<td>Для входа нужна <code>F11</code></td>
 </tr>
 <tr>
-<td>Отношение в <code>timeit</code> скачет около единицы</td>
-<td>Слишком мало повторов или оба фрагмента делают одно и то же</td>
+<td>В Watch ошибка имени</td>
+<td>Имя есть только внутри функции; смотрите его на остановке внутри неё</td>
+</tr>
+<tr>
+<td>После правки всё ещё старый результат</td>
+<td>Остановлен предыдущий сеанс: кнопка Stop, затем новый запуск</td>
+</tr>
+<tr>
+<td><code>except</code> не ловит ошибку</td>
+<td>В <code>except</code> указан другой тип: <code>int("нет")</code> даёт <code>ValueError</code>, не <code>TypeError</code></td>
+</tr>
+<tr>
+<td><code>assert</code> молчит при ложном условии</td>
+<td>Запуск с флагом <code>-O</code> отключает проверки <code>assert</code></td>
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель снимает профиль, читает число вызовов и накопленное время и выбирает для правки функцию, которая занимает основное время.</p>
+<p>После занятия слушатель останавливает цикл на нужном значении, читает локальные переменные и проверяет исправление повторным запуском.</p>
   </article>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script></body>
+</body>
 </html>

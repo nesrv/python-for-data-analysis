@@ -3,189 +3,117 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2.6 Отладка</title>
+  <title>2.6 Функции</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>2.6 Отладка</h1>
-<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные, перехватывать ожидаемую ошибку через <code>try</code> / <code>except</code> / <code>else</code> и проверять условие оператором <code>assert</code>.</p>
-<p><strong>Опора:</strong> расширение <strong>Python</strong> и интерпретатор <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
-<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-6/</code>):</p>
-<table>
-<thead>
-<tr>
-<th>Файл</th>
-<th>Назначение</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>debug_demo.py</code></td>
-<td>Скрипт, на котором ставят точки останова</td>
-</tr>
-<tr>
-<td><code>bug_average.py</code></td>
-<td>Скрипт с ошибкой, которую находят отладчиком</td>
-</tr>
-<tr>
-<td><code>lab26-debug.md</code></td>
-<td>Короткая заметка: что было в переменных на остановке</td>
-</tr>
-</tbody>
-</table>
+    <h1>2.6 Функции</h1>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> объявлять функцию через <code>def</code>, вызывать её, собирать произвольные аргументы в <code>*args</code> и отличать позиционную передачу от именованной.</p>
+<p><strong>Опора:</strong> ноутбук в VS Code, ядро — <code>./.venv/Scripts/python.exe</code>. Рабочая папка — корень курса.</p>
+<p><strong>Итоговый артефакт:</strong> <code>module-2-6/lab26-functions.ipynb</code> со всеми ячейками и сохранённым выводом.</p>
 <hr />
 <h2>Подготовка</h2>
-<p>Проверьте интерпретатор: <code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong> → <code>./.venv/Scripts/python.exe</code>. Отладчик запускает тот интерпретатор, который выбран в статусной строке.</p>
+<p>Создайте ноутбук <code>module-2-6/lab26-functions.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.6 Функции».</p>
+<p>Функция — именованный блок кода. Её вызывают по имени и передают аргументы. <code>return</code> отдаёт результат вызывающему коду. Без <code>return</code> функция возвращает <code>None</code>.</p>
 <hr />
-<h2>2.6.1. Точка останова</h2>
-<p>Создайте <code>module-2-6/debug_demo.py</code>:</p>
-<pre><code class="language-python">def grade(score: int) -&gt; str:
-    if score &gt;= 18:
-        label = &quot;зачёт с отличием&quot;
-    elif score &gt;= 12:
-        label = &quot;зачёт&quot;
-    else:
-        label = &quot;нужна доработка&quot;
-    return label
-
-
-def main():
-    scores = [18, 15, 9]
-    for score in scores:
-        result = grade(score)
-        print(score, result)
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
+<h2>2.6.1. Определение и вызов</h2>
+<p><code>def</code> создаёт функцию и связывает её с именем. Имя можно положить в другую переменную: вызывается тот же объект.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">print(&quot;hello&quot;)
+f = print
+f(&quot;hello&quot;)
 </code></pre>
-<ol>
-<li>Щёлкните слева от номера строки <code>result = grade(score)</code>. Появится красная точка.</li>
-<li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) и запустите <strong>Python File</strong>.</li>
-<li>Выполнение остановится до этой строки. В панели <strong>Variables</strong> найдите <code>score</code>.</li>
-<li><strong>Continue</strong> (<code>F5</code>) переходит к следующей остановке. Пройдите все три числа.</li>
-</ol>
-<p><strong>Практика 2.6.1.</strong> В <code>lab26-debug.md</code> запишите три значения <code>score</code>, которые видели на остановке, и три строки из отладочной консоли.</p>
-<p><strong>Критерий 2.6.1:</strong> остановка срабатывает три раза, в консоли есть пары <code>18 зачёт с отличием</code>, <code>15 зачёт</code>, <code>9 нужна доработка</code>.</p>
+<p>Обе строки печатают <code>hello</code>. <code>f</code> и <code>print</code> указывают на одну функцию.</p>
+<p><strong>Ячейка — имя print занято:</strong></p>
+<pre><code class="language-python">f = print
+print = &quot;это была функция print&quot;
+f(print)
+print = f
+</code></pre>
+<p>После присваивания имя <code>print</code> — строка, а функция печати жива под именем <code>f</code>. Последняя строка возвращает имя <code>print</code> функции, иначе следующие ячейки не смогут печатать.</p>
+<p><strong>Критерий 2.6.1:</strong> второй вызов <code>f</code> печатает текст <code>это была функция print</code>. После последней строки <code>print(1)</code> снова печатает число.</p>
 <hr />
-<h2>2.6.2. Шаг внутрь и шаг через</h2>
-<p>На строке вызова <code>grade(score)</code> доступны два шага:</p>
-<table>
-<thead>
-<tr>
-<th>Клавиша</th>
-<th>Команда</th>
-<th>Куда переходит</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>F10</code></td>
-<td>Step Over</td>
-<td>Выполняет вызов целиком и остаётся в <code>main</code></td>
-</tr>
-<tr>
-<td><code>F11</code></td>
-<td>Step Into</td>
-<td>Входит в первую строку <code>grade</code></td>
-</tr>
-<tr>
-<td><code>Shift+F11</code></td>
-<td>Step Out</td>
-<td>Выполняет функцию до <code>return</code> и возвращается к вызывающему коду</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Практика 2.6.2.</strong> Поставьте точку на строке вызова. Нажмите <code>F11</code>. Внутри <code>grade</code> дойдите до присваивания <code>label</code> клавишей <code>F10</code>. Для балла <code>9</code> в <strong>Variables</strong> должно появиться <code>label</code> со значением «нужна доработка». Затем <code>Shift+F11</code> вернёт вас в цикл.</p>
-<p><strong>Критерий 2.6.2:</strong> в заметке записано, что при <code>score == 9</code> переменная <code>label</code> равна «нужна доработка» ещё до выхода из функции.</p>
+<h2>2.6.2. Параметры и return</h2>
+<p>Параметры — имена внутри функции. Аргументы — значения в вызове.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def sum2(a, b):
+    c = a + b
+    return c
+
+result = sum2(5, 2)
+print(result)
+result = sum2(sum2(4, -2), 7) + 12
+print(result)
+</code></pre>
+<p>Сначала выполняется внутренний вызов <code>sum2(4, -2)</code>, он возвращает <code>2</code>. Затем <code>sum2(2, 7)</code> возвращает <code>9</code>. Снаружи к результату прибавляют <code>12</code>.</p>
+<p><strong>Практика 2.6.2.</strong> Напишите функцию <code>abs2(x)</code>, которая возвращает модуль числа без вызова встроенной <code>abs</code>. Проверьте на <code>5</code>, <code>-3</code> и <code>0</code>. Рядом напишите <code>max2(a, b)</code> и сравните её с встроенной <code>max</code> на парах <code>(2, 9)</code> и <code>(4, 4)</code>.</p>
+<p><strong>Критерий 2.6.2:</strong> первый <code>result</code> равен <strong>7</strong>, второй равен <strong>21</strong>. <code>abs2(-3)</code> равен <code>3</code>. <code>max2</code> совпадает с <code>max</code> на обеих парах.</p>
 <hr />
-<h2>2.6.3. Условная точка останова</h2>
-<p>Останавливаться на каждом элементе неудобно, если ошибка только в одном значении. Правый щелчок по красной точке → <strong>Edit Breakpoint</strong> → выражение <code>score &lt; 12</code>.</p>
-<p>Запустите отладку снова. Остановка будет только для <code>9</code>. Значения 18 и 15 выполнятся без паузы.</p>
-<p><strong>Практика 2.6.3.</strong> Смените условие на <code>score == 15</code>, запустите ещё раз и убедитесь, что пауза одна и в переменной именно 15. После проверки условие можно снять.</p>
-<p><strong>Критерий 2.6.3:</strong> при условии <code>score &lt; 12</code> отладчик останавливается один раз.</p>
-<hr />
-<h2>2.6.4. Поиск ошибки</h2>
-<p>Создайте <code>module-2-6/bug_average.py</code>. Среднее считается неверно: сумма делится не на число элементов.</p>
-<pre><code class="language-python">def average(values: list[int]) -&gt; float:
+<h2>2.6.3. Произвольное число параметров</h2>
+<p><code>*args</code> собирает лишние позиционные аргументы в кортеж. Имя <code>args</code> обычное, звёздочка задаёт способ сборки.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def my_sum(*args):
     total = 0
-    for value in values:
-        total += value
-    return total / (len(values) - 1)
+    for item in args:
+        total += item
+    return total
 
+print(my_sum(1, 2, 3, 4, 5))
 
-def main():
-    scores = [18, 15, 20, 11]
-    print(&quot;среднее:&quot;, average(scores))
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
+numbers = (1, 2, 3, 4, 5)
+print(my_sum(*numbers))
 </code></pre>
-<p>Верное среднее — <code>(18 + 15 + 20 + 11) / 4 = 16</code>. Скрипт печатает другое число.</p>
+<p><code>my_sum(1, 2, 3, 4, 5)</code> передаёт пять аргументов. <code>my_sum(*numbers)</code> распаковывает кортеж в те же пять аргументов. Без звёздочки функция получила бы один аргумент — сам кортеж — и сложение со счётчиком упало бы с <code>TypeError</code>.</p>
+<p><strong>Практика 2.6.3.</strong> Вызовите <code>my_sum()</code> без аргументов и <code>my_sum(*[10, 20])</code>. Запишите оба результата.</p>
+<p><strong>Критерий 2.6.3:</strong> обе печати в ячейке дают <strong>15</strong>. Пустой вызов даёт <code>0</code>, вызов со списком через <code>*</code> даёт <code>30</code>.</p>
+<hr />
+<h2>2.6.4. Именованные параметры</h2>
+<p>Параметры после <code>*args</code> передают только по имени. У них может быть значение по умолчанию.</p>
+<p>В стандартной библиотеке нет отдельной учебной функции среднего с заданной точностью. Её пишут так:</p>
+<pre><code class="language-python">def average(*args, accuracy=3):
+    value = sum(args) / len(args)
+    return round(value, accuracy)
+
+numbers = (1, 2, 3, 4, 5)
+print(average(*numbers))
+print(average(*numbers, accuracy=1))
+</code></pre>
+<p><code>average(*numbers)</code> считает среднее пяти чисел и округляет до трёх знаков: <code>3.0</code>. Второй вызов округляет до одного знака.</p>
+<p><strong>Практика 2.6.4.</strong> Вызовите <code>average(1, 2, 3)</code> и <code>average(1, 2, 3, accuracy=4)</code>. Убедитесь, что точность не попала в набор чисел.</p>
+<p><strong>Критерий 2.6.4:</strong> первое среднее — <code>3.0</code>, вызов с <code>accuracy=4</code> печатает <code>2.0</code> для <code>(1, 2, 3)</code>.</p>
+<hr />
+<h2>2.6.5. Позиционные аргументы не попадают в именованные</h2>
+<p>Добавьте второй именованный параметр и посмотрите, куда деваются числа без имени.</p>
+<pre><code class="language-python">def average(*args, accuracy=3, indent=10):
+    value = sum(args) / len(args)
+    text = str(round(value, accuracy))
+    return text.rjust(indent, &quot;*&quot;)
+
+numbers = (1, 2, 3, 4, 5)
+print(average(*numbers))
+print(average(*numbers, indent=5, accuracy=4))
+print(average(*numbers, 3, 10))
+print(average(*numbers, 5, accuracy=4))
+</code></pre>
+<p><code>average(*numbers, indent=5, accuracy=4)</code> передаёт точность и ширину по имени. Среднее <code>3.0</code> округляется до четырёх знаков и дополняется звёздочками до ширины 5.</p>
+<p><code>average(*numbers, 3, 10)</code> не записывает <code>3</code> в <code>accuracy</code>. Оба числа без имени попадают в <code>args</code>: последовательность становится <code>(1, 2, 3, 4, 5, 3, 10)</code>. Сумма <code>28</code>, длина <code>7</code>, среднее <code>4.0</code>. Поэтому печать — строка <code>4.0</code>, дополненная до ширины по умолчанию.</p>
+<p><code>average(*numbers, 5, accuracy=4)</code> добавляет <code>5</code> в числа. Среднее шести чисел — <code>3.3333</code> при точности 4.</p>
+<p>Такой вызов — синтаксическая ошибка: позиционный аргумент стоит после именованного.</p>
+<pre><code class="language-python">average(*numbers, accuracy=5, 10)
+</code></pre>
+<p><strong>Практика 2.6.5.</strong> Выполните ошибочную строку в отдельной ячейке, прочитайте <code>SyntaxError</code> и запишите в markdown, почему <code>10</code> нельзя поставить после <code>accuracy=5</code>. Затем вызовите <code>average(*numbers, accuracy=5, indent=10)</code> и сравните длину результата с <code>indent</code>.</p>
+<p><strong>Критерий 2.6.5:</strong> вызов с голыми <code>3, 10</code> даёт строку из <code>4.0</code> и звёздочек. Вызов с голой <code>5</code> и <code>accuracy=4</code> содержит <code>3.3333</code>. Правильный вызов только с именами не удлиняет набор чисел: в среднем участвуют пять исходных значений.</p>
+<hr />
+<h2>2.6.6. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
 <ol>
-<li>Поставьте точку останова на строке <code>return</code>.</li>
-<li>Запустите отладчик.</li>
-<li>В <strong>Watch</strong> добавьте выражения <code>total</code>, <code>len(values)</code> и <code>len(values) - 1</code>.</li>
-<li>Сравните делитель с числом оценок.</li>
-</ol>
-<p><strong>Практика 2.6.4.</strong> Исправьте делитель на <code>len(values)</code>. Запустите файл обычным образом, без отладчика:</p>
-<pre><code class="language-powershell">python module-2-6\bug_average.py
-</code></pre>
-<p><strong>Критерий 2.6.4:</strong> до исправления в Watch видно деление на 3 при четырёх оценках. После исправления скрипт печатает <code>среднее: 16.0</code>.</p>
-<hr />
-<h2>2.6.5. Отладочная консоль</h2>
-<p>Пока программа стоит на точке останова, панель <strong>Debug Console</strong> выполняет выражения в этом месте. Это не терминал: команды <code>cd</code> здесь не работают.</p>
-<p>На остановке внутри <code>average</code> наберите:</p>
-<pre><code class="language-python">values
-total / len(values)
-</code></pre>
-<p>Второе выражение показывает среднее, не меняя файл. Так проверяют догадку до правки кода.</p>
-<p><strong>Критерий 2.6.5:</strong> консоль на остановке печатает список из четырёх баллов и число <code>16.0</code>.</p>
-<hr />
-<h2>2.6.6. try, except и else</h2>
-<p><code>try</code> выполняет код, в котором ошибка ожидаема. <code>except</code> ловит конкретный тип ошибки. Ветка <code>else</code> выполняется только если исключения не было: в неё ставят действия, которые имеют смысл лишь после успешного разбора.</p>
-<p>Добавьте в ноутбук ячейку:</p>
-<pre><code class="language-python">def read_score(text: str) -&gt; int | None:
-    try:
-        score = int(text)
-    except ValueError:
-        print(&quot;не число:&quot;, text)
-        return None
-    else:
-        print(&quot;разобрано:&quot;, score)
-        return score
-
-for text in (&quot;18&quot;, &quot;нет&quot;, &quot;9&quot;):
-    read_score(text)
-</code></pre>
-<p>Строка <code>&quot;нет&quot;</code> не прерывает цикл: <code>int</code> выбрасывает <code>ValueError</code>, его забирает <code>except</code>. Для <code>&quot;18&quot;</code> и <code>&quot;9&quot;</code> печатается «разобрано».</p>
-<p><strong>Практика 2.6.6.</strong> Разберите список <code>[&quot;18&quot;, &quot;&quot;, &quot;15&quot;]</code>. Пустую строку поймайте тем же <code>except ValueError</code> и напечатайте <code>&quot;пустой балл&quot;</code>. Остальные значения верните числами.</p>
-<p><strong>Критерий 2.6.6:</strong> для <code>&quot;18&quot;</code> и <code>&quot;9&quot;</code> есть строка «разобрано», для <code>&quot;нет&quot;</code> — «не число», цикл доходит до конца. В практике пустая строка даёт «пустой балл», а не обрыв ячейки.</p>
-<hr />
-<h2>2.6.7. assert</h2>
-<p><code>assert</code> проверяет условие, которое в этом месте программы уже обязано быть истинным. Если оно ложно, Python поднимает <code>AssertionError</code> и показывает текст после запятой. Это проверка для разработчика, а не замена <code>if</code> при разборе данных пользователя.</p>
-<pre><code class="language-python">def average(values: list[int]) -&gt; float:
-    assert values, &quot;список оценок пуст&quot;
-    assert all(score &gt;= 0 for score in values), &quot;балл не может быть отрицательным&quot;
-    return sum(values) / len(values)
-
-print(average([18, 15, 20, 11]))
-</code></pre>
-<p>Пустой список или отрицательный балл останавливают функцию на <code>assert</code>, до деления выполнение не доходит. Такой сбой удобно ловить точкой останова на строке <code>assert</code>: в <strong>Variables</strong> видно <code>values</code>.</p>
-<p><strong>Практика 2.6.7.</strong> Вызовите <code>average([])</code> и <code>average([18, -1])</code> в отдельных ячейках. Для каждого вызова запишите в <code>lab26-debug.md</code> текст <code>AssertionError</code>. Затем поймайте отрицательный балл через <code>try</code> / <code>except AssertionError</code> и напечатайте <code>&quot;данные отклонены&quot;</code>.</p>
-<p><strong>Критерий 2.6.7:</strong> <code>average([18, 15, 20, 11])</code> печатает <code>16.0</code>. Пустой список и балл <code>-1</code> дают <code>AssertionError</code> с разными текстами. После <code>except</code> ячейка печатает «данные отклонены» и не обрывается.</p>
-<hr />
-<h2>2.6.8. Самопроверка</h2>
-<p>В <code>lab26-debug.md</code> ответьте:</p>
-<ol>
-<li>Чем Step Over отличается от Step Into.</li>
-<li>Зачем условная точка останова, если обычная уже останавливает программу.</li>
-<li>Почему выражение в Debug Console не заменяет исправление в файле.</li>
-<li>Когда выполняется ветка <code>else</code> у <code>try</code> и чем <code>assert</code> отличается от <code>if</code>.</li>
+<li>Чем параметр отличается от аргумента.</li>
+<li>Зачем перед кортежем ставят <code>*</code> в вызове <code>my_sum(*numbers)</code>.</li>
+<li>Почему <code>average(*numbers, 3, 10)</code> меняет среднее, а не точность округления.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -199,42 +127,37 @@ print(average([18, 15, 20, 11]))
 <tbody>
 <tr>
 <td>1</td>
-<td>Точка в <code>debug_demo.py</code> сработала на трёх баллах</td>
+<td>Имя <code>print</code> временно заменено строкой, печать идёт через <code>f</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>2</td>
-<td>Step Into показал <code>label</code> для балла 9</td>
+<td><code>sum2</code> возвращает 7 и 21</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>3</td>
-<td>Условная точка остановила только один проход</td>
+<td><code>abs2</code> и <code>max2</code> проверены на заданных парах</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>4</td>
-<td>В <code>bug_average.py</code> ошибка найдена через Watch и исправлена, среднее 16.0</td>
+<td><code>my_sum</code> принимает и перечисление, и распакованный кортеж</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>5</td>
-<td>Debug Console на остановке показала 16.0</td>
+<td><code>average</code> округляет до заданной точности</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>6</td>
-<td><code>read_score</code> разбирает числа и не падает на строке <code>&quot;нет&quot;</code></td>
+<td>Разобрано, что голые числа после <code>*numbers</code> попадают в <code>args</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>7</td>
-<td><code>assert</code> останавливает пустой список и отрицательный балл</td>
-<td>☐</td>
-</tr>
-<tr>
-<td>8</td>
-<td>Четыре ответа в <code>lab26-debug.md</code></td>
+<td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -249,39 +172,24 @@ print(average([18, 15, 20, 11]))
 </thead>
 <tbody>
 <tr>
-<td>Отладчик использует не <code>.venv</code></td>
-<td>Статусная строка и <strong>Python: Select Interpreter</strong></td>
+<td>После опыта с <code>print</code> ячейки молчат с <code>TypeError</code></td>
+<td>Имени <code>print</code> возвращена функция: <code>print = f</code></td>
 </tr>
 <tr>
-<td>Точка серая и не срабатывает</td>
-<td>Файл сохранён, запущена именно эта копия, строка выполняется</td>
+<td><code>my_sum(numbers)</code> падает</td>
+<td>Перед кортежем или списком нужна <code>*</code></td>
 </tr>
 <tr>
-<td><code>F10</code> не входит в <code>grade</code></td>
-<td>Для входа нужна <code>F11</code></td>
+<td>Точность округления стала ещё одним слагаемым</td>
+<td>После <code>*args</code> параметры передают по имени: <code>accuracy=2</code></td>
 </tr>
 <tr>
-<td>В Watch ошибка имени</td>
-<td>Имя есть только внутри функции; смотрите его на остановке внутри неё</td>
-</tr>
-<tr>
-<td>После правки всё ещё старый результат</td>
-<td>Остановлен предыдущий сеанс: кнопка Stop, затем новый запуск</td>
-</tr>
-<tr>
-<td><code>except</code> не ловит ошибку</td>
-<td>В <code>except</code> указан другой тип: <code>int(&quot;нет&quot;)</code> даёт <code>ValueError</code>, не <code>TypeError</code></td>
-</tr>
-<tr>
-<td><code>assert</code> молчит при ложном условии</td>
-<td>Запуск с флагом <code>-O</code> отключает проверки <code>assert</code></td>
+<td><code>SyntaxError</code> на вызове <code>average</code></td>
+<td>Именованный аргумент стоит раньше позиционного</td>
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель останавливает цикл на нужном значении, читает локальные переменные и проверяет исправление повторным запуском.</p>
+<p>После занятия слушатель описывает свою функцию, передаёт в неё последовательность через <code>*</code> и не путает числа последовательности с точностью и шириной строки.</p>
   </article>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script></body>
+</body>
 </html>
