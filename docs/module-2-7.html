@@ -3,189 +3,229 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2.7 Отладка</title>
+  <title>2.7 Функции: объект, lambda и функции высшего порядка</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>2.7 Отладка</h1>
-<p><strong>Цель:</strong> останавливать программу в нужной строке, смотреть переменные, перехватывать ожидаемую ошибку через <code>try</code> / <code>except</code> / <code>else</code> и проверять условие оператором <code>assert</code>.</p>
-<p><strong>Опора:</strong> расширение <strong>Python</strong> и интерпретатор <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
-<p><strong>Итоговые артефакты</strong> (в папке <code>module-2-7/</code>):</p>
-<table>
-<thead>
-<tr>
-<th>Файл</th>
-<th>Назначение</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>debug_demo.py</code></td>
-<td>Скрипт, на котором ставят точки останова</td>
-</tr>
-<tr>
-<td><code>bug_average.py</code></td>
-<td>Скрипт с ошибкой, которую находят отладчиком</td>
-</tr>
-<tr>
-<td><code>lab27-debug.md</code></td>
-<td>Короткая заметка: что было в переменных на остановке</td>
-</tr>
-</tbody>
-</table>
+    <h1>2.7 Функции: объект, lambda и функции высшего порядка</h1>
+<p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
+<p><strong>Цель:</strong> обращаться с функцией как со значением, передавать её в другую функцию, сортировать коллекцию по ключу и отбирать данные через <code>filter</code>, <code>map</code> и <code>reduce</code>.</p>
+<p><strong>Опора:</strong> раздел 2.6, ноутбук в VS Code, ядро — <code>./.venv/Scripts/python.exe</code>.</p>
+<p><strong>Итоговый артефакт:</strong> <code>module-2-7/lab27-functions.ipynb</code> со всеми ячейками и сохранённым выводом.</p>
+<p>Материал продолжает раздел 2.6 и опирается на конспекты из <code>python-2/m1</code>.</p>
 <hr />
 <h2>Подготовка</h2>
-<p>Проверьте интерпретатор: <code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong> → <code>./.venv/Scripts/python.exe</code>. Отладчик запускает тот интерпретатор, который выбран в статусной строке.</p>
+<p>Создайте ноутбук <code>module-2-7/lab27-functions.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.7 Функции: объект, lambda и функции высшего порядка».</p>
 <hr />
-<h2>2.7.1. Точка останова</h2>
-<p>Создайте <code>module-2-7/debug_demo.py</code>:</p>
-<pre><code class="language-python">def grade(score: int) -&gt; str:
-    if score &gt;= 18:
-        label = &quot;зачёт с отличием&quot;
-    elif score &gt;= 12:
-        label = &quot;зачёт&quot;
-    else:
-        label = &quot;нужна доработка&quot;
-    return label
+<h2>2.7.1. Функция как объект</h2>
+<p>Функция — значение. Её можно положить в переменную и вызвать уже по новому имени.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def say_hello():
+    print(&quot;Hello&quot;)
 
+def say_goodbye():
+    print(&quot;Good Bye&quot;)
 
-def main():
-    scores = [18, 15, 9]
-    for score in scores:
-        result = grade(score)
-        print(score, result)
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
+message = say_hello
+message()
+message = say_goodbye
+message()
 </code></pre>
+<p>Имя без скобок — сама функция. Скобки — вызов.</p>
+<p><strong>Ячейка — операция в переменной:</strong></p>
+<pre><code class="language-python">def add(a, b):
+    return a + b
+
+def multiply(a, b):
+    return a * b
+
+operation = add
+print(operation(5, 6))
+operation = multiply
+print(operation(5, 6))
+</code></pre>
+<p><strong>Критерий 2.7.1:</strong> сначала печатается <code>Hello</code>, затем <code>Good Bye</code>. Вызовы дают <strong>11</strong> и <strong>30</strong>.</p>
+<hr />
+<h2>2.7.2. Функция как параметр и как результат</h2>
+<p>Функцию передают аргументом. Функция может вернуть другую функцию: вызывающий код выбирает операцию номером, а не копирует ветки <code>if</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def do(a, b, op):
+    return op(a, b)
+
+print(do(5, 5, add))
+print(do(5, 5, multiply))
+</code></pre>
+<p><code>add</code> и <code>multiply</code> должны остаться в памяти с предыдущей ячейки. Если ядро перезапускали, выполните их снова.</p>
+<p><strong>Ячейка — фабрика:</strong></p>
+<pre><code class="language-python">def subtract(a, b):
+    return a - b
+
+def select_operation(choice):
+    if choice == 1:
+        return add
+    if choice == 2:
+        return subtract
+    return multiply
+
+operation = select_operation(1)
+print(operation(10, 6))
+operation = select_operation(2)
+print(operation(10, 6))
+operation = select_operation(3)
+print(operation(10, 6))
+</code></pre>
+<p>Тот же приём со словарём. Неизвестное имя возвращает функцию-заглушку, а не падает с <code>KeyError</code>:</p>
+<pre><code class="language-python">calc = {
+    &quot;plus&quot;: lambda x, y: x + y,
+    &quot;minus&quot;: lambda x, y: x - y,
+    &quot;power&quot;: pow,
+}
+
+def action(name, dictionary):
+    if name in dictionary:
+        return dictionary[name]
+    return lambda *args: &quot;NO CALC&quot;
+
+print(action(&quot;plus&quot;, calc)(5, 4))
+print(action(&quot;power&quot;, calc)(3, 3))
+print(action(&quot;square&quot;, calc)(1, 1))
+</code></pre>
+<p><strong>Критерий 2.7.2:</strong> <code>do</code> печатает <strong>10</strong> и <strong>25</strong>. Фабрика печатает <strong>16</strong>, <strong>4</strong> и <strong>60</strong>. Словарь даёт <code>9</code>, <code>27</code> и <code>NO CALC</code>.</p>
+<hr />
+<h2>2.7.3. Каррирование</h2>
+<p>Каррирование разбивает функцию нескольких аргументов на цепочку функций одного аргумента. Внешняя функция запоминает приветствие и возвращает функцию для имени.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">def greet_curried(greeting):
+    def greet(name):
+        return greeting + &quot;, &quot; + name
+    return greet
+
+hello = greet_curried(&quot;Hello&quot;)
+print(hello(&quot;Игорь&quot;))
+print(hello(&quot;Роман&quot;))
+print(greet_curried(&quot;Hi&quot;)(&quot;Сергей&quot;))
+</code></pre>
+<p><strong>Практика 2.7.3.</strong> Сделайте <code>scale(factor)</code>, которая возвращает функцию одного числа. <code>scale(10)(3)</code> должно дать <code>30</code>.</p>
+<p><strong>Критерий 2.7.3:</strong> три приветствия печатаются как <code>Hello, Игорь</code>, <code>Hello, Роман</code> и <code>Hi, Сергей</code>. Практика даёт <strong>30</strong>.</p>
+<hr />
+<h2>2.7.4. lambda</h2>
+<p><code>lambda</code> — функция из одного выражения, без имени и без <code>return</code>. Её пишут там, где отдельный <code>def</code> только мешает чтению: в <code>map</code>, <code>filter</code> и <code>sorted</code>. Несколько строк в <code>lambda</code> записать нельзя.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">words = &quot;Hello Python from Russia&quot;.split()
+lengths = list(map(lambda word: len(word), words))
+squares = list(map(lambda x: x ** 2, [1, 2, 3, 4, 5]))
+print(lengths)
+print(squares)
+</code></pre>
+<p>Тот же список квадратов даёт включение <code>[x ** 2 for x in [1, 2, 3, 4, 5]]</code>. <code>lambda</code> нужна, когда функцию надо передать, а не когда строится новый список на месте.</p>
+<p><strong>Критерий 2.7.4:</strong> длины равны <code>[5, 6, 4, 6]</code>, квадраты — <code>[1, 4, 9, 16, 25]</code>.</p>
+<hr />
+<h2>2.7.5. Сортировка по ключу</h2>
+<p><code>sorted</code> и <code>list.sort</code> сравнивают не сами элементы, а значения, которые вернула функция <code>key</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">numbers = [4, 3, -10, 1, 7, 12]
+print(sorted(numbers, key=lambda x: x % 2))
+
+cities = [&quot;Москва&quot;, &quot;Тверь&quot;, &quot;Смоленск&quot;, &quot;Псков&quot;, &quot;Рязань&quot;]
+print(sorted(cities, key=len))
+print(sorted(cities, key=lambda city: city[-1]))
+</code></pre>
+<p>Чётные числа дают ключ <code>0</code> и идут раньше нечётных. Города выстраиваются по длине, затем по последней букве.</p>
+<p><strong>Ячейка — вложенные записи:</strong></p>
+<pre><code class="language-python">books = (
+    (&quot;Евгений Онегин&quot;, &quot;Пушкин А.С.&quot;, 200),
+    (&quot;Муму&quot;, &quot;Тургенев И.С.&quot;, 250),
+    (&quot;Мастер и Маргарита&quot;, &quot;Булгаков М.А.&quot;, 500),
+    (&quot;Мертвые души&quot;, &quot;Гоголь Н.В.&quot;, 190),
+)
+print(sorted(books, key=lambda book: book[2]))
+</code></pre>
+<p><strong>Практика 2.7.5.</strong> Мешки заданы парами «вес, стоимость». Отсортируйте их по стоимости за килограмм, а при равной цене — по меньшему весу.</p>
+<pre><code class="language-python">bags = [
+    [47, 470],
+    [50, 600],
+    [60, 480],
+    [45, 540],
+    [30, 300],
+]
+ordered = sorted(bags, key=lambda bag: (bag[1] / bag[0], bag[0]))
+print(ordered)
+</code></pre>
+<p><strong>Критерий 2.7.5:</strong> первая книга в отсортированном списке — «Мертвые души» за 190. Мешки идут так: <code>[60, 480]</code>, <code>[30, 300]</code>, <code>[47, 470]</code>, <code>[45, 540]</code>, <code>[50, 600]</code>. У первого мешка цена 8 за килограмм, у двух следующих — 10, и более лёгкий стоит раньше.</p>
+<hr />
+<h2>2.7.6. all и any</h2>
+<p><code>all</code> истинен, когда истинны все элементы. <code>any</code> истинен, когда истинен хотя бы один. Пустая строка, <code>0</code> и пустой список ложны.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">print(all([True, True, True]))
+print(all([True, False, True]))
+print(any([0, &quot;&quot;, [1]]))
+</code></pre>
+<p>Поле крестиков-ноликов — один список из девяти клеток. Строка выиграна, если все три клетки равны <code>"x"</code>:</p>
+<pre><code class="language-python">field = [&quot;x&quot;, &quot;x&quot;, &quot;o&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;, &quot;o&quot;, &quot;x&quot;, &quot;x&quot;]
+rows = [
+    all(cell == &quot;x&quot; for cell in field[0:3]),
+    all(cell == &quot;x&quot; for cell in field[3:6]),
+    all(cell == &quot;x&quot; for cell in field[6:9]),
+]
+print(rows)
+</code></pre>
+<p><strong>Практика 2.7.6.</strong> Поле сапёра — список из 100 нулей. Поставьте мину в клетку 4: <code>field[4] = "*"</code>. <code>any</code> должен вернуть <code>True</code>. Уберите мину и убедитесь, что результат стал <code>False</code>.</p>
+<p><strong>Критерий 2.7.6:</strong> выиграна только вторая строка, список строк равен <code>[False, True, False]</code>. С миной <code>any</code> даёт <code>True</code>.</p>
+<hr />
+<h2>2.7.7. map, filter и reduce</h2>
+<p><code>map</code> применяет функцию к каждому элементу. <code>filter</code> оставляет элементы, для которых функция истинна. <code>reduce</code> сворачивает последовательность в одно значение. <code>map</code> и <code>filter</code> возвращают итераторы: для печати их превращают в список.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">numbers = [1, 2, 4, 5, 7, 8, 10, 11]
+even = list(filter(lambda n: n % 2 == 0, numbers))
+print(even)
+
+cities = (&quot;Москва&quot;, &quot;Рязань&quot;, &quot;Смоленск&quot;, &quot;Тверь&quot;, &quot;Томск&quot;)
+print(list(filter(str.isalpha, cities)))
+print(list(filter(lambda name: name[-1] == &quot;а&quot;, cities)))
+</code></pre>
+<p><strong>Ячейка — reduce:</strong></p>
+<pre><code class="language-python">from functools import reduce
+
+values = [1, 2, 3, 4, 5]
+print(reduce(lambda x, y: x + y, values, 0))
+print(reduce(lambda x, y: x * y, values, 1))
+</code></pre>
+<p>Начальное значение <code>0</code> для суммы и <code>1</code> для произведения задаёт результат пустого списка и первый шаг свёртки.</p>
+<p><strong>Практика 2.7.7.</strong> Посчитайте площадь квартиры: к каждой комнате примените произведение длины и ширины, затем сверните площади суммой.</p>
+<pre><code class="language-python">rooms = [
+    {&quot;name&quot;: &quot;кухня&quot;, &quot;length&quot;: 6, &quot;width&quot;: 4},
+    {&quot;name&quot;: &quot;комната 1&quot;, &quot;length&quot;: 5.5, &quot;width&quot;: 4.5},
+    {&quot;name&quot;: &quot;комната 2&quot;, &quot;length&quot;: 5, &quot;width&quot;: 4},
+    {&quot;name&quot;: &quot;комната 3&quot;, &quot;length&quot;: 7, &quot;width&quot;: 6.3},
+]
+areas = map(lambda room: room[&quot;length&quot;] * room[&quot;width&quot;], rooms)
+print(reduce(lambda x, y: x + y, areas, 0))
+</code></pre>
+<p><strong>Критерий 2.7.7:</strong> чётные числа — <code>[2, 4, 8, 10]</code>. На «а» заканчиваются Москва и Рязань. Сумма ряда равна <strong>15</strong>, произведение — <strong>120</strong>. Площадь квартиры равна <strong>112.85</strong>.</p>
+<hr />
+<h2>2.7.8. Комбинации</h2>
+<p><code>itertools</code> строит сочетания и размещения, не храня все промежуточные списки заранее. Результат — итератор, его печатают через <code>list</code> или <code>*</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">from itertools import combinations, product
+
+letters = &quot;ГОД&quot;
+print(list(combinations(letters, 2)))
+words = [&quot;&quot;.join(item) for item in product(letters, repeat=2)]
+print(words)
+</code></pre>
+<p><code>combinations</code> не повторяет букву внутри пары и не меняет порядок на обратный. <code>product</code> берёт каждый элемент с каждым, включая повторы.</p>
+<p><strong>Практика 2.7.8.</strong> Сколько слов длины 6 можно составить из букв Г, О, Д, если слово начинается с согласной и буквы можно повторять. Согласные здесь — Г и Д. Посчитайте через <code>product</code> и проверьте формулой <code>2 * 3 ** 5</code>.</p>
+<p><strong>Критерий 2.7.8:</strong> пар из трёх букв без повтора и без перестановки — три: ГО, ГД, ОД. Слов длины 6 — <strong>486</strong>.</p>
+<hr />
+<h2>2.7.9. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
 <ol>
-<li>Щёлкните слева от номера строки <code>result = grade(score)</code>. Появится красная точка.</li>
-<li>Откройте <strong>Run and Debug</strong> (<code>Ctrl+Shift+D</code>) и запустите <strong>Python File</strong>.</li>
-<li>Выполнение остановится до этой строки. В панели <strong>Variables</strong> найдите <code>score</code>.</li>
-<li><strong>Continue</strong> (<code>F5</code>) переходит к следующей остановке. Пройдите все три числа.</li>
-</ol>
-<p><strong>Практика 2.7.1.</strong> В <code>lab27-debug.md</code> запишите три значения <code>score</code>, которые видели на остановке, и три строки из отладочной консоли.</p>
-<p><strong>Критерий 2.7.1:</strong> остановка срабатывает три раза, в консоли есть пары <code>18 зачёт с отличием</code>, <code>15 зачёт</code>, <code>9 нужна доработка</code>.</p>
-<hr />
-<h2>2.7.2. Шаг внутрь и шаг через</h2>
-<p>На строке вызова <code>grade(score)</code> доступны два шага:</p>
-<table>
-<thead>
-<tr>
-<th>Клавиша</th>
-<th>Команда</th>
-<th>Куда переходит</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>F10</code></td>
-<td>Step Over</td>
-<td>Выполняет вызов целиком и остаётся в <code>main</code></td>
-</tr>
-<tr>
-<td><code>F11</code></td>
-<td>Step Into</td>
-<td>Входит в первую строку <code>grade</code></td>
-</tr>
-<tr>
-<td><code>Shift+F11</code></td>
-<td>Step Out</td>
-<td>Выполняет функцию до <code>return</code> и возвращается к вызывающему коду</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Практика 2.7.2.</strong> Поставьте точку на строке вызова. Нажмите <code>F11</code>. Внутри <code>grade</code> дойдите до присваивания <code>label</code> клавишей <code>F10</code>. Для балла <code>9</code> в <strong>Variables</strong> должно появиться <code>label</code> со значением «нужна доработка». Затем <code>Shift+F11</code> вернёт вас в цикл.</p>
-<p><strong>Критерий 2.7.2:</strong> в заметке записано, что при <code>score == 9</code> переменная <code>label</code> равна «нужна доработка» ещё до выхода из функции.</p>
-<hr />
-<h2>2.7.3. Условная точка останова</h2>
-<p>Останавливаться на каждом элементе неудобно, если ошибка только в одном значении. Правый щелчок по красной точке → <strong>Edit Breakpoint</strong> → выражение <code>score &lt; 12</code>.</p>
-<p>Запустите отладку снова. Остановка будет только для <code>9</code>. Значения 18 и 15 выполнятся без паузы.</p>
-<p><strong>Практика 2.7.3.</strong> Смените условие на <code>score == 15</code>, запустите ещё раз и убедитесь, что пауза одна и в переменной именно 15. После проверки условие можно снять.</p>
-<p><strong>Критерий 2.7.3:</strong> при условии <code>score &lt; 12</code> отладчик останавливается один раз.</p>
-<hr />
-<h2>2.7.4. Поиск ошибки</h2>
-<p>Создайте <code>module-2-7/bug_average.py</code>. Среднее считается неверно: сумма делится не на число элементов.</p>
-<pre><code class="language-python">def average(values: list[int]) -&gt; float:
-    total = 0
-    for value in values:
-        total += value
-    return total / (len(values) - 1)
-
-
-def main():
-    scores = [18, 15, 20, 11]
-    print(&quot;среднее:&quot;, average(scores))
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre>
-<p>Верное среднее — <code>(18 + 15 + 20 + 11) / 4 = 16</code>. Скрипт печатает другое число.</p>
-<ol>
-<li>Поставьте точку останова на строке <code>return</code>.</li>
-<li>Запустите отладчик.</li>
-<li>В <strong>Watch</strong> добавьте выражения <code>total</code>, <code>len(values)</code> и <code>len(values) - 1</code>.</li>
-<li>Сравните делитель с числом оценок.</li>
-</ol>
-<p><strong>Практика 2.7.4.</strong> Исправьте делитель на <code>len(values)</code>. Запустите файл обычным образом, без отладчика:</p>
-<pre><code class="language-powershell">python module-2-7\bug_average.py
-</code></pre>
-<p><strong>Критерий 2.7.4:</strong> до исправления в Watch видно деление на 3 при четырёх оценках. После исправления скрипт печатает <code>среднее: 16.0</code>.</p>
-<hr />
-<h2>2.7.5. Отладочная консоль</h2>
-<p>Пока программа стоит на точке останова, панель <strong>Debug Console</strong> выполняет выражения в этом месте. Это не терминал: команды <code>cd</code> здесь не работают.</p>
-<p>На остановке внутри <code>average</code> наберите:</p>
-<pre><code class="language-python">values
-total / len(values)
-</code></pre>
-<p>Второе выражение показывает среднее, не меняя файл. Так проверяют догадку до правки кода.</p>
-<p><strong>Критерий 2.7.5:</strong> консоль на остановке печатает список из четырёх баллов и число <code>16.0</code>.</p>
-<hr />
-<h2>2.7.6. try, except и else</h2>
-<p><code>try</code> выполняет код, в котором ошибка ожидаема. <code>except</code> ловит конкретный тип ошибки. Ветка <code>else</code> выполняется только если исключения не было: в неё ставят действия, которые имеют смысл лишь после успешного разбора.</p>
-<p>Добавьте в ноутбук ячейку:</p>
-<pre><code class="language-python">def read_score(text: str) -&gt; int | None:
-    try:
-        score = int(text)
-    except ValueError:
-        print(&quot;не число:&quot;, text)
-        return None
-    else:
-        print(&quot;разобрано:&quot;, score)
-        return score
-
-for text in (&quot;18&quot;, &quot;нет&quot;, &quot;9&quot;):
-    read_score(text)
-</code></pre>
-<p>Строка <code>"нет"</code> не прерывает цикл: <code>int</code> выбрасывает <code>ValueError</code>, его забирает <code>except</code>. Для <code>"18"</code> и <code>"9"</code> печатается «разобрано».</p>
-<p><strong>Практика 2.7.6.</strong> Разберите список <code>["18", "", "15"]</code>. Пустую строку поймайте тем же <code>except ValueError</code> и напечатайте <code>"пустой балл"</code>. Остальные значения верните числами.</p>
-<p><strong>Критерий 2.7.6:</strong> для <code>"18"</code> и <code>"9"</code> есть строка «разобрано», для <code>"нет"</code> — «не число», цикл доходит до конца. В практике пустая строка даёт «пустой балл», а не обрыв ячейки.</p>
-<hr />
-<h2>2.7.7. assert</h2>
-<p><code>assert</code> проверяет условие, которое в этом месте программы уже обязано быть истинным. Если оно ложно, Python поднимает <code>AssertionError</code> и показывает текст после запятой. Это проверка для разработчика, а не замена <code>if</code> при разборе данных пользователя.</p>
-<pre><code class="language-python">def average(values: list[int]) -&gt; float:
-    assert values, &quot;список оценок пуст&quot;
-    assert all(score &gt;= 0 for score in values), &quot;балл не может быть отрицательным&quot;
-    return sum(values) / len(values)
-
-print(average([18, 15, 20, 11]))
-</code></pre>
-<p>Пустой список или отрицательный балл останавливают функцию на <code>assert</code>, до деления выполнение не доходит. Такой сбой удобно ловить точкой останова на строке <code>assert</code>: в <strong>Variables</strong> видно <code>values</code>.</p>
-<p><strong>Практика 2.7.7.</strong> Вызовите <code>average([])</code> и <code>average([18, -1])</code> в отдельных ячейках. Для каждого вызова запишите в <code>lab27-debug.md</code> текст <code>AssertionError</code>. Затем поймайте отрицательный балл через <code>try</code> / <code>except AssertionError</code> и напечатайте <code>"данные отклонены"</code>.</p>
-<p><strong>Критерий 2.7.7:</strong> <code>average([18, 15, 20, 11])</code> печатает <code>16.0</code>. Пустой список и балл <code>-1</code> дают <code>AssertionError</code> с разными текстами. После <code>except</code> ячейка печатает «данные отклонены» и не обрывается.</p>
-<hr />
-<h2>2.7.8. Самопроверка</h2>
-<p>В <code>lab27-debug.md</code> ответьте:</p>
-<ol>
-<li>Чем Step Over отличается от Step Into.</li>
-<li>Зачем условная точка останова, если обычная уже останавливает программу.</li>
-<li>Почему выражение в Debug Console не заменяет исправление в файле.</li>
-<li>Когда выполняется ветка <code>else</code> у <code>try</code> и чем <code>assert</code> отличается от <code>if</code>.</li>
+<li>Чем <code>message = say_hello</code> отличается от <code>message = say_hello()</code>.</li>
+<li>Когда уместна <code>lambda</code>, а когда отдельный <code>def</code>.</li>
+<li>Почему <code>sorted(cities, key=len)</code> не сортирует строки по алфавиту.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -199,42 +239,42 @@ print(average([18, 15, 20, 11]))
 <tbody>
 <tr>
 <td>1</td>
-<td>Точка в <code>debug_demo.py</code> сработала на трёх баллах</td>
+<td>Одна переменная по очереди вызывает hello и goodbye</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>2</td>
-<td>Step Into показал <code>label</code> для балла 9</td>
+<td>Фабрика по номеру возвращает сложение, вычитание и умножение</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>3</td>
-<td>Условная точка остановила только один проход</td>
+<td><code>scale(10)(3)</code> равно 30</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>4</td>
-<td>В <code>bug_average.py</code> ошибка найдена через Watch и исправлена, среднее 16.0</td>
+<td>Города отсортированы по длине и по последней букве</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>5</td>
-<td>Debug Console на остановке показала 16.0</td>
+<td><code>all</code> находит выигранную строку крестиков</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>6</td>
-<td><code>read_score</code> разбирает числа и не падает на строке <code>"нет"</code></td>
+<td>Площадь квартиры через <code>map</code> и <code>reduce</code> равна 112.85</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>7</td>
-<td><code>assert</code> останавливает пустой список и отрицательный балл</td>
+<td>Слов длины 6 из букв Г, О, Д — 486</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>8</td>
-<td>Четыре ответа в <code>lab27-debug.md</code></td>
+<td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -249,36 +289,28 @@ print(average([18, 15, 20, 11]))
 </thead>
 <tbody>
 <tr>
-<td>Отладчик использует не <code>.venv</code></td>
-<td>Статусная строка и <strong>Python: Select Interpreter</strong></td>
+<td><code>message()</code> падает сразу после присваивания</td>
+<td>В переменную положили результат вызова, а не функцию: скобки лишние</td>
 </tr>
 <tr>
-<td>Точка серая и не срабатывает</td>
-<td>Файл сохранён, запущена именно эта копия, строка выполняется</td>
+<td><code>map</code> печатается как объект</td>
+<td>Перед печатью нужен <code>list</code></td>
 </tr>
 <tr>
-<td><code>F10</code> не входит в <code>grade</code></td>
-<td>Для входа нужна <code>F11</code></td>
+<td><code>reduce</code> не найден</td>
+<td>Импорт: <code>from functools import reduce</code></td>
 </tr>
 <tr>
-<td>В Watch ошибка имени</td>
-<td>Имя есть только внутри функции; смотрите его на остановке внутри неё</td>
+<td>Сортировка по ключу меняет исходный список неожиданно</td>
+<td><code>sorted</code> возвращает новый список, <code>list.sort</code> меняет список на месте</td>
 </tr>
 <tr>
-<td>После правки всё ещё старый результат</td>
-<td>Остановлен предыдущий сеанс: кнопка Stop, затем новый запуск</td>
-</tr>
-<tr>
-<td><code>except</code> не ловит ошибку</td>
-<td>В <code>except</code> указан другой тип: <code>int("нет")</code> даёт <code>ValueError</code>, не <code>TypeError</code></td>
-</tr>
-<tr>
-<td><code>assert</code> молчит при ложном условии</td>
-<td>Запуск с флагом <code>-O</code> отключает проверки <code>assert</code></td>
+<td>В комбинациях нет повторов букв</td>
+<td>Для повторов нужен <code>product</code>, а не <code>combinations</code></td>
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель останавливает цикл на нужном значении, читает локальные переменные и проверяет исправление повторным запуском.</p>
+<p>После занятия слушатель передаёт функцию в вызов, сортирует записи по выбранному полю и сворачивает последовательность в одно число.</p>
   </article>
 </body>
 </html>
