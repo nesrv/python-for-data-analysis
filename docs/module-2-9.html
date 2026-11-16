@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2.9 Классы и магические методы</title>
+  <title>2.9 Классы, магические методы и основы ООП</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-2.html">← Модуль 2</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>2.9 Классы и магические методы</h1>
+    <h1>2.9 Классы, магические методы и основы ООП</h1>
 <p><strong>Объём занятия:</strong> 2 академических часа (~120 минут) активной практики в Visual Studio Code.</p>
-<p><strong>Цель:</strong> описать свой тип через класс, создать экземпляр и научить его вести себя в <code>bool</code>, сравнениях, арифметике, индексации и цикле <code>for</code>.</p>
+<p><strong>Цель:</strong> описать свой тип через класс, научить объект магическим методам и переиспользовать поведение через метод класса, наследование и миксин.</p>
 <p><strong>Опора:</strong> ноутбук в VS Code, ядро — <code>./.venv/Scripts/python.exe</code>. Рабочая папка — корень курса.</p>
 <p><strong>Итоговый артефакт:</strong> <code>module-2-9/lab29-classes.ipynb</code> со всеми ячейками и сохранённым выводом.</p>
-<p>Материал собран по конспектам <code>python-2/m4</code> и <code>python-2/m6</code>.</p>
+<p>Занятие объединяет классы и магические методы с основами ООП: метод класса, <code>__slots__</code>, dataclass, наследование, полиморфизм и миксин.</p>
 <hr />
 <h2>Подготовка</h2>
 <p>Создайте ноутбук <code>module-2-9/lab29-classes.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «2.9 Классы и магические методы».</p>
@@ -187,12 +187,162 @@ print(list(FRange(0, 2, 0.5)))
 <p><strong>Практика 2.9.8.</strong> Посчитайте сумму <code>FRange(1, 3, 1)</code> циклом <code>for</code>. Правая граница, как у <code>range</code>, не входит.</p>
 <p><strong>Критерий 2.9.8:</strong> список равен <code>[0, 0.5, 1.0, 1.5]</code>. Сумма целого диапазона равна <strong>3</strong>.</p>
 <hr />
-<h2>2.9.9. Самопроверка</h2>
+<h2>2.9.9. Метод класса и статический метод</h2>
+<p>Метод экземпляра работает с одной точкой. Метод класса получает сам класс аргументом <code>cls</code> и обычно создаёт экземпляр. Статический метод не получает ни точку, ни класс: это функция, которая логически живёт рядом с классом.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    @classmethod
+    def origin(cls):
+        return cls(0, 0)
+
+    @staticmethod
+    def same_place(left, right):
+        return left.x == right.x and left.y == right.y
+
+start = Point.origin()
+other = Point(0, 0)
+print(start.x, start.y, Point.same_place(start, other))
+</code></pre>
+<p><strong>Практика 2.9.9.</strong> Добавьте метод класса <code>from_pair(cls, pair)</code>, который принимает кортеж <code>(x, y)</code> и возвращает точку. Проверьте на <code>(4, 5)</code>. Добавьте <code>copy</code>, который возвращает новый <code>Point</code> с теми же координатами, сдвиньте копию и убедитесь, что исходная точка не изменилась.</p>
+<p><strong>Критерий 2.9.9:</strong> <code>origin</code> даёт <code>(0, 0)</code>, <code>same_place</code> для двух таких точек истинен, <code>from_pair((4, 5))</code> даёт эти координаты. Сдвиг копии не меняет исходную точку.</p>
+<hr />
+<h2>2.9.10. <strong>slots</strong></h2>
+<p>Обычный экземпляр хранит атрибуты в словаре <code>__dict__</code>. В <code>__slots__</code> перечисляют допустимые имена: лишнее поле создать нельзя, словарь на каждый экземпляр не заводится.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">class SlotPoint:
+    __slots__ = (&quot;x&quot;, &quot;y&quot;)
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+p = SlotPoint(1, 2)
+print(p.x, p.y, hasattr(p, &quot;__dict__&quot;))
+</code></pre>
+<p>Попытка <code>p.label = "A"</code> заканчивается <code>AttributeError</code>.</p>
+<p><strong>Практика 2.9.10.</strong> Поймайте эту ошибку через <code>try</code> / <code>except AttributeError</code> и напечатайте <code>"поле не предусмотрено"</code>.</p>
+<p><strong>Критерий 2.9.10:</strong> <code>__dict__</code> отсутствует. Ячейка с <code>except</code> печатает «поле не предусмотрено».</p>
+<hr />
+<h2>2.9.11. Dataclass</h2>
+<p>Для класса, который в основном хранит поля, декоратор <code>dataclass</code> сам пишет <code>__init__</code>, <code>__repr__</code> и <code>__eq__</code>. Параметр <code>slots=True</code> включает ограничение имён из раздела 2.9.10.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">from dataclasses import dataclass
+
+@dataclass(slots=True)
+class Point:
+    x: float
+    y: float
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+a = Point(2, 3)
+b = Point(2, 3)
+a.move(1, 0)
+print(a, a == b)
+</code></pre>
+<p><strong>Практика 2.9.11.</strong> Добавьте поле <code>label: str = ""</code>. Создайте <code>Point(1, 1)</code> без подписи и <code>Point(1, 1, "старт")</code>. Напечатайте оба объекта.</p>
+<p><strong>Критерий 2.9.11:</strong> после сдвига печать показывает <code>Point(3, 3)</code>, сравнение с копией даёт <code>False</code>. Точка без подписи имеет пустую строку в <code>label</code>.</p>
+<hr />
+<h2>2.9.12. Наследование</h2>
+<p>Подкласс забирает методы базового класса и добавляет своё. <code>super()</code> вызывает версию базового класса. В этой ячейке нужен рукописный <code>Point</code> с <code>__init__</code>, <code>__repr__</code> и <code>move</code>, не dataclass: у него другой способ объявления полей. Если имя <code>Point</code> уже занято предыдущей ячейкой, выполните этот класс заново.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f&quot;Point({self.x}, {self.y})&quot;
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+class Point3D(Point):
+    def __init__(self, x, y, z):
+        super().__init__(x, y)
+        self.z = z
+
+    def __repr__(self):
+        return f&quot;Point3D({self.x}, {self.y}, {self.z})&quot;
+
+    def lift(self, dz):
+        self.z += dz
+
+p = Point3D(1, 2, 3)
+p.move(1, 1)
+p.lift(4)
+print(p, isinstance(p, Point))
+</code></pre>
+<p><strong>Практика 2.9.12.</strong> Добавьте в <code>Point3D</code> метод <code>__add__</code>, который складывает и <code>z</code>. Проверьте <code>Point3D(1, 1, 1) + Point3D(2, 3, 4)</code>.</p>
+<p><strong>Критерий 2.9.12:</strong> после <code>move</code> и <code>lift</code> объект печатается как <code>Point3D(2, 3, 7)</code>. Сумма равна <code>Point3D(3, 4, 5)</code>. <code>isinstance</code> относительно <code>Point</code> истинен.</p>
+<hr />
+<h2>2.9.13. Полиморфизм</h2>
+<p>Один и тот же вызов метода у объектов разных классов. Цикл не проверяет тип: у каждого объекта есть свой <code>place</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">class Marker:
+    def place(self):
+        raise NotImplementedError
+
+class Point(Marker):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def place(self):
+        return f&quot;точка ({self.x}, {self.y})&quot;
+
+class Circle(Marker):
+    def __init__(self, x, y, radius):
+        self.x = x
+        self.y = y
+        self.radius = radius
+
+    def place(self):
+        return f&quot;круг ({self.x}, {self.y}) r={self.radius}&quot;
+
+def describe(items):
+    for item in items:
+        print(item.place())
+
+describe([Point(1, 2), Circle(0, 0, 5)])
+</code></pre>
+<p><strong>Практика 2.9.13.</strong> Добавьте класс <code>Label</code> с методом <code>place</code>, который возвращает текст подписи. Передайте его в тот же <code>describe</code> третьим элементом.</p>
+<p><strong>Критерий 2.9.13:</strong> в выводе есть строка про точку, строка про круг и строка подписи. В <code>describe</code> нет проверки <code>isinstance</code>.</p>
+<hr />
+<h2>2.9.14. Миксин</h2>
+<p>Миксин — небольшой класс с одним дополнительным поведением. Его не создают сам по себе: подмешивают в класс слева в списке базовых классов.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">class LabelMixin:
+    def tagged(self):
+        return f&quot;[{self.label}] {self.place()}&quot;
+
+class NamedPoint(LabelMixin, Point):
+    def __init__(self, x, y, label):
+        super().__init__(x, y)
+        self.label = label
+
+item = NamedPoint(2, 3, &quot;старт&quot;)
+print(item.place())
+print(item.tagged())
+</code></pre>
+<p><code>NamedPoint</code> берёт <code>place</code> у <code>Point</code> и <code>tagged</code> у <code>LabelMixin</code>. Порядок <code>LabelMixin, Point</code> важен: Python ищет метод слева направо. Классы <code>Point</code> и <code>Circle</code> должны быть из раздела 2.9.13.</p>
+<p><strong>Практика 2.9.14.</strong> Сделайте <code>NamedCircle(LabelMixin, Circle)</code> и напечатайте <code>tagged()</code> для круга с подписью <code>"зона"</code>.</p>
+<p><strong>Критерий 2.9.14:</strong> у именованной точки <code>tagged()</code> содержит <code>[старт]</code> и текст <code>place</code>. У именованного круга в строке есть <code>[зона]</code> и радиус.</p>
+<hr />
+<h2>2.9.15. Самопроверка</h2>
 <p>В конце ноутбука ответьте в markdown:</p>
 <ol>
-<li>Чем класс отличается от экземпляра.</li>
-<li>Зачем методу первый параметр <code>self</code>.</li>
-<li>Почему <code>__add__</code> лучше возвращает новый <code>BankAccount</code>, а не число.</li>
+<li>Чем класс отличается от экземпляра и зачем методу <code>self</code>.</li>
+<li>Почему <code>__add__</code> лучше возвращает новый объект, а не число.</li>
+<li>Чем метод экземпляра отличается от метода класса.</li>
+<li>Что запрещает <code>__slots__</code> и что в примере даёт наследование, а что даёт миксин.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -246,7 +396,37 @@ print(list(FRange(0, 2, 0.5)))
 </tr>
 <tr>
 <td>9</td>
-<td>Три ответа самопроверки</td>
+<td><code>origin</code>, <code>from_pair</code> и независимая <code>copy</code> работают</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>10</td>
+<td>У <code>SlotPoint</code> нет <code>__dict__</code>, лишнее поле даёт <code>AttributeError</code></td>
+<td>☐</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Dataclass сравнивает точки по полям и принимает <code>label</code> по умолчанию</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>Point3D</code> пользуется <code>move</code> базового класса и складывает третью координату</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>describe</code> печатает точку, круг и подпись одним циклом</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>NamedPoint</code> и <code>NamedCircle</code> получают <code>tagged</code> из миксина</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Четыре ответа самопроверки</td>
 <td>☐</td>
 </tr>
 </tbody>
@@ -280,9 +460,21 @@ print(list(FRange(0, 2, 0.5)))
 <td><code>for</code> по <code>FRange</code> не заканчивается</td>
 <td>В <code>__next__</code> нет <code>StopIteration</code>, когда значение достигло <code>stop</code></td>
 </tr>
+<tr>
+<td><code>origin</code> возвращает базовый <code>Point</code> у подкласса</td>
+<td>Внутри метода класса создание идёт через <code>cls(...)</code></td>
+</tr>
+<tr>
+<td><code>p.label = ...</code> у slots молча создаёт поле</td>
+<td>В классе нет <code>__slots__</code> или поле <code>label</code> в него уже внесено</td>
+</tr>
+<tr>
+<td>Миксин не находит <code>place</code></td>
+<td><code>place</code> есть у второго базового класса, а <code>tagged</code> вызывает <code>self.place()</code></td>
+</tr>
 </tbody>
 </table>
-<p>После занятия слушатель описывает свой тип, создаёт объекты с начальными полями и подключает для них проверки, равенство, сложение, индекс и перебор.</p>
+<p>После занятия слушатель описывает свой тип, подключает проверки, равенство, сложение и перебор, ограничивает набор полей и переиспользует поведение через базовый класс и миксин.</p>
   </article>
 </body>
 </html>
