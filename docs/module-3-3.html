@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>3.3 Хранимые объекты</title>
+  <title>3.3 Типы, JSON, иерархии и материализованные представления</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-3.html">← Модуль 3</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>3.3 Хранимые объекты</h1>
-<p><strong>Цель:</strong> отличить функцию, процедуру, правило и триггер в PostgreSQL и создать каждый из этих объектов в учебной базе <code>course</code>.</p>
-<p><strong>Опора:</strong> контейнер PostgreSQL из раздела 3.1, база <code>course</code>, пользователь <code>student</code>. Запросы выполняйте в DBeaver или ячейкой SQLAlchemy в <code>module-3-3/lab32-routines.ipynb</code>.</p>
+    <h1>3.3 Типы, JSON, иерархии и материализованные представления</h1>
+<p><strong>Цель:</strong> завести в PostgreSQL свой тип и домен, положить документ в <code>jsonb</code>, обойти дерево категорий рекурсивным запросом и сохранить готовый итог в материализованном представлении.</p>
+<p><strong>Опора:</strong> контейнер PostgreSQL из раздела 3.1, база <code>course</code>, пользователь <code>student</code>. Запросы выполняйте в DBeaver. Текст сохраните в <code>module-3-3/sql/structures.sql</code>.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-3-3/</code>):</p>
 <table>
 <thead>
@@ -23,217 +23,171 @@
 </thead>
 <tbody>
 <tr>
-<td><code>lab32-routines.ipynb</code></td>
-<td>Вызовы функции, процедуры, выборки из набора строк</td>
+<td><code>sql/structures.sql</code></td>
+<td>Типы, таблица документов, дерево и материализованное представление</td>
 </tr>
 <tr>
-<td><code>sql/routines.sql</code></td>
-<td>Текст всех созданных объектов</td>
+<td><code>lab32-structures.ipynb</code></td>
+<td>Три проверочных запроса и короткие ответы</td>
 </tr>
 </tbody>
 </table>
-<p>Хранимый объект живёт в базе, а не в ноутбуке. Пока его не удалили, следующий сеанс видит ту же функцию и тот же триггер.</p>
 <hr />
 <h2>Подготовка</h2>
-<p>Контейнер <code>pg18-course</code> должен быть запущен, таблица <code>scores</code> — существовать (её создаёт раздел 3.1). Проверка:</p>
-<pre><code class="language-sql">SELECT name, group_code, score FROM scores ORDER BY name;
-</code></pre>
-<p>Если таблицы нет, создайте её и вставьте четыре строки из раздела 3.1: Анна 18, Борис 15, Вера 20, Глеб с пустым баллом.</p>
+<p>Контейнер <code>pg18-course</code> запущен. Подключение то же, что в разделе 3.1: хост <code>localhost</code>, порт <code>5432</code>, база <code>course</code>, пользователь <code>student</code>.</p>
 <hr />
-<h2>3.3.1. Какие объекты бывают</h2>
+<h2>3.3.1. Перечисление и домен</h2>
+<p>Перечисление — тип с фиксированным списком подписей. Домен — уже существующий тип плюс проверка. Оба создаются один раз и дальше используются как обычные типы столбцов.</p>
+<pre><code class="language-sql">CREATE TYPE channel_kind AS ENUM ('search', 'ads', 'email');
+
+CREATE DOMAIN positive_score AS integer
+    CHECK (VALUE &gt; 0);
+</code></pre>
+<pre><code class="language-sql">CREATE TABLE attempts (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text NOT NULL,
+    channel channel_kind NOT NULL,
+    score positive_score
+);
+
+INSERT INTO attempts (name, channel, score)
+VALUES ('Анна', 'search', 18), ('Борис', 'ads', 15);
+</code></pre>
+<p>Значение вне списка, например <code>'визит'</code>, сервер не примет. Балл <code>0</code> не пройдёт проверку домена.</p>
+<p><strong>Практика 3.3.1.</strong> Вставьте строку с баллом <code>-1</code> и запишите текст ошибки. Затем вставьте Веру с каналом <code>email</code> и баллом <code>20</code>.</p>
+<p><strong>Критерий 3.3.1:</strong> отрицательный балл отклонён проверкой <code>positive_score</code>. В таблице три строки, у Веры канал <code>email</code>.</p>
+<hr />
+<h2>3.3.2. Диапазон</h2>
+<p>Диапазонный тип хранит промежуток, а не два отдельных поля. <code>int4range</code> — диапазон целых. Оператор <code>&amp;&amp;</code> истинен, когда промежутки пересекаются.</p>
+<pre><code class="language-sql">CREATE TABLE labs (
+    room text,
+    seats int4range
+);
+
+INSERT INTO labs (room, seats)
+VALUES ('A-1', int4range(10, 20, '[)')), ('B-2', int4range(18, 30, '[)'));
+
+SELECT room FROM labs WHERE seats &amp;&amp; int4range(15, 19, '[)');
+</code></pre>
+<p>Граница <code>[)</code> включает левый конец и не включает правый. Оба кабинета попадают в выборку: у <code>A-1</code> места до 19, у <code>B-2</code> места начинаются с 18.</p>
+<p><strong>Критерий 3.3.2:</strong> запрос с пересечением возвращает <code>A-1</code> и <code>B-2</code>.</p>
+<hr />
+<h2>3.3.3. JSONB</h2>
+<p><code>jsonb</code> хранит документ, у которого набор полей задаёт сам документ, а не таблица. В отличие от <code>json</code>, значение разобрано и его можно индексировать. Оператор <code>-&gt;</code> достаёт вложенный фрагмент как <code>jsonb</code>, <code>-&gt;&gt;</code> — как текст.</p>
+<pre><code class="language-sql">CREATE TABLE submissions (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    payload jsonb NOT NULL
+);
+
+INSERT INTO submissions (payload) VALUES
+('{&quot;name&quot;: &quot;Анна&quot;, &quot;score&quot;: 18, &quot;tags&quot;: [&quot;домашняя&quot;, &quot;вовремя&quot;]}'),
+('{&quot;name&quot;: &quot;Глеб&quot;, &quot;score&quot;: 11, &quot;tags&quot;: [&quot;домашняя&quot;]}');
+</code></pre>
+<pre><code class="language-sql">SELECT payload-&gt;&gt;'name' AS name,
+       (payload-&gt;&gt;'score')::integer AS score
+FROM submissions
+WHERE payload @&gt; '{&quot;tags&quot;: [&quot;вовремя&quot;]}';
+</code></pre>
+<p><code>@&gt;</code> проверяет, что в документе есть указанный фрагмент. Здесь останется только Анна.</p>
+<p><strong>Практика 3.3.3.</strong> Добавьте документ Бориса с баллом 15 и меткой <code>"вовремя"</code>. Повторите запрос. Достаньте первую метку Анны выражением <code>payload-&gt;'tags'-&gt;&gt;0</code>.</p>
+<p><strong>Критерий 3.3.3:</strong> выборка по метке <code>"вовремя"</code> содержит Анну и Бориса. Первая метка Анны — <code>домашняя</code>.</p>
+<hr />
+<h2>3.3.4. Дерево списком смежности</h2>
+<p>В списке смежности у строки есть ссылка на родителя. Корень узнают по пустому <code>parent_id</code>. Прямые дети — один фильтр. Все потомки — рекурсивный общий табличный запрос: сначала выбранный узел, затем строки, чей родитель уже попал в выборку.</p>
+<pre><code class="language-sql">CREATE TABLE categories (
+    id integer PRIMARY KEY,
+    name text NOT NULL,
+    parent_id integer REFERENCES categories (id)
+);
+
+INSERT INTO categories (id, name, parent_id) VALUES
+    (1, 'Анализ', NULL),
+    (2, 'Базы', NULL),
+    (3, 'Таблицы', 2),
+    (4, 'Документы', 2),
+    (5, 'JSON', 4);
+</code></pre>
+<pre><code class="language-sql">SELECT id, name FROM categories WHERE parent_id = 2;
+
+WITH RECURSIVE branch AS (
+    SELECT id, name, parent_id
+    FROM categories
+    WHERE id = 2
+    UNION ALL
+    SELECT c.id, c.name, c.parent_id
+    FROM categories AS c
+    JOIN branch AS b ON c.parent_id = b.id
+)
+SELECT id, name, parent_id FROM branch ORDER BY id;
+</code></pre>
+<p>Первый запрос возвращает «Таблицы» и «Документы». Рекурсивный добавляет корень «Базы» и лист «JSON».</p>
+<p><strong>Практика 3.3.4.</strong> Тем же приёмом получите предков узла <code>5</code>: начните с него и на каждом шаге подключайте строку, чей <code>id</code> равен <code>parent_id</code> уже найденной строки. В итоге должны быть JSON, Документы и Базы.</p>
+<p><strong>Критерий 3.3.4:</strong> потомки «Базы» — четыре строки с номерами 2, 3, 4 и 5. Предки «JSON» — три строки: JSON, Документы, Базы.</p>
+<hr />
+<h2>3.3.5. Другие способы хранить дерево</h2>
+<p>Список смежности проще всего менять: новый ребёнок — одна вставка. Чтение всего поддерева требует рекурсии. Другие схемы переносят работу на запись.</p>
 <table>
 <thead>
 <tr>
-<th>Объект</th>
-<th>Вызов</th>
-<th>Что делает</th>
+<th>Схема</th>
+<th>Как устроена</th>
+<th>Когда уместна</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Функция</td>
-<td>внутри выражения, обычно <code>SELECT</code></td>
-<td>возвращает значение или набор строк, транзакцию не завершает</td>
+<td>Список смежности</td>
+<td>поле <code>parent_id</code></td>
+<td>дерево часто меняется, обходы не самые глубокие</td>
 </tr>
 <tr>
-<td>Процедура</td>
-<td>оператор <code>CALL</code></td>
-<td>выполняет действия; при вызове отдельной командой может управлять транзакцией</td>
+<td>Материализованный путь</td>
+<td>в строке записан путь от корня, например <code>2.4.5</code></td>
+<td>нужно быстро найти потомков по префиксу пути; в PostgreSQL для этого есть тип <code>ltree</code></td>
 </tr>
 <tr>
-<td>Правило <code>RULE</code></td>
-<td>само, при <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code></td>
-<td>переписывает запрос до выполнения</td>
+<td>Вложенные множества</td>
+<td>у узла левая и правая границы обхода</td>
+<td>потомки — один диапазон границ; вставка в середину переписывает границы соседей</td>
 </tr>
 <tr>
-<td>Триггер</td>
-<td>сам, до или после строки или оператора</td>
-<td>вызывает функцию на событие таблицы</td>
+<td>Таблица замыканий</td>
+<td>отдельная таблица пар «предок, потомок»</td>
+<td>предки и потомки ищутся соединением, каждую вставку сопровождают несколькими строками связи</td>
 </tr>
 </tbody>
 </table>
-<p>Функция и процедура делят одно пространство имён: так нельзя назвать и функцию, и процедуру. Текст объекта храните в <code>sql/routines.sql</code>, а не правьте только через редактор внутри клиента базы.</p>
-<p><strong>Критерий 3.3.1:</strong> в markdown одной фразой записано, чем <code>SELECT score_label(18)</code> отличается от <code>CALL add_score(...)</code>.</p>
+<p>В занятии остаётся список смежности из раздела 3.3.4. Остальные схемы не создавайте: в markdown запишите, какая из них неудобна при частой вставке узла в середину.</p>
+<p><strong>Критерий 3.3.5:</strong> в ответе названы вложенные множества и сказано, что вставка сдвигает границы.</p>
 <hr />
-<h2>3.3.2. Функция на SQL</h2>
-<p>Функция всегда вызывается как часть выражения. Категория <code>IMMUTABLE</code> означает, что при тех же аргументах результат один и тот же и от таблиц не зависит.</p>
-<pre><code class="language-sql">CREATE OR REPLACE FUNCTION score_label(score integer)
-RETURNS text
-LANGUAGE sql
-IMMUTABLE
-AS $$
-    SELECT CASE
-        WHEN score IS NULL THEN 'нет балла'
-        WHEN score &gt;= 18 THEN 'зачёт с отличием'
-        WHEN score &gt;= 12 THEN 'зачёт'
-        ELSE 'нужна доработка'
-    END;
-$$;
-</code></pre>
-<pre><code class="language-sql">SELECT score_label(18), score_label(15), score_label(11), score_label(NULL);
-SELECT name, score, score_label(score) FROM scores ORDER BY name;
-</code></pre>
-<p><code>CREATE OR REPLACE</code> меняет тело, если функция с таким именем и такими типами аргументов уже есть.</p>
-<p><strong>Практика 3.3.2.</strong> Добавьте функцию <code>initials(last_name text, first_name text)</code> категории <code>IMMUTABLE</code>. Для <code>'Иванов'</code> и <code>'Иван'</code> она возвращает <code>'Иванов И.'</code>. Проверьте вызовом в <code>SELECT</code>.</p>
-<p><strong>Критерий 3.3.2:</strong> <code>score_label</code> для 18, 15, 11 и <code>NULL</code> даёт четыре разные подписи. <code>initials</code> возвращает <code>'Иванов И.'</code>.</p>
-<hr />
-<h2>3.3.3. Функция, которая читает таблицу</h2>
-<p>Если результат зависит от данных, но в одном операторе таблица не меняется, ставят <code>STABLE</code>, а не <code>IMMUTABLE</code>.</p>
-<pre><code class="language-sql">CREATE OR REPLACE FUNCTION score_of(p_name text)
-RETURNS integer
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT score FROM scores WHERE name = p_name;
-$$;
-</code></pre>
-<pre><code class="language-sql">SELECT score_of('Анна');
-</code></pre>
-<p>Пустое имя или отсутствующий человек дают <code>NULL</code>, а не ошибку: запрос просто не нашёл строку.</p>
-<p><strong>Критерий 3.3.3:</strong> <code>score_of('Анна')</code> равен 18, <code>score_of('нет такого')</code> равен <code>NULL</code>.</p>
-<hr />
-<h2>3.3.4. Процедура</h2>
-<p>Процедуру вызывают только через <code>CALL</code>. Она может не возвращать таблицу, а менять данные. Процедура на языке SQL в этом занятии транзакцию не открывает и не закрывает: для <code>COMMIT</code> внутри тела нужен PL/pgSQL и вызов <code>CALL</code> вне уже открытой транзакции.</p>
-<pre><code class="language-sql">CREATE OR REPLACE PROCEDURE add_score(
-    p_name text,
-    p_group text,
-    p_score integer
-)
-LANGUAGE sql
-AS $$
-    INSERT INTO scores (name, group_code, score)
-    VALUES (p_name, p_group, p_score);
-$$;
-</code></pre>
-<pre><code class="language-sql">CALL add_score('Олег', 'A', 16);
-SELECT name, score, score_label(score) FROM scores WHERE name = 'Олег';
-</code></pre>
-<p><strong>Практика 3.3.4.</strong> Вызовите <code>add_score</code> для <code>'Нины'</code> из группы <code>'B'</code> с баллом 19. Убедитесь, что подпись — «зачёт с отличием».</p>
-<p><strong>Критерий 3.3.4:</strong> в <code>scores</code> есть Олег с баллом 16 и Нина с баллом 19.</p>
-<hr />
-<h2>3.3.5. Набор строк</h2>
-<p><code>RETURNS TABLE</code> объявляет функцию, которая возвращает не одно поле, а таблицу. Её ставят в <code>FROM</code>, как источник строк. Категория <code>STABLE</code>: набор зависит от текущего содержимого <code>scores</code>.</p>
-<pre><code class="language-sql">CREATE OR REPLACE FUNCTION passed_scores()
-RETURNS TABLE(name text, score integer)
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT s.name, s.score
-    FROM scores AS s
-    WHERE s.score &gt;= 12
-    ORDER BY s.name;
-$$;
-</code></pre>
-<pre><code class="language-sql">SELECT * FROM passed_scores();
-</code></pre>
-<p>Имена столбцов в <code>RETURNS TABLE</code> совпадают со столбцами <code>scores</code>. В теле запроса таблица названа <code>s</code>, иначе <code>name</code> внутри функции указывает на выходной столбец, а не на поле таблицы.</p>
-<p><strong>Критерий 3.3.5:</strong> в выборке есть Анна, Борис, Вера, Олег и Нина. Глеба нет: у него балл пустой.</p>
-<hr />
-<h2>3.3.6. Курсор</h2>
-<p>Курсор читает результат запроса по одной строке. В языке SQL курсора нет, его пишут на PL/pgSQL. Для этой задачи набор строк из раздела 3.3.5 короче и уместнее. Курсор нужен, когда следующую строку обрабатывают отдельно от предыдущей.</p>
-<pre><code class="language-sql">CREATE OR REPLACE FUNCTION names_in_order()
-RETURNS text
-LANGUAGE plpgsql
-STABLE
-AS $$
-DECLARE
-    cur CURSOR FOR SELECT s.name FROM scores AS s ORDER BY s.name;
-    rec record;
-    acc text := '';
-BEGIN
-    OPEN cur;
-    LOOP
-        FETCH cur INTO rec;
-        EXIT WHEN NOT FOUND;
-        acc := acc || rec.name || ' ';
-    END LOOP;
-    CLOSE cur;
-    RETURN acc;
-END;
-$$;
-</code></pre>
-<pre><code class="language-sql">SELECT names_in_order();
-</code></pre>
-<p><code>OPEN</code> выполняет запрос, <code>FETCH</code> забирает строку, <code>NOT FOUND</code> заканчивает цикл, <code>CLOSE</code> освобождает курсор.</p>
-<p><strong>Практика 3.3.6.</strong> В markdown напишите, почему список сдавших в разделе 3.3.5 сделан через <code>RETURNS TABLE</code>, а не через курсор.</p>
-<p><strong>Критерий 3.3.6:</strong> строка содержит имена из <code>scores</code> в алфавитном порядке, разделённые пробелом. Глеб в ней есть: курсор не фильтрует балл.</p>
-<hr />
-<h2>3.3.7. Правило</h2>
-<p>Правило переписывает запрос до выполнения. <code>DO ALSO</code> добавляет ещё одно действие, исходная команда тоже выполняется. <code>NEW</code> в правиле на <code>INSERT</code> — вставляемая строка.</p>
-<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS scores_log (
-    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name text,
-    action text,
-    at timestamp DEFAULT now()
-);
+<h2>3.3.6. Материализованное представление</h2>
+<p>Обычное представление каждый раз заново выполняет запрос. Материализованное сохраняет результат на диск. После новых строк в таблице снимок сам не меняется: его обновляют командой <code>REFRESH MATERIALIZED VIEW</code>.</p>
+<pre><code class="language-sql">CREATE MATERIALIZED VIEW category_size AS
+SELECT parent_id, count(*) AS children
+FROM categories
+WHERE parent_id IS NOT NULL
+GROUP BY parent_id
+WITH DATA;
 
-CREATE OR REPLACE RULE scores_log_insert AS
-    ON INSERT TO scores
-    DO ALSO
-    INSERT INTO scores_log (name, action)
-    VALUES (NEW.name, 'INSERT');
+SELECT * FROM category_size ORDER BY parent_id;
 </code></pre>
-<pre><code class="language-sql">CALL add_score('Пётр', 'A', 14);
-SELECT name, action FROM scores_log WHERE name = 'Пётр';
+<p>У родителя 2 два прямых ребёнка, у родителя 4 — один.</p>
+<pre><code class="language-sql">INSERT INTO categories (id, name, parent_id) VALUES (6, 'Индексы', 2);
+SELECT * FROM category_size WHERE parent_id = 2;
+
+REFRESH MATERIALIZED VIEW category_size;
+SELECT * FROM category_size WHERE parent_id = 2;
 </code></pre>
-<p>Правило срабатывает на любой <code>INSERT</code> в <code>scores</code>, в том числе из процедуры <code>add_score</code>.</p>
-<p><strong>Критерий 3.3.7:</strong> у Петра есть и строка в <code>scores</code>, и строка в <code>scores_log</code> с действием <code>INSERT</code>.</p>
+<p>До обновления у «Базы» по-прежнему 2 ребёнка. После <code>REFRESH</code> счётчик становится 3.</p>
+<p><strong>Практика 3.3.6.</strong> Создайте индекс по <code>parent_id</code> на <code>category_size</code>. В markdown одной фразой запишите, чем этот объект отличается от обычного <code>VIEW</code>.</p>
+<p><strong>Критерий 3.3.6:</strong> до обновления счётчик равен 2, после — 3. В ответе сказано, что материализованное представление хранит результат, а не только текст запроса.</p>
 <hr />
-<h2>3.3.8. Триггер</h2>
-<p>Триггер вызывает функцию в момент события. Для журнала он обычно уместнее правила: правило переписывает запрос целиком и сложнее читается. Перед триггером снимите правило, иначе журнал получит две записи на одну вставку.</p>
-<pre><code class="language-sql">DROP RULE IF EXISTS scores_log_insert ON scores;
-
-CREATE OR REPLACE FUNCTION scores_log_fn()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    INSERT INTO scores_log (name, action)
-    VALUES (NEW.name, TG_OP);
-    RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS scores_log_trg ON scores;
-
-CREATE TRIGGER scores_log_trg
-    AFTER INSERT ON scores
-    FOR EACH ROW
-    EXECUTE FUNCTION scores_log_fn();
-</code></pre>
-<p><code>TG_OP</code> — имя операции, для этого триггера это <code>INSERT</code>. <code>RETURN NEW</code> обязателен у триггера строки: так строка передаётся дальше.</p>
-<pre><code class="language-sql">CALL add_score('Мария', 'B', 17);
-SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORDER BY id;
-</code></pre>
-<p><strong>Практика 3.3.8.</strong> Вставьте ещё одну строку обычным <code>INSERT</code>, без процедуры. Убедитесь, что журнал пополнился и без <code>add_score</code>.</p>
-<p><strong>Критерий 3.3.8:</strong> у Марии в журнале действие <code>INSERT</code>. Новая строка из практики тоже есть в <code>scores_log</code>. Правила <code>scores_log_insert</code> уже нет.</p>
-<hr />
-<h2>3.3.9. Самопроверка</h2>
-<p>В <code>lab32-routines.ipynb</code> или в конце <code>sql/routines.sql</code> ответьте:</p>
+<h2>3.3.7. Самопроверка</h2>
+<p>В ноутбуке ответьте:</p>
 <ol>
-<li>Почему <code>score_label</code> объявлена <code>IMMUTABLE</code>, а <code>score_of</code> — <code>STABLE</code>.</li>
-<li>Чем <code>CALL</code> отличается от вызова функции в <code>SELECT</code>.</li>
-<li>Почему для журнала вставок оставлен триггер, а правило удалено.</li>
+<li>Чем домен отличается от перечисления.</li>
+<li>Почему метку в <code>jsonb</code> ищут оператором <code>@&gt;</code>, а не новым столбцом таблицы.</li>
+<li>Почему материализованное представление не увидело категорию «Индексы» до <code>REFRESH</code>.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -247,37 +201,37 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 <tbody>
 <tr>
 <td>1</td>
-<td><code>score_label</code> и <code>initials</code> вызываются из <code>SELECT</code></td>
+<td>Канал <code>channel_kind</code> не принимает значение вне списка</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>2</td>
-<td><code>score_of('Анна')</code> равен 18</td>
+<td>Домен <code>positive_score</code> отклоняет балл <code>-1</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>3</td>
-<td><code>CALL add_score</code> добавил Олега и Нину</td>
+<td>Пересечение диапазонов мест возвращает оба кабинета</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>4</td>
-<td><code>passed_scores()</code> возвращает только заполненные баллы от 12</td>
+<td>Из <code>jsonb</code> прочитаны имя, балл и метка «вовремя»</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>5</td>
-<td><code>names_in_order()</code> собирает имена курсором</td>
+<td>Рекурсивный запрос возвращает ветку «Базы» и предков «JSON»</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>6</td>
-<td>Журнал <code>scores_log</code> пишет вставку триггером</td>
+<td>В заметке названа схема дерева, которой мешает вставка в середину</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>7</td>
-<td>Текст объектов лежит в <code>sql/routines.sql</code></td>
+<td><code>category_size</code> обновляется только после <code>REFRESH</code></td>
 <td>☐</td>
 </tr>
 <tr>
@@ -297,32 +251,32 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 </thead>
 <tbody>
 <tr>
-<td><code>function score_of(unknown) does not exist</code></td>
-<td>Аргумент приведите к <code>text</code>: <code>score_of('Анна'::text)</code></td>
+<td><code>type "channel_kind" already exists</code></td>
+<td>Тип уже создан в прошлый раз. Повторите урок на чистой базе или удалите объекты этого файла</td>
 </tr>
 <tr>
-<td><code>column reference "name" is ambiguous</code></td>
-<td>В теле функции таблица названа, поля взяты как <code>s.name</code></td>
+<td><code>invalid input value for enum</code></td>
+<td>В списке нет такой подписи. Регистр важен: <code>email</code>, не <code>Email</code></td>
 </tr>
 <tr>
-<td><code>CALL</code> не находится</td>
-<td>Это процедура, её нет в списке функций. Смотрите <code>\df</code> и процедуры отдельно</td>
+<td><code>malformed array literal</code> или ошибка JSON</td>
+<td>Документ передают одной строкой в одинарных кавычках, внутренние кавычки двойные</td>
 </tr>
 <tr>
-<td>В журнале две строки на одну вставку</td>
-<td>Одновременно живут и правило, и триггер. Правило нужно снять</td>
+<td>Рекурсия не заканчивается</td>
+<td>В <code>JOIN</code> родитель ищется как <code>c.parent_id = b.id</code>, а не наоборот</td>
 </tr>
 <tr>
-<td>Триггер не создаётся</td>
-<td>В PostgreSQL 14 и новее пишут <code>EXECUTE FUNCTION</code>, не <code>EXECUTE PROCEDURE</code></td>
+<td>Счётчик не вырос после <code>INSERT</code></td>
+<td>Не выполнен <code>REFRESH MATERIALIZED VIEW</code></td>
 </tr>
 <tr>
-<td>После пересоздания базы объектов нет</td>
-<td><code>sql/routines.sql</code> выполняют заново: объекты не лежат в ноутбуке</td>
+<td><code>VIEW</code> путают со снимком</td>
+<td>Обычное представление не хранит строки и не требует <code>REFRESH</code></td>
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель кладёт повторяемое вычисление в функцию, изменение данных — в процедуру, а реакцию на вставку — в триггер, и хранит этот текст в файле.</p>
+<p>После занятия слушатель ограничивает столбец своим типом или доменом, читает поле из <code>jsonb</code>, собирает поддерево рекурсией и отличает снимок материализованного представления от запроса, который считается заново.</p>
   </article>
 </body>
 </html>
