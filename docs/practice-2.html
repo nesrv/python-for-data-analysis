@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Практика-2</title>
+  <link rel="stylesheet" href="course.css?v=3">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-2.html">← Модуль 2</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>Практика-2</h1>
+    <p>Листинги файлов из папки <code>practice/day-2</code>.</p>
+    <h2>2-1.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+from pathlib import Path
+
+figures = Path(&quot;module-2-4&quot;) / &quot;figures&quot;
+figures.mkdir(parents=True, exist_ok=True)
+
+days = [1, 2, 3, 4, 5]
+values = [3, 5, 4, 7, 6]
+
+fig, ax = plt.subplots()
+ax.plot(days, values)
+</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(days, values, marker=&quot;o&quot;, color=&quot;#2F6FED&quot;)
+ax.set_title(&quot;Значения по дням&quot;)
+ax.set_xlabel(&quot;день&quot;)
+ax.set_ylabel(&quot;значение&quot;)
+ax.set_xticks(days)
+ax.grid(True, axis=&quot;y&quot;, alpha=0.3)
+fig.tight_layout()
+
+line_path = figures / &quot;line.png&quot;
+fig.savefig(line_path, dpi=120)
+plt.show()</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">names = [&quot;Анна&quot;, &quot;Борис&quot;, &quot;Вера&quot;, &quot;Глеб&quot;]
+scores = [18, 15, 20, 11]
+
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.bar(names, scores, color=&quot;#2F6FED&quot;)
+ax.set_title(&quot;Баллы&quot;)
+ax.set_ylabel(&quot;балл&quot;)
+ax.set_ylim(0, 24)
+fig.tight_layout()
+
+bar_path = figures / &quot;bar.png&quot;
+fig.savefig(bar_path, dpi=120)</code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">fig, ax = plt.subplots(figsize=(6, 3))
+bars = ax.bar(names, scores, color=&quot;#2F6FED&quot;)
+ax.set_title(&quot;Баллы&quot;)
+ax.set_ylabel(&quot;балл&quot;)
+ax.set_ylim(0, 24)
+for bar, score in zip(bars, scores):
+    ax.text(bar.get_x() + bar.get_width() / 2, score + 0.4, str(score), ha=&quot;center&quot;)
+fig.tight_layout()
+fig.savefig(bar_path, dpi=120)</code></pre>
+<h3>Ячейка 5</h3>
+<pre><code class="language-python">fig, axes = plt.subplots(1, 2, figsize=(8, 3))
+axes[0].bar(names, scores, color=&quot;#2F6FED&quot;)
+axes[0].set_title(&quot;столбцы&quot;)
+axes[1].plot(names, scores, marker=&quot;o&quot;, color=&quot;#C43E3E&quot;)
+axes[1].set_title(&quot;линия&quot;)
+for axis in axes:
+    axis.set_ylabel(&quot;балл&quot;)
+
+fig.tight_layout()
+plt.show()</code></pre>
+<h2>2-2.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">hours = [1, 2, 3, 4, 5, 6]
+group_a = [2, 3, 4, 4, 6, 7]
+group_b = [1, 2, 2, 3, 3, 5]</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.scatter(hours, group_a, label=&quot;группа A&quot;)
+ax.scatter(hours, group_b, label=&quot;группа B&quot;, marker=&quot;s&quot;)
+
+ax.set_title(&quot;Часы и результат&quot;)
+ax.set_xlabel(&quot;часы&quot;)
+ax.set_ylabel(&quot;результат&quot;)
+
+ax.grid(True, alpha=0.3)
+
+mean_row = [(a + b) / 2 for a, b in zip(group_a, group_b)]
+ax.plot(hours, mean_row, color=&quot;black&quot;, label=&quot;среднее&quot;)
+ax.legend()
+</code></pre>
+<h2>2-3.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def my_sum(*args:list|tuple, **kwargs) -&gt; int|float:
+    точность = kwargs.get(&quot;точность&quot;,5)   
+    s = 0
+    for a in args:
+        if isinstance(a, (list, tuple)):
+            s += my_sum(*a, **kwargs)
+        else:
+            s += a 
+    s = round(s, точность)
+    return s</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">my_sum(1, 2, [1,2], 10.5, 1/3, (1,3,4), точность=5)</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">def my_abs(x:int|float) -&gt; int|float :
+    return -x if x &lt; 0 else x</code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">my_abs(-1)</code></pre>
+<h2>2-4.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">
+def f(x):
+    return 1 if x == 1 else x * f(x - 1)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">f(5)</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">def fib(n):
+    &#x27;&#x27;&#x27;
+    : 1,1,2,3,5,8,13,21 # Фибоначчи 
+    : f(n) = f(n-2) + f(n-1)
+    &#x27;&#x27;&#x27;
+    return 1 if n == 1 or n == 2 else fib(n-2) + fib(n-1)
+   </code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">fib(8)</code></pre>
+<h2>2-5.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">f = lambda a,b: a + b
+
+def f(a,b):
+    return a + b
+</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">
+s = &#x27;Hello Python from Russia&#x27;.split()
+
+list(map(lambda w: w[::-1], s))</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">fabric = {
+    &quot;reverc&quot;: lambda w: w[::-1],
+    &quot;dubl&quot;: lambda w: w * 2,
+    } </code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">list(map(fabric[&quot;2&quot;], s))</code></pre>
+<h2>2-6.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">a = [4, 3, -10, 1, -7, 12, -9]</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">b = sorted(a, key=lambda x: x &gt; 0, reverse=1 )
+b</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">lst = [&quot;Москва&quot;, &quot;Тверь&quot;, &quot;Смоленск&quot;, &quot;Псков&quot;, &quot;Рязань&quot;]</code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">sorted(lst, key= lambda x : (x[-1], x[-2] ))</code></pre>
+<h2>2-7.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">books = (
+    (&quot;Евгений Онегин&quot;, 2026, 200),
+    (&quot;Муму&quot;, 2020, 500),
+    (&quot;Мастер и Маргарита&quot;, 2020, 500),
+    (&quot;Мертвые души&quot;, 2025, 200)
+)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">sorted(books, key=lambda x : (-x[2], -x[1], x[0]))</code></pre>
+<h2>2-8.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python"># Вес за мешок и стоимость 
+S = [
+    [47, 470],
+    [50, 600],
+    [60, 480],
+    [45, 540],
+    [30, 300]
+]
+</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">S.sort(key=lambda x: (x[1] / x[0], x[1]))
+print(*S, sep=&#x27;\n&#x27;)</code></pre>
+<h2>2-10.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python"># filter
+# reduce
+a = [4, 3, -10, 1, 7, 12]
+
+b = filter(lambda x: 0 &lt; x &lt; 10, a)
+print(*b)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">a = &#x27;123&#x27;, &#x27;123a&#x27;, &#x27;456&#x27;, &#x27;abc&#x27;, &#x27;привет&#x27; 
+b = filter(str.isalpha, a)
+print(*b)</code></pre>
+<h2>2-11.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">string=&#x27;&#x27;&#x27;
+Сервис по поиску работы и сотрудников
+HeadHunter опубликовал подборку
+высокооплачиваемых вакансий в России за ноябрь 2024 года
+в Москве : на первых строчках IT-архитекторы и техлиды
+&#x27;&#x27;&#x27;
+</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">stop_list = &quot;высокооплачиваемых&quot;, &quot;техлиды&quot;, &#x27;и&#x27;, &#x27;за&#x27;, &#x27;в&#x27;
+res = list(filter(lambda x: x not in stop_list, string.split()))
+res = &#x27; &#x27;.join(res)
+print (res)</code></pre>
+<h2>2-12.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">numbers = [1, 2, 3, 4, 5]</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">from functools import reduce
+
+
+reduce(lambda x,y: x * y, numbers, 20)</code></pre>
+<h2>2-13.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python"># Область видимости
+
+name = &quot;Илья&quot;
+
+def say_hi():
+    global name
+    name = &quot;Иван&quot;  
+    print(&quot;Привет,&quot;, name)
+  
+  
+def say_bye():
+    print(&quot;Пока,&quot;, name)
+
+  
+say_hi()
+say_bye()
+
+globals()</code></pre>
+<h2>2-14.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def say_hello():
+    print(&quot;Hello&quot;)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">message = say_hello
+message()</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">def sum(a, b): return a + b
+def mul(a, b): return a * b
+
+def do(a,b, op):
+    return op(a,b)</code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">do(5,5, mul)</code></pre>
+<h3>Ячейка 5</h3>
+<pre><code class="language-python">calc = {
+    &quot;plus&quot;: lambda x, y: x + y,
+    &quot;minus&quot;: lambda x, y: x - y,
+    &quot;division&quot;: lambda x, y: x / y,
+    # в качестве значения можно использовать 
+    # встроенную функцию pow() или любую 
+    # пользовательскую функцию 
+    &quot;power&quot;: pow
+}
+
+calc[&quot;power&quot;](2,10)</code></pre>
+<h2>2-15.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def say_name(name):
+    def say_goodbye():
+        print(&quot;Don&#x27;t say me goodbye, &quot; + name + &quot;!&quot;)
+    return say_goodbye</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">f = say_name(&quot;Dima&quot;)
+f2 = say_name(&quot;Alex&quot;)</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">f2()</code></pre>
+<h2>2-16.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def counter(start=0):
+    def step():
+        nonlocal start
+        start += 1
+        return start
+    return step   </code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">c1 = counter(10)
+c1()
+c1()
+c1()
+</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">c2 = counter(100)
+c2()</code></pre>
+<h2>2-17.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def decorator(func):
+    def wrapper():        
+        print(&quot;before&quot;)
+        func()
+        print(&quot;after&quot;)
+    return wrapper   </code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">@decorator
+def some_func():
+    print (&quot;Im func&quot;)</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">res = decorator(some_func)
+res()</code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">some_func()</code></pre>
+<h2>2-18.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">user = &#x27;admin&#x27;
+def access(func):
+    def wrapper(user):
+        if user == &#x27;admin&#x27;:
+            return func(user)      
+        else:
+            print(&quot;accesc denied&quot;)
+    return wrapper   
+
+@access
+def read_db(user):
+    print (&quot;reading secrets data&quot;)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">read_db(&#x27;admin-1&#x27;)</code></pre>
+<h2>2-19.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">from time import time
+def test_time(fn):
+    def wrapper(*args, **kwargs):
+        st = time()
+        res = fn(*args, **kwargs)
+        dt = time() - st
+        print(dt, &#x27;sec&#x27;)
+        return res
+      
+    return wrapper   
+
+@test_time
+def fact(x):
+    f = 1
+    for i in range(1,x+1):
+        f *= i
+    return f</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">r = fact(100)
+r</code></pre>
+<h2>2-20.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def h1(fn):
+    def wrapper(word):
+        return &#x27;&lt;h1&gt;\n&#x27; + fn(word) + &#x27;\n&lt;/h1&gt;&#x27;
+    return wrapper
+
+
+def p(fn):
+    def wrapper(word):
+        return &#x27;\t&lt;p&gt;&#x27; + fn(word) + &#x27;&lt;/p&gt;&#x27;
+    return wrapper
+
+@h1
+@p
+def hello(word):
+    return word</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">print(hello(&#x27;привет&#x27;))</code></pre>
+<h2>2-21.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">mylist = [1, 2, 3]
+for i in mylist :
+   print(i)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">mylist = [x*x for x in range(3)]
+
+for i in mylist :
+   print(i)</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">def get_fib(N):
+    a,b = 1,1
+    for x in range(N):
+        yield a
+        a, b = b, a + b
+        </code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">y = get_fib(8)
+print(*y)
+
+</code></pre>
+<h2>2-22.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python"># while + continue + break + else
+
+from time import sleep
+
+
+def counter():
+    c = 0
+    while True:
+        print(&#x27;счетчик = &#x27;, c)
+        c += 1
+        yield
+
+
+def printer():
+    c = 0
+    while True:
+        if c % 3 == 0:
+            print(&#x27;печать ...&#x27;)
+        c += 1
+        yield
+        
+c1 = counter()
+p1 = printer()
+
+
+while True:
+    next(c1)
+    sleep(0.5)
+    next(c1)
+    sleep(0.5)
+</code></pre>
+<h2>2-22.py</h2>
+<pre><code class="language-python"># while + continue + break + else
+
+from time import sleep
+
+
+def counter():
+    c = 0
+    while True:
+        print(&#x27;счетчик = &#x27;, c)
+        c += 1
+        yield
+
+
+def printer():
+    c = 0
+    while True:
+        if c % 3 == 0:
+            print(&#x27;печать ...&#x27;)
+        c += 1
+        yield
+        
+c1 = counter()
+p1 = printer()
+
+
+while True:
+    next(c1)
+    sleep(0.5)
+    next(p1)
+    sleep(0.5)
+</code></pre>
+<h2>2-23.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">try:
+    
+    print(1/1)
+    print(1) 
+    print (1+1)
+    f = open(&quot;myfile.txt&quot;)
+except ArithmeticError as err:                                 
+    print(err)   
+            
+except NameError as err:                                 
+    print(err)
+
+except TypeError:   
+    print(&#x27;TypeError&#x27;)  
+
+else:
+    print(&quot;искючений не было&quot;)
+finally:
+    print(&quot;Блок finally выполняется всегда&quot;)</code></pre>
+<h2>2-23.py</h2>
+<pre><code class="language-python">try:
+    
+    print(1/1)
+    print(1) 
+    print (1+1)
+    f = open(&quot;myfile.txt&quot;)
+except (ArithmeticError, FileNotFoundError) as err:                                 
+    print(err)   
+            
+except NameError as err:                                 
+    print(err)
+
+except TypeError:   
+    print(&#x27;TypeError&#x27;)  
+
+else:
+    print(&quot;искючений не было&quot;)
+finally:
+    print(&quot;Блок finally выполняется всегда&quot;)</code></pre>
+<h2>2-24.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">x = 10
+y = 5
+
+assert x &lt; y, &#x27;x должно быть меньше y&#x27;</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">
+def add(a,b):
+    return a + b
+
+
+assert add(2,3) == 5, &#x27;тест 1 не пройден&#x27;
+assert add(2,3.0) == 5
+assert add(2.5,2.5) == 5
+assert add(7,-2) == 5</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">def apply_discount(product, discount):  
+    new_price = product[&quot;цена&quot;] * (1 - discount)
+    assert product[&quot;цена&quot;] * 0.5 &lt;= new_price &lt; product[&quot;цена&quot;], &quot;размер скидки дб &lt; 50&quot;
+    return new_price
+    
+
+shoes = {&#x27;имя&#x27;: &#x27;Модные туфли&#x27;, &#x27;цена&#x27;: 14900}
+res = apply_discount(shoes, 0.45)
+</code></pre>
+<h2>2-25.ipynb</h2>
+<h3>Ячейка 1</h3>
+<pre><code class="language-python">def factorial(n):
+    if n == 1:
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+factorial(5)</code></pre>
+<h3>Ячейка 2</h3>
+<pre><code class="language-python">def factorial(n):
+    match n:
+        case 0 | 1:
+            return 1
+        case _:
+            return n * factorial(n - 1)
+
+factorial(5)</code></pre>
+<h3>Ячейка 3</h3>
+<pre><code class="language-python">def print_hello(language):
+    match language:
+        case &quot;russian&quot;:
+            print(&quot;Привет&quot;)
+        case &quot;american english&quot; | &quot;british english&quot; | &quot;english&quot; :
+            print(&quot;Hello&quot;)
+        case &quot;german&quot;:
+            print(&quot;Hallo&quot;)
+        case _:
+            print(&quot;Undefined&quot;)
+        </code></pre>
+<h3>Ячейка 4</h3>
+<pre><code class="language-python">print_hello(&quot;american english&quot;)      
+print_hello(&quot;german&quot;)       
+print_hello(&quot;russian&quot;)</code></pre>
+<h3>Ячейка 5</h3>
+<pre><code class="language-python">def operation(a, b, code):
+    match code:
+        case 1:
+            return a + b
+        case 2:
+            return a - b
+        case 3:
+            return a * b
+        case _:
+            return 0
+        
+print(operation(10, 5, 1))      # 15
+print(operation(10, 5, 2))      # 5
+print(operation(10, 5, 3))      # 50
+print(operation(10, 5, 4))  </code></pre>
+<h3>Ячейка 6</h3>
+<pre><code class="language-python">def get_color(*color):    
+    match color:
+        case 1, 1, 1:
+            return &quot;white&quot;
+        case 0, 0, 0:
+            return &quot;black&quot;
+        case 1, 0, 0:
+            return &quot;red&quot;
+        case 0, 1, 0:
+            return &quot;green&quot;
+        case _:
+            return(&quot;Неизвестный цвет&quot;)
+        </code></pre>
+<h3>Ячейка 7</h3>
+<pre><code class="language-python">get_color(0, 1, 1)</code></pre>
+<h3>Ячейка 8</h3>
+<pre><code class="language-python">def print_data(user):
+    match user:
+        case [&quot;Олег&quot;, &quot;Сергей&quot;, &quot;Борис&quot;]:
+            print(&quot;Наши люди&quot;)
+        case [&quot;Олег&quot;, second, _]:
+            print(f&quot;Второй юзер: {second}&quot;)
+        case [first, second, third]:
+            print(f&quot;{first}, {second}, {third}&quot;)
+            
+print_data([&quot;Олег-3&quot;, &quot;Сергей-1&quot;, &quot;Борис-2&quot;])</code></pre>
+<h3>Ячейка 9</h3>
+<pre><code class="language-python">def print_data(people):
+    match people:
+        case [_]:
+            print(&quot;Массив из одного элемента&quot;)
+        case [_, _]:
+            print(&quot;Массив из двух элементов&quot;)
+        case [_, _, _]:
+            print(&quot;Массив из трех элементов&quot;)
+        case _:
+            print(&quot;Непонятно&quot;)
+            
+print_data(&quot;Олег&quot;)
+</code></pre>
+<h3>Ячейка 10</h3>
+<pre><code class="language-python">def print_data(people):
+    match people:
+        case [first, *other]:
+            print(f&quot;Первый: {first}; остальные: {&#x27;,&#x27;.join(other)}&quot;)
+
+print_data([&quot;Алиса&quot;, &quot;Вика&quot;, &quot;Катя&quot;])</code></pre>
+<h3>Ячейка 11</h3>
+<pre><code class="language-python">def print_people(people):
+    match people:
+        case [&quot;Олег&quot; | &quot;Михаил&quot; | &quot;Сергей&quot;,  &quot;Катя&quot;]:
+            print(&quot;Наши люди&quot;, people, )
+        case [first, second, third]:
+            print(f&quot;{first}, {second}, {third}&quot;)</code></pre>
+<h3>Ячейка 12</h3>
+<pre><code class="language-python">print_people([&quot;Алиса&quot;, &quot;Вика&quot;, &quot;Катя&quot;])</code></pre>
+<h3>Ячейка 13</h3>
+<pre><code class="language-python">def look(words):
+    match words:
+        case {&quot;red&quot;: &quot;красный&quot;, &quot;blue&quot;: &quot;синий&quot;}:
+            print(&quot;Слова red и blue есть в словаре&quot;)
+        case {&quot;red&quot;: &quot;красный&quot;}:
+            print(&quot;Слово red есть в словаре, а слово blue отсутствует&quot;)
+        case {&quot;blue&quot;: &quot;синий&quot;}:  
+            print(&quot;Слово blue есть в словаре, а слово red отсутствует&quot;)
+        case {}:
+            print(&quot;Слова red и blue в словаре отсутствует&quot;)
+        case _:
+            print(&quot;Это не словарь&quot;)
+            
+look({&quot;red&quot;: &quot;красный&quot;, &quot;blue&quot;: &quot;синий&quot;, &quot;green&quot;: &quot;зеленый&quot;})
+look({&quot;red&quot;: &quot;красный&quot;, &quot;green&quot;: &quot;зеленый&quot;})
+look({&quot;blue&quot;: &quot;синий&quot;, &quot;green&quot;: &quot;зеленый&quot;}) </code></pre>
+<h3>Ячейка 14</h3>
+<pre><code class="language-python">def look(words):
+    match words:
+        case {&quot;red&quot;: _, &quot;blue&quot;: _}:
+            print(&quot;Слова red и blue есть в словаре&quot;)
+        case {}:
+            print(&quot;red и/или blue отсутствуют в словаре&quot;)
+
+look({&quot;red&quot;: &quot;красный&quot;, &quot;blue&quot;: &quot;синий&quot;}) 
+look({&quot;red&quot;: &quot;красный&quot;, &quot;green&quot;: &quot;зеленый&quot;})</code></pre>
+<h2>2-26.py</h2>
+<pre><code class="language-python">from my_module import pi
+lazy from math import pi, prod
+
+
+if 1:  
+    print(pi)
+
+if __name__ == &quot;__main__&quot;:
+    print(&#x27;точка входа&#x27;)
+    
+ </code></pre>
+<h2>2-27.py</h2>
+<pre><code class="language-python">def slow_sum(n: int) -&gt; int:
+    total = 0
+    for i in range(n): # 01
+        total += i
+    return total
+
+
+def fast_sum(n: int) -&gt; int: # 1
+    return n * (n - 1) // 2
+
+
+def main():
+    &#x27;&#x27;&#x27;
+    дирижер
+    &#x27;&#x27;&#x27;  
+    print(slow_sum(100_000_000))
+    print(fast_sum(100_000_000_000)) 
+    
+    
+
+if __name__ == &quot;__main__&quot;:
+    main()
+    
+ </code></pre>
+<h2>2-28.py</h2>
+<pre><code class="language-python">from timeit import timeit
+
+
+def slow_sum(n: int) -&gt; int:
+    total = 0
+    for i in range(n): # 01
+        total += i
+    return total
+
+
+def fast_sum(n: int) -&gt; int: # 1
+    return n * (n - 1) // 2
+
+
+# test  = timeit(&quot;slow_sum(100_000)&quot;, number=100)
+
+# t_slow = timeit(&quot;slow_sum(1_100_000)&quot;, number=100, globals=globals())
+print (timeit(&quot;n * (n - 1) // 2&quot;, number=500, setup=&quot;n = 1_100_000&quot;))
+
+t_fast = timeit(&quot;fast_sum(1_100_000)&quot;, number=100, globals=globals())
+# t_slow2 = timeit(&quot;slow_sum(100_000)&quot;, setup=&quot;from __main__ import slow_sum&quot;, number=100)
+
+# print(t_slow)
+print(t_fast)
+
+
+
+    
+    
+
+
+ </code></pre>
+<h2>2-30.py</h2>
+<pre><code class="language-python">class Point:    
+    def __init__(self, x = 0, y = 0):
+        self.x = x
+        self.y = y
+        
+    def __str__(self):
+        return f&#x27;Я точка ({self.x}, {self.y})&#x27;
+    
+    def __add__(self, other):
+        return Point(self.x + other.x,self.y + other.y)  
+
+p1 = Point(1,2)
+p2 = Point(2,3)
+
+print(p1)
+print(p2)
+
+print (p1 + p2)</code></pre>
+<h2>my_module.py</h2>
+<pre><code class="language-python">&#x27;&#x27;&#x27;
+мой модуль
+&#x27;&#x27;&#x27;
+
+pi = 3.14</code></pre>
+  </article>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>
