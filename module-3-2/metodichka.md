@@ -1,330 +1,229 @@
-# 3.2. Подключение к СУБД на примере PostgreSQL
+# 3.2. Типы, JSON, иерархии и материализованные представления
 
-**Цель:** поднять локальный PostgreSQL 18 в Docker, проверить его из терминала и из DBeaver и прочитать таблицу из ноутбука Jupyter.
+**Цель:** завести в PostgreSQL свой тип и домен, положить документ в `jsonb`, обойти дерево категорий рекурсивным запросом и сохранить готовый итог в материализованном представлении.
 
-**Опора:** окружение `.venv` и ноутбуки из модуля 1. Ядро Jupyter — `./.venv/Scripts/python.exe`. Рабочая папка VS Code — корень курса.
-
-Пароль ниже только для учебной базы на своём компьютере.
+**Опора:** контейнер PostgreSQL из раздела 3.1, база `course`, пользователь `student`. Запросы выполняйте в DBeaver. Текст сохраните в `module-3-2/sql/structures.sql`.
 
 **Итоговые артефакты** (в папке `module-3-2/`):
 
 | Файл | Назначение |
 |------|------------|
-| `docker-compose.yml` | Описание контейнера PostgreSQL 18 |
-| `lab32-postgres.ipynb` | Подключение, создание таблицы, выборка в pandas |
-| `data/scores_from_db.csv` | Выгрузка результата запроса |
+| `sql/structures.sql` | Типы, таблица документов, дерево и материализованное представление |
+| `lab32-structures.ipynb` | Три проверочных запроса и короткие ответы |
 
 ---
 
-## Кратко: как поднимается база
+## Подготовка
 
-1. Установить **Docker Desktop** и убедиться, что демон Docker запущен.
-2. В `module-3-2/docker-compose.yml` описать сервис `postgres:18`: порт `5432`, имя базы, пользователь и пароль.
-3. Запустить контейнер командой `docker compose up -d` и проверить `SELECT version()`.
-4. Подключиться тем же хостом и портом из **DBeaver**.
-5. Из `.ipynb` открыть соединение через SQLAlchemy и `psycopg`, создать таблицу и прочитать её в `DataFrame`.
-
-Дальше те же шаги расписаны так, чтобы их можно было выполнить на занятии.
+Контейнер `pg18-course` запущен. Подключение то же, что в разделе 3.1: хост `localhost`, порт `5432`, база `course`, пользователь `student`.
 
 ---
 
-## 3.2.1. Docker Desktop: установка и первые команды
+## 3.2.1. Перечисление и домен
 
-Docker Desktop запускает контейнеры в Linux-окружении Windows (обычно через WSL 2).
-
-1. Скачайте установщик с [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/).
-2. Установите его и перезагрузите компьютер, если установщик этого попросит.
-3. Запустите **Docker Desktop** и дождитесь состояния **Engine running**.
-4. В терминале VS Code проверьте клиент:
-
-```powershell
-docker version
-docker compose version
-```
-
-В выводе `docker version` должны быть и Client, и Server. Если Server недоступен, Docker Desktop ещё не запущен.
-
-Полезные команды на занятии:
-
-| Команда | Зачем |
-|---------|--------|
-| `docker ps` | контейнеры, которые сейчас работают |
-| `docker images` | уже скачанные образы |
-| `docker compose up -d` | создать и запустить сервисы из файла Compose |
-| `docker compose ps` | состояние сервисов этого файла |
-| `docker compose logs` | журнал контейнера |
-| `docker compose down` | остановить и убрать контейнеры этого файла |
-
-Образ сам по себе ещё не база. База появляется, когда контейнер запущен и в нём стартовал PostgreSQL.
-
-**Критерий 3.2.1:** `docker version` показывает Server, `docker compose version` печатает версию Compose.
-
----
-
-## 3.2.2. Файл docker-compose.yml
-
-Compose описывает, какой образ взять, как назвать контейнер, какие порты открыть и какие переменные передать PostgreSQL при первом создании данных.
-
-Создайте `module-3-2/docker-compose.yml`:
-
-```yaml
-services:
-  postgres:
-    image: postgres:18
-    container_name: pg18-course
-    environment:
-      POSTGRES_USER: student
-      POSTGRES_PASSWORD: student
-      POSTGRES_DB: course
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U student -d course"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-volumes:
-  pgdata:
-```
-
-Что означает каждая часть:
-
-| Поле | Смысл |
-|------|--------|
-| `services.postgres` | один сервис в этом файле |
-| `image: postgres:18` | официальный образ PostgreSQL 18 |
-| `container_name` | фиксированное имя контейнера, по нему удобно вызывать `docker exec` |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | учётная запись и база, которые образ создаёт при первом запуске |
-| `ports: "5432:5432"` | порт компьютера слева, порт внутри контейнера справа |
-| `volumes.pgdata` | данные переживут перезапуск контейнера |
-| `healthcheck` | Docker проверяет, что сервер уже принимает подключения |
-
-Каталог данных внутри образа PostgreSQL 18 — `/var/lib/postgresql`. Не монтируйте туда случайную пустую папку проекта: сервер не найдёт свой кластер.
-
-**Критерий 3.2.2:** файл лежит в `module-3-2`, в нём образ `postgres:18`, пользователь `student`, база `course`, порт `5432`.
-
----
-
-## 3.2.3. Запуск и проверка контейнера
-
-Команды выполняйте из каталога, где лежит файл:
-
-```powershell
-cd module-3-2
-docker compose up -d
-docker compose ps
-```
-
-В столбце статуса ожидается `running` или `healthy`. Первый запуск скачивает образ и занимает несколько минут.
-
-Журнал, если статус другой:
-
-```powershell
-docker compose logs
-```
-
-Проверка версии SQL из контейнера:
-
-```powershell
-docker exec pg18-course psql -U student -d course -c "SELECT version();"
-```
-
-В тексте версии должна быть **PostgreSQL 18**.
-
-Короткий учебный запрос:
-
-```powershell
-docker exec pg18-course psql -U student -d course -c "CREATE TABLE IF NOT EXISTS ping (id int); INSERT INTO ping VALUES (1); SELECT * FROM ping;"
-```
-
-Остановка после занятия, данные тома сохраняются:
-
-```powershell
-docker compose stop
-```
-
-Снова поднять:
-
-```powershell
-docker compose start
-```
-
-`docker compose down` удаляет контейнер, но именованный том `pgdata` оставляет. `docker compose down -v` удаляет и том: база создаётся заново, таблицы пропадают.
-
-**Критерий 3.2.3:** `SELECT version()` показывает PostgreSQL 18, запрос к `ping` возвращает строку `1`.
-
----
-
-## 3.2.4. DBeaver
-
-DBeaver — настольный просмотрщик баз. Им проверяют, что сервер виден не только из Docker.
-
-1. Установите **DBeaver Community** с [dbeaver.io/download](https://dbeaver.io/download/).
-2. **База данных** → **Новое подключение** → **PostgreSQL**.
-3. Если DBeaver предложит скачать драйвер PostgreSQL, согласитесь.
-4. Заполните параметры:
-
-| Поле | Значение |
-|------|----------|
-| Хост | `localhost` |
-| Порт | `5432` |
-| База данных | `course` |
-| Пользователь | `student` |
-| Пароль | `student` |
-
-5. **Тест подключения**, затем **Готово**.
-6. Откройте базу `course` → **Схемы** → `public` → **Таблицы**. Таблица `ping` из предыдущего шага должна быть в списке.
-7. Вкладка **SQL** у соединения. Выполните:
+Перечисление — тип с фиксированным списком подписей. Домен — уже существующий тип плюс проверка. Оба создаются один раз и дальше используются как обычные типы столбцов.
 
 ```sql
-SELECT id FROM ping;
+CREATE TYPE channel_kind AS ENUM ('search', 'ads', 'email');
+
+CREATE DOMAIN positive_score AS integer
+    CHECK (VALUE > 0);
 ```
 
-Результат — одна строка со значением `1`.
+```sql
+CREATE TABLE attempts (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text NOT NULL,
+    channel channel_kind NOT NULL,
+    score positive_score
+);
 
-Если тест не проходит, сначала посмотрите `docker compose ps`: контейнер должен быть запущен, порт `5432` не должен быть занят другим PostgreSQL на компьютере.
+INSERT INTO attempts (name, channel, score)
+VALUES ('Анна', 'search', 18), ('Борис', 'ads', 15);
+```
 
-**Критерий 3.2.4:** тест подключения в DBeaver успешен, `SELECT id FROM ping` возвращает `1`.
+Значение вне списка, например `'визит'`, сервер не примет. Балл `0` не пройдёт проверку домена.
+
+**Практика 3.2.1.** Вставьте строку с баллом `-1` и запишите текст ошибки. Затем вставьте Веру с каналом `email` и баллом `20`.
+
+**Критерий 3.2.1:** отрицательный балл отклонён проверкой `positive_score`. В таблице три строки, у Веры канал `email`.
 
 ---
 
-## 3.2.5. Подключение из ноутбука
+## 3.2.2. Диапазон
 
-Установите драйвер и SQLAlchemy в `.venv`:
+Диапазонный тип хранит промежуток, а не два отдельных поля. `int4range` — диапазон целых. Оператор `&&` истинен, когда промежутки пересекаются.
 
-```powershell
-cd ..
-.\.venv\Scripts\Activate.ps1
-python -m pip install "psycopg[binary]" sqlalchemy pandas
+```sql
+CREATE TABLE labs (
+    room text,
+    seats int4range
+);
+
+INSERT INTO labs (room, seats)
+VALUES ('A-1', int4range(10, 20, '[)')), ('B-2', int4range(18, 30, '[)'));
+
+SELECT room FROM labs WHERE seats && int4range(15, 19, '[)');
 ```
 
-Создайте `module-3-2/lab32-postgres.ipynb`, ядро — `.venv`.
+Граница `[)` включает левый конец и не включает правый. Оба кабинета попадают в выборку: у `A-1` места до 19, у `B-2` места начинаются с 18.
 
-Первая ячейка — markdown: ФИО, дата, заголовок «3.2 Подключение к PostgreSQL».
+**Критерий 3.2.2:** запрос с пересечением возвращает `A-1` и `B-2`.
 
-**Ячейка — соединение:**
+---
 
-```python
-import sqlalchemy as sa
+## 3.2.3. JSONB
 
-engine = sa.create_engine(
-    "postgresql+psycopg://student:student@localhost:5432/course"
+`jsonb` хранит документ, у которого набор полей задаёт сам документ, а не таблица. В отличие от `json`, значение разобрано и его можно индексировать. Оператор `->` достаёт вложенный фрагмент как `jsonb`, `->>` — как текст.
+
+```sql
+CREATE TABLE submissions (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    payload jsonb NOT NULL
+);
+
+INSERT INTO submissions (payload) VALUES
+('{"name": "Анна", "score": 18, "tags": ["домашняя", "вовремя"]}'),
+('{"name": "Глеб", "score": 11, "tags": ["домашняя"]}');
+```
+
+```sql
+SELECT payload->>'name' AS name,
+       (payload->>'score')::integer AS score
+FROM submissions
+WHERE payload @> '{"tags": ["вовремя"]}';
+```
+
+`@>` проверяет, что в документе есть указанный фрагмент. Здесь останется только Анна.
+
+**Практика 3.2.3.** Добавьте документ Бориса с баллом 15 и меткой `"вовремя"`. Повторите запрос. Достаньте первую метку Анны выражением `payload->'tags'->>0`.
+
+**Критерий 3.2.3:** выборка по метке `"вовремя"` содержит Анну и Бориса. Первая метка Анны — `домашняя`.
+
+---
+
+## 3.2.4. Дерево списком смежности
+
+В списке смежности у строки есть ссылка на родителя. Корень узнают по пустому `parent_id`. Прямые дети — один фильтр. Все потомки — рекурсивный общий табличный запрос: сначала выбранный узел, затем строки, чей родитель уже попал в выборку.
+
+```sql
+CREATE TABLE categories (
+    id integer PRIMARY KEY,
+    name text NOT NULL,
+    parent_id integer REFERENCES categories (id)
+);
+
+INSERT INTO categories (id, name, parent_id) VALUES
+    (1, 'Анализ', NULL),
+    (2, 'Базы', NULL),
+    (3, 'Таблицы', 2),
+    (4, 'Документы', 2),
+    (5, 'JSON', 4);
+```
+
+```sql
+SELECT id, name FROM categories WHERE parent_id = 2;
+
+WITH RECURSIVE branch AS (
+    SELECT id, name, parent_id
+    FROM categories
+    WHERE id = 2
+    UNION ALL
+    SELECT c.id, c.name, c.parent_id
+    FROM categories AS c
+    JOIN branch AS b ON c.parent_id = b.id
 )
-with engine.connect() as conn:
-    version = conn.execute(sa.text("SELECT version()")).scalar()
-print(version)
+SELECT id, name, parent_id FROM branch ORDER BY id;
 ```
 
-Строка подключения собирается так: `postgresql+psycopg://пользователь:пароль@хост:порт/база`. Префикс `postgresql+psycopg` говорит SQLAlchemy использовать драйвер psycopg 3.
+Первый запрос возвращает «Таблицы» и «Документы». Рекурсивный добавляет корень «Базы» и лист «JSON».
 
-**Критерий 3.2.5:** ячейка печатает ту же PostgreSQL 18, что и `docker exec`.
+**Практика 3.2.4.** Тем же приёмом получите предков узла `5`: начните с него и на каждом шаге подключайте строку, чей `id` равен `parent_id` уже найденной строки. В итоге должны быть JSON, Документы и Базы.
+
+**Критерий 3.2.4:** потомки «Базы» — четыре строки с номерами 2, 3, 4 и 5. Предки «JSON» — три строки: JSON, Документы, Базы.
 
 ---
 
-## 3.2.6. Таблица и запросы из Jupyter
+## 3.2.5. Другие способы хранить дерево
 
-Создайте таблицу с баллами и прочитайте её.
+Список смежности проще всего менять: новый ребёнок — одна вставка. Чтение всего поддерева требует рекурсии. Другие схемы переносят работу на запись.
 
-**Ячейка:**
+| Схема | Как устроена | Когда уместна |
+|-------|----------------|----------------|
+| Список смежности | поле `parent_id` | дерево часто меняется, обходы не самые глубокие |
+| Материализованный путь | в строке записан путь от корня, например `2.4.5` | нужно быстро найти потомков по префиксу пути; в PostgreSQL для этого есть тип `ltree` |
+| Вложенные множества | у узла левая и правая границы обхода | потомки — один диапазон границ; вставка в середину переписывает границы соседей |
+| Таблица замыканий | отдельная таблица пар «предок, потомок» | предки и потомки ищутся соединением, каждую вставку сопровождают несколькими строками связи |
 
-```python
-import pandas as pd
+В занятии остаётся список смежности из раздела 3.2.4. Остальные схемы не создавайте: в markdown запишите, какая из них неудобна при частой вставке узла в середину.
 
-with engine.begin() as conn:
-    conn.execute(sa.text("DROP TABLE IF EXISTS scores"))
-    conn.execute(sa.text("""
-        CREATE TABLE scores (
-            name text NOT NULL,
-            group_code text NOT NULL,
-            score integer
-        )
-    """))
-    conn.execute(
-        sa.text("""
-            INSERT INTO scores (name, group_code, score)
-            VALUES
-                ('Анна', 'A', 18),
-                ('Борис', 'A', 15),
-                ('Вера', 'B', 20),
-                ('Глеб', 'B', NULL)
-        """)
-    )
-
-frame = pd.read_sql(sa.text("SELECT name, group_code, score FROM scores ORDER BY name"), engine)
-print(frame)
-print("пропусков в score:", int(frame["score"].isna().sum()))
-```
-
-`engine.begin()` фиксирует транзакцию: и `CREATE`, и `INSERT` попадут в базу. `NULL` в SQL — это пропуск, в pandas он становится `NaN`.
-
-Обновите список таблиц в DBeaver. Таблица `scores` и четыре строки должны быть видны.
-
-**Практика 3.2.6.** Выберите только заполненные баллы и посчитайте сумму:
-
-```python
-filled = pd.read_sql(
-    sa.text("SELECT name, score FROM scores WHERE score IS NOT NULL ORDER BY score"),
-    engine,
-)
-print(filled)
-print("сумма", int(filled["score"].sum()))
-```
-
-**Критерий 3.2.6:** в выборке нет Глеба, сумма равна **53**. Те же четыре строки открываются в DBeaver.
+**Критерий 3.2.5:** в ответе названы вложенные множества и сказано, что вставка сдвигает границы.
 
 ---
 
-## 3.2.7. Выгрузка результата
+## 3.2.6. Материализованное представление
 
-Сохраните выборку в CSV, чтобы её можно было открыть без базы.
+Обычное представление каждый раз заново выполняет запрос. Материализованное сохраняет результат на диск. После новых строк в таблице снимок сам не меняется: его обновляют командой `REFRESH MATERIALIZED VIEW`.
 
-```python
-from pathlib import Path
+```sql
+CREATE MATERIALIZED VIEW category_size AS
+SELECT parent_id, count(*) AS children
+FROM categories
+WHERE parent_id IS NOT NULL
+GROUP BY parent_id
+WITH DATA;
 
-out = Path("module-3-2/data/scores_from_db.csv")
-out.parent.mkdir(parents=True, exist_ok=True)
-filled.to_csv(out, index=False, encoding="utf-8")
-print(out.read_text(encoding="utf-8"))
+SELECT * FROM category_size ORDER BY parent_id;
 ```
 
-**Критерий 3.2.7:** в файле три строки данных, заголовок `name,score`, сумма баллов по файлу совпадает с запросом.
+У родителя 2 два прямых ребёнка, у родителя 4 — один.
+
+```sql
+INSERT INTO categories (id, name, parent_id) VALUES (6, 'Индексы', 2);
+SELECT * FROM category_size WHERE parent_id = 2;
+
+REFRESH MATERIALIZED VIEW category_size;
+SELECT * FROM category_size WHERE parent_id = 2;
+```
+
+До обновления у «Базы» по-прежнему 2 ребёнка. После `REFRESH` счётчик становится 3.
+
+**Практика 3.2.6.** Создайте индекс по `parent_id` на `category_size`. В markdown одной фразой запишите, чем этот объект отличается от обычного `VIEW`.
+
+**Критерий 3.2.6:** до обновления счётчик равен 2, после — 3. В ответе сказано, что материализованное представление хранит результат, а не только текст запроса.
 
 ---
 
-## 3.2.8. Самопроверка
+## 3.2.7. Самопроверка
 
-В конце ноутбука ответьте в markdown:
+В ноутбуке ответьте:
 
-1. Чем образ `postgres:18` отличается от запущенного контейнера `pg18-course`.
-2. Зачем в Compose указаны и порт слева, и порт справа в `"5432:5432"`.
-3. Почему пароль из Compose совпадает с паролем в строке подключения ноутбука и в DBeaver.
+1. Чем домен отличается от перечисления.
+2. Почему метку в `jsonb` ищут оператором `@>`, а не новым столбцом таблицы.
+3. Почему материализованное представление не увидело категорию «Индексы» до `REFRESH`.
 
 ### Чеклист
 
 | № | Действие | Готово |
 |---|----------|--------|
-| 1 | Docker Desktop запущен, `docker version` показывает Server | ☐ |
-| 2 | `module-3-2/docker-compose.yml` с образом `postgres:18` | ☐ |
-| 3 | `docker compose ps` — контейнер `pg18-course` работает | ☐ |
-| 4 | `SELECT version()` из `docker exec` показывает PostgreSQL 18 | ☐ |
-| 5 | DBeaver подключается к `localhost:5432`, база `course` | ☐ |
-| 6 | Ноутбук печатает версию через SQLAlchemy | ☐ |
-| 7 | Таблица `scores` видна и в ноутбуке, и в DBeaver, сумма заполненных баллов 53 | ☐ |
-| 8 | `data/scores_from_db.csv` записан | ☐ |
-| 9 | Три ответа самопроверки | ☐ |
+| 1 | Канал `channel_kind` не принимает значение вне списка | ☐ |
+| 2 | Домен `positive_score` отклоняет балл `-1` | ☐ |
+| 3 | Пересечение диапазонов мест возвращает оба кабинета | ☐ |
+| 4 | Из `jsonb` прочитаны имя, балл и метка «вовремя» | ☐ |
+| 5 | Рекурсивный запрос возвращает ветку «Базы» и предков «JSON» | ☐ |
+| 6 | В заметке названа схема дерева, которой мешает вставка в середину | ☐ |
+| 7 | `category_size` обновляется только после `REFRESH` | ☐ |
+| 8 | Три ответа самопроверки | ☐ |
 
 ### Типовые ошибки
 
 | Симптом | Что проверить |
 |---------|----------------|
-| `docker: failed to connect` или пустой Server | Запустить Docker Desktop и дождаться Engine running |
-| Порт 5432 занят | Остановить локальный PostgreSQL или в Compose поставить другой левый порт, например `"5433:5432"`, и тот же порт указать в DBeaver и в строке подключения |
-| `password authentication failed` | Пользователь и пароль как в `POSTGRES_*`. Если том уже создавался с другими значениями, смените их в Compose и выполните `docker compose down -v`, затем `up -d` |
-| Контейнер сразу завершается | `docker compose logs`: часто это неверный путь тома |
-| `ModuleNotFoundError: psycopg` | `python -m pip install "psycopg[binary]" sqlalchemy pandas` в `.venv` и то же ядро в ноутбуке |
-| Кириллица в DBeaver искажена | Кодировка клиента UTF-8; файл CSV сохранять с `encoding="utf-8"` |
+| `type "channel_kind" already exists` | Тип уже создан в прошлый раз. Повторите урок на чистой базе или удалите объекты этого файла |
+| `invalid input value for enum` | В списке нет такой подписи. Регистр важен: `email`, не `Email` |
+| `malformed array literal` или ошибка JSON | Документ передают одной строкой в одинарных кавычках, внутренние кавычки двойные |
+| Рекурсия не заканчивается | В `JOIN` родитель ищется как `c.parent_id = b.id`, а не наоборот |
+| Счётчик не вырос после `INSERT` | Не выполнен `REFRESH MATERIALIZED VIEW` |
+| `VIEW` путают со снимком | Обычное представление не хранит строки и не требует `REFRESH` |
 
-После занятия слушатель поднимает учебный PostgreSQL одной командой Compose и подключается к нему из DBeaver и из ноутбука одними и теми же host, port, database, user и password.
+После занятия слушатель ограничивает столбец своим типом или доменом, читает поле из `jsonb`, собирает поддерево рекурсией и отличает снимок материализованного представления от запроса, который считается заново.

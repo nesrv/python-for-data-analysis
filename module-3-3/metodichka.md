@@ -1,223 +1,296 @@
-# 3.3. Устранение излишней и избыточной информации
+# 3.3. Хранимые объекты
 
-**Цель:** отличить полезные столбцы и строки от повторов и полей, которые не несут новой информации, и сохранить таблицу без этих лишних данных.
+**Цель:** отличить функцию, процедуру, правило и триггер в PostgreSQL и создать каждый из этих объектов в учебной базе `course`.
 
-**Опора:** окружение `.venv`, `pandas` из модуля 3.1. Ядро Jupyter — `./.venv/Scripts/python.exe`. Рабочая папка VS Code — корень курса.
+**Опора:** контейнер PostgreSQL из раздела 3.1, база `course`, пользователь `student`. Запросы выполняйте в DBeaver или ячейкой SQLAlchemy в `module-3-3/lab32-routines.ipynb`.
 
 **Итоговые артефакты** (в папке `module-3-3/`):
 
 | Файл | Назначение |
 |------|------------|
-| `data/visits_raw.csv` | Исходная таблица с дублями и лишними столбцами |
-| `lab33-redundant.ipynb` | Ноутбук с разбором и очисткой |
-| `data/visits_ready.csv` | Таблица после удаления лишнего |
+| `lab32-routines.ipynb` | Вызовы функции, процедуры, выборки из набора строк |
+| `sql/routines.sql` | Текст всех созданных объектов |
 
-Излишняя информация здесь — то, что повторяет уже известное: одинаковые строки, копия столбца, поле с одним и тем же значением. Избыточная — то, что для задачи не нужно, даже если значения разные: служебный комментарий, случайный номер выгрузки.
+Хранимый объект живёт в базе, а не в ноутбуке. Пока его не удалили, следующий сеанс видит ту же функцию и тот же триггер.
 
 ---
 
 ## Подготовка
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m pip install pandas
+Контейнер `pg18-course` должен быть запущен, таблица `scores` — существовать (её создаёт раздел 3.1). Проверка:
+
+```sql
+SELECT name, group_code, score FROM scores ORDER BY name;
 ```
 
-Создайте ноутбук `module-3-3/lab33-redundant.ipynb` и выберите ядро `.venv`.
-
-Первая ячейка — markdown: ФИО, дата, заголовок «3.3 Устранение излишней и избыточной информации».
+Если таблицы нет, создайте её и вставьте четыре строки из раздела 3.1: Анна 18, Борис 15, Вера 20, Глеб с пустым баллом.
 
 ---
 
-## 3.3.1. Исходная таблица
+## 3.3.1. Какие объекты бывают
 
-Создайте `module-3-3/data/visits_raw.csv` в кодировке UTF-8:
+| Объект | Вызов | Что делает |
+|--------|--------|------------|
+| Функция | внутри выражения, обычно `SELECT` | возвращает значение или набор строк, транзакцию не завершает |
+| Процедура | оператор `CALL` | выполняет действия; при вызове отдельной командой может управлять транзакцией |
+| Правило `RULE` | само, при `INSERT` / `UPDATE` / `DELETE` | переписывает запрос до выполнения |
+| Триггер | сам, до или после строки или оператора | вызывает функцию на событие таблицы |
 
-```text
-visit_id,client,client_again,city,channel,pages,pages_copy,status,note
-1,Анна,Анна,Москва,поиск,4,4,новый,выгрузка от 12.03
-2,Борис,Борис,Казань,реклама,2,2,новый,выгрузка от 12.03
-3,Анна,Анна,Москва,поиск,4,4,новый,выгрузка от 12.03
-4,Вера,Вера,Тула,письмо,7,7,новый,выгрузка от 12.03
-5,Борис,Борис,Казань,реклама,2,2,новый,повтор той же строки
-6,Глеб,Глеб,Москва,поиск,3,3,новый,выгрузка от 12.03
-```
+Функция и процедура делят одно пространство имён: так нельзя назвать и функцию, и процедуру. Текст объекта храните в `sql/routines.sql`, а не правьте только через редактор внутри клиента базы.
 
-Что в ней лишнее:
-
-| Поле или строки | Почему это лишнее |
-|-----------------|-------------------|
-| Строка `visit_id` 3 | Полный повтор визита Анны (`visit_id` 1) по всем содержательным полям |
-| Строка `visit_id` 5 | Полный повтор визита Бориса (`visit_id` 2) |
-| `client_again` | Совпадает с `client` в каждой строке |
-| `pages_copy` | Совпадает с `pages` |
-| `status` | Во всех строках одно и то же значение `новый` |
-| `note` | Служебный комментарий выгрузки, для подсчёта визитов не нужен |
-
-**Ячейка:**
-
-```python
-import pandas as pd
-
-raw = pd.read_csv("module-3-3/data/visits_raw.csv", encoding="utf-8")
-print(raw.shape)
-print(raw)
-```
-
-**Критерий 3.3.1:** в таблице 6 строк и 9 столбцов, кириллица читается.
+**Критерий 3.3.1:** в markdown одной фразой записано, чем `SELECT score_label(18)` отличается от `CALL add_score(...)`.
 
 ---
 
-## 3.3.2. Одинаковые строки
+## 3.3.2. Функция на SQL
 
-Дубль — строка, которая повторяет другую по смыслу задачи. `visit_id` и `note` как раз различают копии, поэтому при поиске содержательных повторов их не учитывают.
+Функция всегда вызывается как часть выражения. Категория `IMMUTABLE` означает, что при тех же аргументах результат один и тот же и от таблиц не зависит.
 
-**Ячейка:**
-
-```python
-keys = ["client", "city", "channel", "pages"]
-duplicates = raw.duplicated(subset=keys, keep="first")
-print(raw.loc[duplicates, ["visit_id", "client", "note"]])
-print("лишних строк:", int(duplicates.sum()))
+```sql
+CREATE OR REPLACE FUNCTION score_label(score integer)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT CASE
+        WHEN score IS NULL THEN 'нет балла'
+        WHEN score >= 18 THEN 'зачёт с отличием'
+        WHEN score >= 12 THEN 'зачёт'
+        ELSE 'нужна доработка'
+    END;
+$$;
 ```
 
-`keep="first"` помечает повторы, но оставляет первую встреченную строку.
-
-```python
-unique_visits = raw.drop_duplicates(subset=keys, keep="first").copy()
-print(unique_visits[["visit_id", "client", "city", "pages"]])
-print(unique_visits.shape)
+```sql
+SELECT score_label(18), score_label(15), score_label(11), score_label(NULL);
+SELECT name, score, score_label(score) FROM scores ORDER BY name;
 ```
 
-**Критерий 3.3.2:** лишними помечены визиты 3 и 5, после удаления остаётся 4 строки.
+`CREATE OR REPLACE` меняет тело, если функция с таким именем и такими типами аргументов уже есть.
+
+**Практика 3.3.2.** Добавьте функцию `initials(last_name text, first_name text)` категории `IMMUTABLE`. Для `'Иванов'` и `'Иван'` она возвращает `'Иванов И.'`. Проверьте вызовом в `SELECT`.
+
+**Критерий 3.3.2:** `score_label` для 18, 15, 11 и `NULL` даёт четыре разные подписи. `initials` возвращает `'Иванов И.'`.
 
 ---
 
-## 3.3.3. Столбцы-копии
+## 3.3.3. Функция, которая читает таблицу
 
-Столбец избыточен, если в каждой строке он равен другому столбцу. Такие пары ищут сравнением, а не по похожему имени: имя `client_again` само по себе ничего не доказывает.
+Если результат зависит от данных, но в одном операторе таблица не меняется, ставят `STABLE`, а не `IMMUTABLE`.
 
-**Ячейка:**
-
-```python
-left = unique_visits.columns.tolist()
-copies = []
-for i, first in enumerate(left):
-    for second in left[i + 1:]:
-        if unique_visits[first].equals(unique_visits[second]):
-            copies.append((first, second))
-print(copies)
+```sql
+CREATE OR REPLACE FUNCTION score_of(p_name text)
+RETURNS integer
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT score FROM scores WHERE name = p_name;
+$$;
 ```
 
-Ожидаемые пары: `client` и `client_again`, `pages` и `pages_copy`.
-
-Оставляйте столбец с понятным именем и удаляйте копию:
-
-```python
-without_copies = unique_visits.drop(columns=["client_again", "pages_copy"])
-print(without_copies.columns.tolist())
+```sql
+SELECT score_of('Анна');
 ```
 
-**Практика 3.3.3.** В markdown запишите, какой столбец из каждой пары оставили и почему.
+Пустое имя или отсутствующий человек дают `NULL`, а не ошибку: запрос просто не нашёл строку.
 
-**Критерий 3.3.3:** список `copies` содержит две пары, в таблице больше нет `client_again` и `pages_copy`.
+**Критерий 3.3.3:** `score_of('Анна')` равен 18, `score_of('нет такого')` равен `NULL`.
 
 ---
 
-## 3.3.4. Столбец без различий
+## 3.3.4. Процедура
 
-Если столбец во всех строках принимает одно значение, он не помогает отличить одну запись от другой.
+Процедуру вызывают только через `CALL`. Она может не возвращать таблицу, а менять данные. Процедура на языке SQL в этом занятии транзакцию не открывает и не закрывает: для `COMMIT` внутри тела нужен PL/pgSQL и вызов `CALL` вне уже открытой транзакции.
 
-**Ячейка:**
-
-```python
-constant = [
-    column
-    for column in without_copies.columns
-    if without_copies[column].nunique(dropna=False) == 1
-]
-print(constant)
-print(without_copies["status"].unique().tolist())
+```sql
+CREATE OR REPLACE PROCEDURE add_score(
+    p_name text,
+    p_group text,
+    p_score integer
+)
+LANGUAGE sql
+AS $$
+    INSERT INTO scores (name, group_code, score)
+    VALUES (p_name, p_group, p_score);
+$$;
 ```
 
-`nunique(dropna=False)` считает и пропуски отдельным значением. Иначе столбец из одних только пустых ячеек можно не заметить.
-
-```python
-without_constant = without_copies.drop(columns=constant)
-print(without_constant.columns.tolist())
+```sql
+CALL add_score('Олег', 'A', 16);
+SELECT name, score, score_label(score) FROM scores WHERE name = 'Олег';
 ```
 
-**Критерий 3.3.4:** в списке постоянных столбцов есть `status`, после удаления этого столбца в таблице нет.
+**Практика 3.3.4.** Вызовите `add_score` для `'Нины'` из группы `'B'` с баллом 19. Убедитесь, что подпись — «зачёт с отличием».
+
+**Критерий 3.3.4:** в `scores` есть Олег с баллом 16 и Нина с баллом 19.
 
 ---
 
-## 3.3.5. Поля, которые не входят в задачу
+## 3.3.5. Набор строк
 
-Остаток ещё может содержать сведения, не нужные для выбранного вопроса. Вопрос занятия: сколько страниц посмотрел каждый клиент и из какого он города и канала. Для этого не нужны номер строки выгрузки и комментарий оператора.
+`RETURNS TABLE` объявляет функцию, которая возвращает не одно поле, а таблицу. Её ставят в `FROM`, как источник строк. Категория `STABLE`: набор зависит от текущего содержимого `scores`.
 
-**Ячейка:**
-
-```python
-task_columns = ["client", "city", "channel", "pages"]
-ready = without_constant[task_columns].copy()
-print(ready)
-print("строк и столбцов:", ready.shape)
+```sql
+CREATE OR REPLACE FUNCTION passed_scores()
+RETURNS TABLE(name text, score integer)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT s.name, s.score
+    FROM scores AS s
+    WHERE s.score >= 12
+    ORDER BY s.name;
+$$;
 ```
 
-`visit_id` различен почти у каждой строки, поэтому проверка на одно значение его не удалит. Его убирают отдельно, когда он не нужен в результате. Если бы вопрос был «найти конкретный визит», идентификатор как раз следовало оставить.
+```sql
+SELECT * FROM passed_scores();
+```
 
-**Практика 3.3.5.** Одной фразой в markdown объясните, почему `note` удалён из результата, хотя тексты комментариев не все одинаковые.
+Имена столбцов в `RETURNS TABLE` совпадают со столбцами `scores`. В теле запроса таблица названа `s`, иначе `name` внутри функции указывает на выходной столбец, а не на поле таблицы.
 
-**Критерий 3.3.5:** в `ready` четыре строки и ровно столбцы `client`, `city`, `channel`, `pages`. Сумма `pages` равна **16** (4 + 2 + 7 + 3).
+**Критерий 3.3.5:** в выборке есть Анна, Борис, Вера, Олег и Нина. Глеба нет: у него балл пустой.
 
 ---
 
-## 3.3.6. Сохранение результата
+## 3.3.6. Курсор
 
-```python
-from pathlib import Path
+Курсор читает результат запроса по одной строке. В языке SQL курсора нет, его пишут на PL/pgSQL. Для этой задачи набор строк из раздела 3.3.5 короче и уместнее. Курсор нужен, когда следующую строку обрабатывают отдельно от предыдущей.
 
-out = Path("module-3-3/data/visits_ready.csv")
-ready.to_csv(out, index=False, encoding="utf-8")
-
-check = pd.read_csv(out, encoding="utf-8")
-print(check)
-print("сумма страниц", int(check["pages"].sum()))
+```sql
+CREATE OR REPLACE FUNCTION names_in_order()
+RETURNS text
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+    cur CURSOR FOR SELECT s.name FROM scores AS s ORDER BY s.name;
+    rec record;
+    acc text := '';
+BEGIN
+    OPEN cur;
+    LOOP
+        FETCH cur INTO rec;
+        EXIT WHEN NOT FOUND;
+        acc := acc || rec.name || ' ';
+    END LOOP;
+    CLOSE cur;
+    RETURN acc;
+END;
+$$;
 ```
 
-**Критерий 3.3.6:** повторно прочитанный файл совпадает с `ready`: 4 строки, сумма страниц 16, лишних столбцов нет.
+```sql
+SELECT names_in_order();
+```
+
+`OPEN` выполняет запрос, `FETCH` забирает строку, `NOT FOUND` заканчивает цикл, `CLOSE` освобождает курсор.
+
+**Практика 3.3.6.** В markdown напишите, почему список сдавших в разделе 3.3.5 сделан через `RETURNS TABLE`, а не через курсор.
+
+**Критерий 3.3.6:** строка содержит имена из `scores` в алфавитном порядке, разделённые пробелом. Глеб в ней есть: курсор не фильтрует балл.
 
 ---
 
-## 3.3.7. Самопроверка
+## 3.3.7. Правило
 
-В конце ноутбука ответьте в markdown:
+Правило переписывает запрос до выполнения. `DO ALSO` добавляет ещё одно действие, исходная команда тоже выполняется. `NEW` в правиле на `INSERT` — вставляемая строка.
 
-1. Почему дубли ищут по `client`, `city`, `channel`, `pages`, а не по всей строке сразу.
-2. Чем столбец-копия отличается от столбца с одним значением на всех строках.
-3. В каком случае `visit_id` нельзя удалять.
+```sql
+CREATE TABLE IF NOT EXISTS scores_log (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text,
+    action text,
+    at timestamp DEFAULT now()
+);
+
+CREATE OR REPLACE RULE scores_log_insert AS
+    ON INSERT TO scores
+    DO ALSO
+    INSERT INTO scores_log (name, action)
+    VALUES (NEW.name, 'INSERT');
+```
+
+```sql
+CALL add_score('Пётр', 'A', 14);
+SELECT name, action FROM scores_log WHERE name = 'Пётр';
+```
+
+Правило срабатывает на любой `INSERT` в `scores`, в том числе из процедуры `add_score`.
+
+**Критерий 3.3.7:** у Петра есть и строка в `scores`, и строка в `scores_log` с действием `INSERT`.
+
+---
+
+## 3.3.8. Триггер
+
+Триггер вызывает функцию в момент события. Для журнала он обычно уместнее правила: правило переписывает запрос целиком и сложнее читается. Перед триггером снимите правило, иначе журнал получит две записи на одну вставку.
+
+```sql
+DROP RULE IF EXISTS scores_log_insert ON scores;
+
+CREATE OR REPLACE FUNCTION scores_log_fn()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO scores_log (name, action)
+    VALUES (NEW.name, TG_OP);
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS scores_log_trg ON scores;
+
+CREATE TRIGGER scores_log_trg
+    AFTER INSERT ON scores
+    FOR EACH ROW
+    EXECUTE FUNCTION scores_log_fn();
+```
+
+`TG_OP` — имя операции, для этого триггера это `INSERT`. `RETURN NEW` обязателен у триггера строки: так строка передаётся дальше.
+
+```sql
+CALL add_score('Мария', 'B', 17);
+SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORDER BY id;
+```
+
+**Практика 3.3.8.** Вставьте ещё одну строку обычным `INSERT`, без процедуры. Убедитесь, что журнал пополнился и без `add_score`.
+
+**Критерий 3.3.8:** у Марии в журнале действие `INSERT`. Новая строка из практики тоже есть в `scores_log`. Правила `scores_log_insert` уже нет.
+
+---
+
+## 3.3.9. Самопроверка
+
+В `lab32-routines.ipynb` или в конце `sql/routines.sql` ответьте:
+
+1. Почему `score_label` объявлена `IMMUTABLE`, а `score_of` — `STABLE`.
+2. Чем `CALL` отличается от вызова функции в `SELECT`.
+3. Почему для журнала вставок оставлен триггер, а правило удалено.
 
 ### Чеклист
 
 | № | Действие | Готово |
 |---|----------|--------|
-| 1 | `data/visits_raw.csv` читается, 6 строк и 9 столбцов | ☐ |
-| 2 | Содержательные дубли — визиты 3 и 5, остаётся 4 строки | ☐ |
-| 3 | Найдены пары `client` / `client_again` и `pages` / `pages_copy` | ☐ |
-| 4 | Столбец `status` удалён как постоянный | ☐ |
-| 5 | В результате только `client`, `city`, `channel`, `pages` | ☐ |
-| 6 | `data/visits_ready.csv`, сумма страниц 16 | ☐ |
-| 7 | Три ответа самопроверки | ☐ |
+| 1 | `score_label` и `initials` вызываются из `SELECT` | ☐ |
+| 2 | `score_of('Анна')` равен 18 | ☐ |
+| 3 | `CALL add_score` добавил Олега и Нину | ☐ |
+| 4 | `passed_scores()` возвращает только заполненные баллы от 12 | ☐ |
+| 5 | `names_in_order()` собирает имена курсором | ☐ |
+| 6 | Журнал `scores_log` пишет вставку триггером | ☐ |
+| 7 | Текст объектов лежит в `sql/routines.sql` | ☐ |
+| 8 | Три ответа самопроверки | ☐ |
 
 ### Типовые ошибки
 
 | Симптом | Что проверить |
 |---------|----------------|
-| `drop_duplicates` ничего не удалил | В `subset` попали `visit_id` или `note`: у копий они разные |
-| Удалили обе колонки из пары | Оставляйте одну, удаляйте только копию |
-| Пропал клиент | `keep="first"` удаляет повтор, а не все вхождения ключа. Проверьте число строк: должно остаться 4 |
-| `note` остался в файле | В `task_columns` его быть не должно |
-| Кракозябры в CSV | `encoding="utf-8"` и при чтении, и при записи |
-| `FileNotFoundError` | Путь `module-3-3/data/...` от корня курса |
+| `function score_of(unknown) does not exist` | Аргумент приведите к `text`: `score_of('Анна'::text)` |
+| `column reference "name" is ambiguous` | В теле функции таблица названа, поля взяты как `s.name` |
+| `CALL` не находится | Это процедура, её нет в списке функций. Смотрите `\df` и процедуры отдельно |
+| В журнале две строки на одну вставку | Одновременно живут и правило, и триггер. Правило нужно снять |
+| Триггер не создаётся | В PostgreSQL 14 и новее пишут `EXECUTE FUNCTION`, не `EXECUTE PROCEDURE` |
+| После пересоздания базы объектов нет | `sql/routines.sql` выполняют заново: объекты не лежат в ноутбуке |
 
-После занятия слушатель перед анализом отдельно проверяет три источника лишнего: повторы строк, столбцы без новой информации и поля, которые не входят в вопрос.
+После занятия слушатель кладёт повторяемое вычисление в функцию, изменение данных — в процедуру, а реакцию на вставку — в триггер, и хранит этот текст в файле.

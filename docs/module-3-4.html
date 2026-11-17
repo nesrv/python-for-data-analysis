@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>3.4 Нормализация данных. Форматирование данных</title>
+  <title>3.4 Устранение излишней и избыточной информации</title>
   <link rel="stylesheet" href="course.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="module-3.html">← Модуль 3</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>3.4 Нормализация данных. Форматирование данных</h1>
-<p><strong>Цель:</strong> привести поля одной таблицы к общим правилам: текст без лишних пробелов, числа и даты в одном виде, категории в одном словаре, числовой столбец на общей шкале.</p>
-<p><strong>Опора:</strong> <code>pandas</code> из модуля 3.1, таблица без явных дублей из модуля 3.3. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+    <h1>3.4 Устранение излишней и избыточной информации</h1>
+<p><strong>Цель:</strong> отличить полезные столбцы и строки от повторов и полей, которые не несут новой информации, и сохранить таблицу без этих лишних данных.</p>
+<p><strong>Опора:</strong> окружение <code>.venv</code>, <code>pandas</code> из модуля 3.1. Ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-3-4/</code>):</p>
 <table>
 <thead>
@@ -23,119 +23,163 @@
 </thead>
 <tbody>
 <tr>
-<td><code>data/orders_raw.csv</code></td>
-<td>Заказы в разнобое: пробелы, запятая в сумме, разные даты и подписи</td>
+<td><code>data/visits_raw.csv</code></td>
+<td>Исходная таблица с дублями и лишними столбцами</td>
 </tr>
 <tr>
-<td><code>lab34-format.ipynb</code></td>
-<td>Ноутбук с разбором и приведением полей</td>
+<td><code>lab33-redundant.ipynb</code></td>
+<td>Ноутбук с разбором и очисткой</td>
 </tr>
 <tr>
-<td><code>data/orders_ready.csv</code></td>
-<td>Таблица после форматирования и нормализации суммы</td>
+<td><code>data/visits_ready.csv</code></td>
+<td>Таблица после удаления лишнего</td>
 </tr>
 </tbody>
 </table>
-<p>Форматирование меняет запись значения, но не его смысл: <code>" 1 200,50 "</code> и <code>1200.5</code> — одна сумма. Нормализация в этом занятии — приведение к одному правилу: одна шкала у чисел, одно написание у категории.</p>
+<p>Излишняя информация здесь — то, что повторяет уже известное: одинаковые строки, копия столбца, поле с одним и тем же значением. Избыточная — то, что для задачи не нужно, даже если значения разные: служебный комментарий, случайный номер выгрузки.</p>
 <hr />
 <h2>Подготовка</h2>
 <pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
 python -m pip install pandas
 </code></pre>
-<p>Создайте ноутбук <code>module-3-4/lab34-format.ipynb</code> и выберите ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «3.4 Нормализация данных. Форматирование данных».</p>
+<p>Создайте ноутбук <code>module-3-4/lab33-redundant.ipynb</code> и выберите ядро <code>.venv</code>.</p>
+<p>Первая ячейка — markdown: ФИО, дата, заголовок «3.3 Устранение излишней и избыточной информации».</p>
 <hr />
 <h2>3.4.1. Исходная таблица</h2>
-<p>Создайте <code>module-3-4/data/orders_raw.csv</code> в кодировке UTF-8:</p>
-<pre><code class="language-text">order_id,city,amount,ordered_at,channel
-1,  Москва ,&quot;1 200,50&quot;,12.03.2026,Поиск
-2,казань,980.00,2026-03-13,реклама
-3,МОСКВА,&quot;2 450,00&quot;,13/03/2026,ПОИСК
-4,Тула,1500,2026/03/14,письмо
+<p>Создайте <code>module-3-4/data/visits_raw.csv</code> в кодировке UTF-8:</p>
+<pre><code class="language-text">visit_id,client,client_again,city,channel,pages,pages_copy,status,note
+1,Анна,Анна,Москва,поиск,4,4,новый,выгрузка от 12.03
+2,Борис,Борис,Казань,реклама,2,2,новый,выгрузка от 12.03
+3,Анна,Анна,Москва,поиск,4,4,новый,выгрузка от 12.03
+4,Вера,Вера,Тула,письмо,7,7,новый,выгрузка от 12.03
+5,Борис,Борис,Казань,реклама,2,2,новый,повтор той же строки
+6,Глеб,Глеб,Москва,поиск,3,3,новый,выгрузка от 12.03
 </code></pre>
-<p>Одна и та же сущность записана по-разному. Город встречается как <code>Москва</code> и <code>МОСКВА</code>. Сумма то с пробелом и запятой, то с точкой. Дата приходит в трёх шаблонах. Канал отличается регистром.</p>
+<p>Что в ней лишнее:</p>
+<table>
+<thead>
+<tr>
+<th>Поле или строки</th>
+<th>Почему это лишнее</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Строка <code>visit_id</code> 3</td>
+<td>Полный повтор визита Анны (<code>visit_id</code> 1) по всем содержательным полям</td>
+</tr>
+<tr>
+<td>Строка <code>visit_id</code> 5</td>
+<td>Полный повтор визита Бориса (<code>visit_id</code> 2)</td>
+</tr>
+<tr>
+<td><code>client_again</code></td>
+<td>Совпадает с <code>client</code> в каждой строке</td>
+</tr>
+<tr>
+<td><code>pages_copy</code></td>
+<td>Совпадает с <code>pages</code></td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Во всех строках одно и то же значение <code>новый</code></td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td>Служебный комментарий выгрузки, для подсчёта визитов не нужен</td>
+</tr>
+</tbody>
+</table>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">import pandas as pd
 
-raw = pd.read_csv(&quot;module-3-4/data/orders_raw.csv&quot;, encoding=&quot;utf-8&quot;, dtype=str)
-print(raw.dtypes)
+raw = pd.read_csv(&quot;module-3-4/data/visits_raw.csv&quot;, encoding=&quot;utf-8&quot;)
+print(raw.shape)
 print(raw)
 </code></pre>
-<p><code>dtype=str</code> нужен, чтобы pandas не угадывал числа и даты до ваших правил.</p>
-<p><strong>Критерий 3.4.1:</strong> четыре строки, все столбцы имеют тип <code>object</code> или <code>string</code>, кириллица читается.</p>
+<p><strong>Критерий 3.4.1:</strong> в таблице 6 строк и 9 столбцов, кириллица читается.</p>
 <hr />
-<h2>3.4.2. Текст</h2>
-<p>Пробелы по краям и регистр не меняют город, но мешают группировке. Категорию приводят к одному написанию.</p>
-<pre><code class="language-python">frame = raw.copy()
-frame[&quot;city&quot;] = frame[&quot;city&quot;].str.strip().str.lower()
-frame[&quot;channel&quot;] = frame[&quot;channel&quot;].str.strip().str.lower()
-print(frame[&quot;city&quot;].tolist())
-print(frame[&quot;channel&quot;].unique().tolist())
+<h2>3.4.2. Одинаковые строки</h2>
+<p>Дубль — строка, которая повторяет другую по смыслу задачи. <code>visit_id</code> и <code>note</code> как раз различают копии, поэтому при поиске содержательных повторов их не учитывают.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">keys = [&quot;client&quot;, &quot;city&quot;, &quot;channel&quot;, &quot;pages&quot;]
+duplicates = raw.duplicated(subset=keys, keep=&quot;first&quot;)
+print(raw.loc[duplicates, [&quot;visit_id&quot;, &quot;client&quot;, &quot;note&quot;]])
+print(&quot;лишних строк:&quot;, int(duplicates.sum()))
 </code></pre>
-<p><strong>Практика 3.4.2.</strong> Замените канал словарём подписей: <code>поиск</code> → <code>search</code>, <code>реклама</code> → <code>ads</code>, <code>письмо</code> → <code>email</code>. Неизвестное значение оставьте как есть.</p>
-<pre><code class="language-python">channel_map = {&quot;поиск&quot;: &quot;search&quot;, &quot;реклама&quot;: &quot;ads&quot;, &quot;письмо&quot;: &quot;email&quot;}
-frame[&quot;channel&quot;] = frame[&quot;channel&quot;].map(channel_map).fillna(frame[&quot;channel&quot;])
-print(frame[&quot;channel&quot;].tolist())
+<p><code>keep="first"</code> помечает повторы, но оставляет первую встреченную строку.</p>
+<pre><code class="language-python">unique_visits = raw.drop_duplicates(subset=keys, keep=&quot;first&quot;).copy()
+print(unique_visits[[&quot;visit_id&quot;, &quot;client&quot;, &quot;city&quot;, &quot;pages&quot;]])
+print(unique_visits.shape)
 </code></pre>
-<p><strong>Критерий 3.4.2:</strong> города — <code>москва</code>, <code>казань</code>, <code>москва</code>, <code>тула</code>. Каналы — <code>search</code>, <code>ads</code>, <code>search</code>, <code>email</code>.</p>
+<p><strong>Критерий 3.4.2:</strong> лишними помечены визиты 3 и 5, после удаления остаётся 4 строки.</p>
 <hr />
-<h2>3.4.3. Числа</h2>
-<p>Сумма в файле — текст. Пробел отделяет тысячи, запятая отделяет дробную часть. Перед <code>float</code> пробелы убирают, запятую меняют на точку.</p>
-<pre><code class="language-python">frame[&quot;amount&quot;] = (
-    frame[&quot;amount&quot;]
-    .str.replace(&quot; &quot;, &quot;&quot;, regex=False)
-    .str.replace(&quot;,&quot;, &quot;.&quot;, regex=False)
-    .astype(float)
-)
-print(frame[&quot;amount&quot;].tolist())
-print(frame[&quot;amount&quot;].sum())
+<h2>3.4.3. Столбцы-копии</h2>
+<p>Столбец избыточен, если в каждой строке он равен другому столбцу. Такие пары ищут сравнением, а не по похожему имени: имя <code>client_again</code> само по себе ничего не доказывает.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">left = unique_visits.columns.tolist()
+copies = []
+for i, first in enumerate(left):
+    for second in left[i + 1:]:
+        if unique_visits[first].equals(unique_visits[second]):
+            copies.append((first, second))
+print(copies)
 </code></pre>
-<p><strong>Критерий 3.4.3:</strong> значения <code>1200.5</code>, <code>980.0</code>, <code>2450.0</code>, <code>1500.0</code>. Сумма равна <strong>6130.5</strong>.</p>
+<p>Ожидаемые пары: <code>client</code> и <code>client_again</code>, <code>pages</code> и <code>pages_copy</code>.</p>
+<p>Оставляйте столбец с понятным именем и удаляйте копию:</p>
+<pre><code class="language-python">without_copies = unique_visits.drop(columns=[&quot;client_again&quot;, &quot;pages_copy&quot;])
+print(without_copies.columns.tolist())
+</code></pre>
+<p><strong>Практика 3.4.3.</strong> В markdown запишите, какой столбец из каждой пары оставили и почему.</p>
+<p><strong>Критерий 3.4.3:</strong> список <code>copies</code> содержит две пары, в таблице больше нет <code>client_again</code> и <code>pages_copy</code>.</p>
 <hr />
-<h2>3.4.4. Даты</h2>
-<p><code>pandas</code> умеет разобрать несколько шаблонов, если передать <code>format="mixed"</code> и день раньше месяца там, где запись неоднозначна. Для этой таблицы день стоит первым в <code>12.03.2026</code> и <code>13/03/2026</code>.</p>
-<pre><code class="language-python">frame[&quot;ordered_at&quot;] = pd.to_datetime(
-    frame[&quot;ordered_at&quot;],
-    format=&quot;mixed&quot;,
-    dayfirst=True,
-)
-print(frame[&quot;ordered_at&quot;].dt.strftime(&quot;%Y-%m-%d&quot;).tolist())
+<h2>3.4.4. Столбец без различий</h2>
+<p>Если столбец во всех строках принимает одно значение, он не помогает отличить одну запись от другой.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">constant = [
+    column
+    for column in without_copies.columns
+    if without_copies[column].nunique(dropna=False) == 1
+]
+print(constant)
+print(without_copies[&quot;status&quot;].unique().tolist())
 </code></pre>
-<p>В результат сохраняют одну строковую форму <code>ГГГГ-ММ-ДД</code>, а не исходный разнобой.</p>
-<pre><code class="language-python">frame[&quot;ordered_at&quot;] = frame[&quot;ordered_at&quot;].dt.strftime(&quot;%Y-%m-%d&quot;)
-print(frame[&quot;ordered_at&quot;].tolist())
+<p><code>nunique(dropna=False)</code> считает и пропуски отдельным значением. Иначе столбец из одних только пустых ячеек можно не заметить.</p>
+<pre><code class="language-python">without_constant = without_copies.drop(columns=constant)
+print(without_constant.columns.tolist())
 </code></pre>
-<p><strong>Критерий 3.4.4:</strong> даты равны <code>2026-03-12</code>, <code>2026-03-13</code>, <code>2026-03-13</code>, <code>2026-03-14</code>.</p>
+<p><strong>Критерий 3.4.4:</strong> в списке постоянных столбцов есть <code>status</code>, после удаления этого столбца в таблице нет.</p>
 <hr />
-<h2>3.4.5. Общая шкала суммы</h2>
-<p>После форматирования суммы всё ещё лежат в рублях и плохо сравниваются с другим показателем, если тот измерен в других единицах. Минимакс переводит столбец в отрезок от 0 до 1: минимум становится 0, максимум становится 1.</p>
-<pre><code class="language-python">low = frame[&quot;amount&quot;].min()
-high = frame[&quot;amount&quot;].max()
-frame[&quot;amount_norm&quot;] = (frame[&quot;amount&quot;] - low) / (high - low)
-print(frame[[&quot;amount&quot;, &quot;amount_norm&quot;]])
+<h2>3.4.5. Поля, которые не входят в задачу</h2>
+<p>Остаток ещё может содержать сведения, не нужные для выбранного вопроса. Вопрос занятия: сколько страниц посмотрел каждый клиент и из какого он города и канала. Для этого не нужны номер строки выгрузки и комментарий оператора.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">task_columns = [&quot;client&quot;, &quot;city&quot;, &quot;channel&quot;, &quot;pages&quot;]
+ready = without_constant[task_columns].copy()
+print(ready)
+print(&quot;строк и столбцов:&quot;, ready.shape)
 </code></pre>
-<p>Исходную сумму не удаляют: нормированное поле добавляют рядом. Минимум <code>980</code> получает 0, максимум <code>2450</code> получает 1.</p>
-<p><strong>Практика 3.4.5.</strong> Проверьте руками норму для <code>1500</code>: <code>(1500 - 980) / (2450 - 980)</code>. Сверьте с ячейкой.</p>
-<p><strong>Критерий 3.4.5:</strong> в <code>amount_norm</code> есть 0 и 1. Для суммы <code>1500</code> норма примерно <strong>0.3537</strong>. Столбец <code>amount</code> на месте.</p>
+<p><code>visit_id</code> различен почти у каждой строки, поэтому проверка на одно значение его не удалит. Его убирают отдельно, когда он не нужен в результате. Если бы вопрос был «найти конкретный визит», идентификатор как раз следовало оставить.</p>
+<p><strong>Практика 3.4.5.</strong> Одной фразой в markdown объясните, почему <code>note</code> удалён из результата, хотя тексты комментариев не все одинаковые.</p>
+<p><strong>Критерий 3.4.5:</strong> в <code>ready</code> четыре строки и ровно столбцы <code>client</code>, <code>city</code>, <code>channel</code>, <code>pages</code>. Сумма <code>pages</code> равна <strong>16</strong> (4 + 2 + 7 + 3).</p>
 <hr />
-<h2>3.4.6. Сохранение</h2>
+<h2>3.4.6. Сохранение результата</h2>
 <pre><code class="language-python">from pathlib import Path
 
-ready = frame[[&quot;order_id&quot;, &quot;city&quot;, &quot;amount&quot;, &quot;amount_norm&quot;, &quot;ordered_at&quot;, &quot;channel&quot;]]
-out = Path(&quot;module-3-4/data/orders_ready.csv&quot;)
+out = Path(&quot;module-3-4/data/visits_ready.csv&quot;)
 ready.to_csv(out, index=False, encoding=&quot;utf-8&quot;)
 
 check = pd.read_csv(out, encoding=&quot;utf-8&quot;)
 print(check)
-print(&quot;сумма&quot;, check[&quot;amount&quot;].sum())
+print(&quot;сумма страниц&quot;, int(check[&quot;pages&quot;].sum()))
 </code></pre>
-<p><strong>Критерий 3.4.6:</strong> файл читается повторно, сумма <code>amount</code> равна <strong>6130.5</strong>, даты в виде <code>2026-03-12</code> и соседних дней, каналы на английских кодах из словаря.</p>
+<p><strong>Критерий 3.4.6:</strong> повторно прочитанный файл совпадает с <code>ready</code>: 4 строки, сумма страниц 16, лишних столбцов нет.</p>
 <hr />
 <h2>3.4.7. Самопроверка</h2>
-<p>В конце ноутбука ответьте:</p>
+<p>В конце ноутбука ответьте в markdown:</p>
 <ol>
-<li>Чем форматирование суммы отличается от нормировки <code>amount_norm</code>.</li>
-<li>Почему файл сначала читают как строки, а не дают pandas самому выбрать типы.</li>
-<li>Зачем оставлять исходную сумму рядом с нормой от 0 до 1.</li>
+<li>Почему дубли ищут по <code>client</code>, <code>city</code>, <code>channel</code>, <code>pages</code>, а не по всей строке сразу.</li>
+<li>Чем столбец-копия отличается от столбца с одним значением на всех строках.</li>
+<li>В каком случае <code>visit_id</code> нельзя удалять.</li>
 </ol>
 <h3>Чеклист</h3>
 <table>
@@ -149,41 +193,36 @@ print(&quot;сумма&quot;, check[&quot;amount&quot;].sum())
 <tbody>
 <tr>
 <td>1</td>
-<td><code>orders_raw.csv</code> прочитан целиком как текст</td>
+<td><code>data/visits_raw.csv</code> читается, 6 строк и 9 столбцов</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>2</td>
-<td>Города без краевых пробелов и в нижнем регистре</td>
+<td>Содержательные дубли — визиты 3 и 5, остаётся 4 строки</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>3</td>
-<td>Каналы заменены на <code>search</code>, <code>ads</code>, <code>email</code></td>
+<td>Найдены пары <code>client</code> / <code>client_again</code> и <code>pages</code> / <code>pages_copy</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>4</td>
-<td>Сумма — число, итог 6130.5</td>
+<td>Столбец <code>status</code> удалён как постоянный</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>5</td>
-<td>Даты в виде <code>ГГГГ-ММ-ДД</code></td>
+<td>В результате только <code>client</code>, <code>city</code>, <code>channel</code>, <code>pages</code></td>
 <td>☐</td>
 </tr>
 <tr>
 <td>6</td>
-<td><code>amount_norm</code> лежит от 0 до 1, <code>amount</code> сохранён</td>
+<td><code>data/visits_ready.csv</code>, сумма страниц 16</td>
 <td>☐</td>
 </tr>
 <tr>
 <td>7</td>
-<td><code>orders_ready.csv</code> совпадает с таблицей в ноутбуке</td>
-<td>☐</td>
-</tr>
-<tr>
-<td>8</td>
 <td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
@@ -199,31 +238,32 @@ print(&quot;сумма&quot;, check[&quot;amount&quot;].sum())
 </thead>
 <tbody>
 <tr>
-<td>Сумма стала <code>1200</code> без копеек или <code>NaN</code></td>
-<td>Запятую меняют на точку после удаления пробелов, не наоборот</td>
+<td><code>drop_duplicates</code> ничего не удалил</td>
+<td>В <code>subset</code> попали <code>visit_id</code> или <code>note</code>: у копий они разные</td>
 </tr>
 <tr>
-<td><code>Москва</code> и <code>МОСКВА</code> остались разными</td>
-<td>Нет <code>strip</code> или <code>lower</code> до группировки</td>
+<td>Удалили обе колонки из пары</td>
+<td>Оставляйте одну, удаляйте только копию</td>
 </tr>
 <tr>
-<td>Дата <code>12.03.2026</code> стала 3 декабря</td>
-<td>В <code>to_datetime</code> не передан <code>dayfirst=True</code></td>
+<td>Пропал клиент</td>
+<td><code>keep="first"</code> удаляет повтор, а не все вхождения ключа. Проверьте число строк: должно остаться 4</td>
 </tr>
 <tr>
-<td>Деление на ноль в норме</td>
-<td>В столбце одно и то же число: минимум равен максимуму</td>
+<td><code>note</code> остался в файле</td>
+<td>В <code>task_columns</code> его быть не должно</td>
 </tr>
 <tr>
-<td>В CSV снова числа-строки с запятой</td>
-<td>В файл пишут <code>frame</code> после <code>astype(float)</code>, а не исходный <code>raw</code></td>
+<td>Кракозябры в CSV</td>
+<td><code>encoding="utf-8"</code> и при чтении, и при записи</td>
+</tr>
+<tr>
+<td><code>FileNotFoundError</code></td>
+<td>Путь <code>module-3-4/data/...</code> от корня курса</td>
 </tr>
 </tbody>
 </table>
-<p>После занятия слушатель отдельно приводит запись полей к одному виду и отдельно, если шкала нужна для сравнения, кладёт число в отрезок от 0 до 1, не стирая исходное значение.</p>
+<p>После занятия слушатель перед анализом отдельно проверяет три источника лишнего: повторы строк, столбцы без новой информации и поля, которые не входят в вопрос.</p>
   </article>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script></body>
+</body>
 </html>
