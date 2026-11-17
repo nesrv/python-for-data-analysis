@@ -203,7 +203,7 @@ python -m pip install "psycopg[binary]" sqlalchemy pandas
 
 Создайте `module-3-1/lab32-postgres.ipynb`, ядро — `.venv`.
 
-Первая ячейка — markdown: ФИО, дата, заголовок «3.2 Подключение к PostgreSQL».
+Первая ячейка — markdown: ФИО, дата, заголовок «3.1 Подключение к PostgreSQL».
 
 **Ячейка — соединение:**
 
