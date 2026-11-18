@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Практика-3</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-3.html">← Модуль 3</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>Практика-3</h1>
+    <p>Скрипты из папки <code>sql</code>.</p>
+    <h2>Script-5.sql</h2>
+<pre><code class="language-sql">
+CREATE or replace FUNCTION hello_world()
+returns text
+as $$ select &#x27;Привет&#x27; ; $$
+language sql;
+
+
+CREATE or replace FUNCTION hello_world_1() 
+returns text
+return &#x27;Привет-1&#x27;;
+
+CREATE or replace FUNCTION hello_world_2() RETURNS text
+begin atomic
+	select &#x27;Привет-1&#x27;;
+	select &#x27;Привет-2&#x27;; 
+end;
+
+select hello_world_2();
+
+
+select hello_world_1();
+
+# NO
+# BEGIN, COMMIT, ROLLBACK 
+# VACUUM или CREATE INDEX</code></pre>
+<h2>Script-6.sql</h2>
+<pre><code class="language-sql">CREATE or replace FUNCTION hello_world_in(in name text, IN greet text DEFAULT &#x27;Dear&#x27;)
+RETURNS text
+LANGUAGE sql
+return &#x27;Привет-2 &#x27; || greet || &#x27; &#x27; || name || &#x27; !&#x27; ;
+
+
+select hello_world_in(&#x27;Дорогой&#x27;, name =&gt;&#x27;Dima&#x27;);
+
+</code></pre>
+<h2>Script-7.sql</h2>
+<pre><code class="language-sql">CREATE or replace FUNCTION hello_tz( 
+	IN name text,
+	OUT greeting text,
+	OUT clock timetz
+)
+RETURN (&#x27;Hello, &#x27; || name || &#x27;!&#x27; , current_time);
+
+
+SELECT hello_tz(&#x27;Alice&#x27;);</code></pre>
+<h2>Script-8.sql</h2>
+<pre><code class="language-sql">CREATE TABLE t(n integer);
+
+
+CREATE or replace FUNCTION cnt() RETURNS bigint
+LANGUAGE sql VOLATILE 
+RETURN (SELECT count(*) FROM t);
+
+
+
+
+table t;
+
+CREATE FUNCTION rnd() RETURNS float
+LANGUAGE sql VOLATILE 
+RETURN random();
+
+EXPLAIN (costs off)
+
+SELECT * FROM generate_series(1,10) WHERE rnd() &gt; 0.5;
+
+
+ALTER FUNCTION rnd() immutable;</code></pre>
+<h2>Script-9.sql</h2>
+<pre><code class="language-sql">CREATE TABLE t1(a float);
+
+
+
+CREATE or replace PROCEDURE fill()
+AS $$
+	TRUNCATE t1;
+ 	INSERT INTO t1 SELECT random() FROM generate_series(1,3);
+$$ LANGUAGE sql;
+
+
+CREATE or replace PROCEDURE fill()
+begin Atomic
+	delete from t1;
+ 	INSERT INTO t1 SELECT random() FROM generate_series(1,3);
+end;
+
+
+call fill();
+
+
+table t1;</code></pre>
+<h2>Script-10.sql</h2>
+<pre><code class="language-sql">
+
+CREATE or replace PROCEDURE fill(in nrows integer, out average float)
+begin Atomic
+	delete from t1;
+ 	INSERT INTO t1 SELECT random() FROM generate_series(1,nrows);
+	select AVG(a) from t1;
+end;
+
+
+call fill(10, 0);
+
+
+table t1;
+
+
+DROP PROCEDURE fill(integer);</code></pre>
+<h2>Script-11.sql</h2>
+<pre><code class="language-sql">CREATE or replace FUNCTION maximum(a integer, b integer, c integer)
+RETURNS integer
+RETURN CASE 
+	WHEN a &gt; b THEN maximum(a,c)
+	ELSE maximum (b,c)
+END;
+
+
+
+
+SELECT maximum(10, 200, 10);</code></pre>
+<h2>Script-12.sql</h2>
+<pre><code class="language-sql">CREATE or RAPLACE FUNCTION maximum(
+    a anycompatible, 
+    b anycompatible, 
+    c anycompatible DEFAULT NULL
+) RETURNS anycompatible 
+AS $$
+SELECT CASE
+         WHEN c IS NULL THEN
+             x
+         ELSE
+             CASE WHEN x &gt; c THEN x ELSE c END
+       END
+FROM (
+    SELECT CASE WHEN a &gt; b THEN a ELSE b END
+) max2(x);
+$$ LANGUAGE sql;
+
+
+SELECT maximum(10, 300.14, 30E3), maximum (&#x27;a&#x27;, &#x27;v&#x27;);</code></pre>
+<h2>Script-13.sql</h2>
+<pre><code class="language-sql">CREATE TYPE currency AS (
+    amount numeric,
+    code   text
+);
+
+CREATE TABLE transactions(
+    account_id   integer,
+    debit        currency,
+    credit       currency,
+    date_entered date DEFAULT current_date
+);
+
+INSERT INTO transactions VALUES (1, NULL, &#x27;(100.00,&quot;RUB&quot;)&#x27;);
+INSERT INTO transactions VALUES (2, ROW(80.00,&#x27;RUB&#x27;), NULL);
+INSERT INTO transactions VALUES (3, (20.00,&#x27;RUB&#x27;), NULL);
+
+
+table transactions;
+SELECT t.account_id, (t.debit).amount, (t.credit).amount FROM transactions t;
+
+SELECT ((10.00,&#x27;RUB&#x27;)::currency).amount;
+
+SELECT ((10.00,&#x27;RUB&#x27;)::record).code;</code></pre>
+<h2>Script-14.sql</h2>
+<pre><code class="language-sql">CREATE TABLE seats(
+    line text,
+    number integer
+);
+
+INSERT INTO seats VALUES
+    (&#x27;A&#x27;, 42), (&#x27;B&#x27;,  1), (&#x27;C&#x27;, 27);
+
+
+table seats;
+
+SELECT typtype FROM pg_type WHERE typname = &#x27;seats&#x27;;
+SELECT * FROM seats s WHERE s &lt; (&#x27;B&#x27;,52)::seats;</code></pre>
+<h2>Script-15.sql</h2>
+<pre><code class="language-sql">CREATE TABLE tickets(
+    line text,
+    number integer,
+    movie_start date
+);
+
+
+INSERT INTO tickets VALUES
+    (&#x27;A&#x27;, 42, current_date),
+    (&#x27;B&#x27;,  1, current_date+1);
+
+
+SELECT * FROM seats WHERE (line, number) in (
+select line, number from tickets where movie_start  = current_date
+);</code></pre>
+<h2>Script-16.sql</h2>
+<pre><code class="language-sql">CREATE or replace FUNCTION seat_no(seat seats) returns text
+IMMUTABLE LANGUAGE sql
+RETURN seat.line || seat.number;
+
+
+SELECT seat_no(ROW(&#x27;A&#x27;,42));
+
+create MATERIALIZED VIEW  seats_vm as
+	SELECT s.line, number(s), seat_no(s) FROM seats s;
+
+
+REFRESH MATERIALIZED view seats_vm;
+
+select seat_no from seats_vm;
+
+
+table seats;</code></pre>
+<h2>Script-17.sql</h2>
+<pre><code class="language-sql">CREATE or replace FUNCTION rect_hall(max_line integer, max_number integer)
+--RETURNS SETOF seats
+--RETURNS SETOF record
+RETURNS TABLE(t_line text, t_number integer)
+IMMUTABLE LANGUAGE sql
+BEGIN ATOMIC
+    SELECT chr(line+64), number
+    FROM generate_series(1,max_line) AS line,
+         generate_series(1,max_number) AS number;
+END;
+
+
+EXPLAIN (costs off)
+SELECT * FROM rect_hall(2, 3) WITH ORDINALITY;;</code></pre>
+<h2>Script-18.sql</h2>
+<pre><code class="language-sql">CREATE or replace FUNCTION amphitheatre(max_line integer)
+RETURNS TABLE(t_line text, t_number integer)
+IMMUTABLE LANGUAGE sql
+BEGIN ATOMIC
+    SELECT chr(line+64), number
+    FROM generate_series(1,max_line) AS line,
+         generate_series(1,line) AS number;
+END;
+
+EXPLAIN (costs off)
+SELECT * FROM amphitheatre(10) WITH ORDINALITY;
+
+
+alter function rect_hall(integer,integer) IMMUTABLE;
+
+EXPLAIN (costs off)
+SELECT * FROM rect_hall(2, 3) WHERE t_line = &#x27;A&#x27;;</code></pre>
+<h2>Script-19.sql</h2>
+<pre><code class="language-sql">DO $$
+&lt;&lt;outer_block&gt;&gt;
+DECLARE
+    foo text := &#x27;Hello&#x27;;
+BEGIN
+    &lt;&lt;inner_block&gt;&gt;
+	DECLARE
+        foo text := &#x27;World&#x27;;
+    BEGIN
+		RAISE NOTICE &#x27;%, %!&#x27;, outer_block.foo, inner_block.foo;
+        RAISE NOTICE &#x27;Без метки — внутренняя переменная: %&#x27;, foo;
+    END inner_block;
+END outer_block
+$$;</code></pre>
+<h2>Script-20.sql</h2>
+<pre><code class="language-sql">CREATE FUNCTION sqr_in(IN a numeric) RETURNS numeric
+AS $$
+BEGIN
+    RETURN a * a;
+end
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE FUNCTION sqr_OUT(IN a numeric, out retval numeric) 
+AS $$
+BEGIN
+    retval := a * a;
+end
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
+CREATE FUNCTION sqr_INOUT(INOUT a numeric)
+AS $$
+BEGIN
+    a := a * a;
+end
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+select sqr_INOUT(5), sqr_OUT(5);
+
+</code></pre>
+<h2>Script-21.sql</h2>
+<pre><code class="language-sql">CREATE FUNCTION fmt (IN phone text, OUT code text, OUT num text)
+AS $$
+BEGIN
+    IF phone ~ &#x27;^[0-9]*$&#x27; AND length(phone) = 10 THEN
+        code := substr(phone,1,3);
+        num  := substr(phone,4);
+    ELSE
+        code := NULL;
+        num  := NULL;
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+SELECT fmt(&#x27;8122128506&#x27;);
+
+DO $$
+DECLARE
+    code text := (fmt(&#x27;4952128506&#x27;)).code;
+begin
+	CASE code
+        WHEN &#x27;495&#x27;,&#x27;499&#x27; THEN
+            RAISE NOTICE &#x27;% — Москва&#x27;, code;
+        WHEN &#x27;812&#x27; THEN
+            RAISE NOTICE &#x27;% — Санкт-Петербург&#x27;, code;
+        WHEN &#x27;384&#x27; THEN
+            RAISE NOTICE &#x27;% — Кемеровская область&#x27;, code;
+        ELSE
+            RAISE NOTICE &#x27;% — Прочие&#x27;, code;
+    END CASE;
+END
+$$;
+end
+</code></pre>
+<h2>Script-23.sql</h2>
+<pre><code class="language-sql">CREATE TABLE t(id integer, s text);
+
+
+INSERT INTO t VALUES (1, &#x27;Раз&#x27;), (2, &#x27;Два&#x27;), (3, &#x27;Три&#x27;);
+
+
+DO $$
+DECLARE  
+	cur refcursor;
+	rec record;
+     
+begin    
+	 OPEN cur FOR SELECT * FROM t;
+	 move cur; 
+	 fetch cur into rec;
+	 raise notice &#x27;%&#x27;, rec;
+	 close cur;
+END
+$$;
+
+
+
+</code></pre>
+<h2>Script-24.sql</h2>
+<pre><code class="language-sql">DO $$
+DECLARE  
+	cur refcursor;
+	rec record;
+     
+begin    
+	 OPEN cur FOR SELECT * FROM t;
+	 LOOP
+		 fetch cur into rec;
+		 exit when not found;
+		 raise notice &#x27;%&#x27;, rec;
+	 end LOOP;
+END
+$$;
+
+DO $$
+DECLARE  
+	cur CURSOR FOR SELECT * FROM t;  
+begin    
+	 for rec in cur LOOP		
+		 raise notice &#x27;%&#x27;, rec;
+	 end LOOP;
+END
+$$;
+
+</code></pre>
+<h2>Script-25.sql</h2>
+<pre><code class="language-sql">DO $$
+DECLARE  
+	rec record; 
+begin    
+	 for rec in (SELECT * FROM t) LOOP		
+		 raise notice &#x27;%&#x27;, rec;
+		 DELETE FROM t WHERE id = rec.id;
+	 end LOOP;
+	 raise notice &#x27;%&#x27;, found;
+END
+$$;
+ROLLBACK;
+
+
+BEGIN;
+DELETE FROM t RETURNING *;
+ROLLBACK;</code></pre>
+<h2>Script-26.sql</h2>
+<pre><code class="language-sql">DO $$
+DECLARE
+    cur refcursor := &#x27;cursor12345&#x27;;
+BEGIN
+    OPEN cur FOR SELECT * FROM t;
+    RAISE NOTICE &#x27;%&#x27;, cur;
+END
+$$;
+
+
+CREATE or replace FUNCTION t_cur(cur refcursor) RETURNS void
+AS $$
+DECLARE
+    cur refcursor;
+BEGIN
+    OPEN cur FOR SELECT * FROM t;
+    RETURN cur;
+END
+$$ LANGUAGE plpgsql;
+
+
+CREATE or replace FUNCTION t_cur_2(cur refcursor) RETURNS void
+AS $$
+BEGIN
+    OPEN cur FOR SELECT * FROM t;
+END
+$$ LANGUAGE plpgsql;</code></pre>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-sql").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>
