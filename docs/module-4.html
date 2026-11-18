@@ -3,170 +3,1928 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>6.0. Введение в машинное обучение</title>
+  <title>Введение в Анализ данных и машинное обучение</title>
   <link rel="stylesheet" href="course.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+  <style>
+    html, body { height: 100%; background: #e7e9f4; overflow: hidden; }
+    .deck { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .slide {
+      display: none;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: #fff;
+      color: #09135a;
+      position: relative;
+      overflow: hidden;
+      font-size: clamp(14px, 1.35vw, 22px);
+      box-shadow: 0 12px 40px rgba(9, 19, 90, 0.18);
+    }
+    .slide.active { display: block; }
+    .slide .notes { display: none; }
+    .slide .logo {
+      position: absolute; top: 3.2%; right: 3%; width: 16%; height: auto;
+    }
+    .pad { position: absolute; inset: 8% 5% 12% 5%; }
+    .kicker {
+      margin: 0 0 0.35em;
+      color: #c23b78;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.72em;
+    }
+    h1 { margin: 0 0 0.25em; font-size: 2.15em; line-height: 1.12; }
+    h2 { margin: 0 0 0.45em; font-size: 1.55em; line-height: 1.2; }
+    p { margin: 0.35em 0; line-height: 1.35; }
+    ul, ol { margin: 0.3em 0 0; padding-left: 1.15em; }
+    li { margin: 0.28em 0; line-height: 1.3; }
+    code, .mono {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+    }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7em; margin-top: 0.6em; }
+    .cards.three { grid-template-columns: 1fr 1fr 1fr; }
+    .card {
+      border: 2px solid #d9def0;
+      border-radius: 12px;
+      padding: 0.65em 0.8em;
+      background: #f7f8fc;
+    }
+    .card strong { display: block; margin-bottom: 0.2em; }
+    .card.accent { border-color: #c23b78; background: #fff5f8; }
+    .card.ink { border-color: #09135a; background: #f3f5fb; }
+    pre {
+      margin: 0.45em 0 0;
+      padding: 0.55em 0.7em;
+      background: #f3f5fb;
+      border-radius: 10px;
+      overflow: auto;
+      font-size: 0.78em;
+      line-height: 1.35;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.4em; font-size: 0.86em; }
+    th, td { text-align: left; padding: 0.32em 0.45em; border-bottom: 1px solid #d9def0; }
+    th { color: #293699; }
+    .num {
+      position: absolute; left: 5%; bottom: 4.2%;
+      font-size: 0.75em; color: #293699; font-weight: 700;
+    }
+    .chrome {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+      display: flex; justify-content: center; gap: 8px; padding: 8px;
+      pointer-events: none;
+    }
+    .chrome button, .overview button {
+      pointer-events: auto;
+      border: 2px solid #09135a; background: #fff; color: #09135a;
+      border-radius: 999px; padding: 0.25em 0.8em; font-weight: 700; cursor: pointer;
+    }
+    .chrome button[aria-pressed="true"] { background: #c23b78; color: #fff; border-color: #c23b78; }
+    .bar {
+      position: fixed; top: 0; left: 0; height: 4px; background: #c23b78; z-index: 6; width: 0;
+    }
+    .notes-panel {
+      display: none;
+      position: fixed; left: 2%; right: 2%; bottom: 52px; z-index: 6;
+      background: #09135a; color: #fff; border-radius: 12px;
+      padding: 0.75em 1em; font-size: 15px; line-height: 1.45; max-height: 36vh; overflow: auto;
+    }
+    .notes-panel.open { display: block; }
+    .overview {
+      display: none; position: fixed; inset: 0; z-index: 8;
+      background: rgba(9, 19, 90, 0.92); overflow: auto; padding: 24px;
+    }
+    .overview.open { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .overview button.tile {
+      border-radius: 10px; text-align: left; padding: 0.7em; min-height: 88px;
+    }
+    .overview button.tile.here { background: #c23b78; color: #fff; border-color: #c23b78; }
+    .choice { display: flex; gap: 0.6em; flex-wrap: wrap; margin-top: 0.7em; }
+    .choice button, .roles button {
+      border: 2px solid #09135a; background: #fff; color: #09135a;
+      border-radius: 10px; padding: 0.45em 0.7em; font-weight: 700; cursor: pointer;
+    }
+    .choice button.good, .roles button.good { background: #e7f6ec; border-color: #1d7a3a; }
+    .choice button.bad, .roles button.bad { background: #fde8ee; border-color: #c23b78; }
+    .feedback { min-height: 1.4em; font-weight: 700; margin-top: 0.55em; }
+    .roles { display: flex; flex-wrap: wrap; gap: 0.45em; margin-top: 0.5em; }
+    .title-slide .pad { top: 18%; }
+    .title-slide p.lead { font-size: 1.25em; max-width: 22em; }
+    .muted { color: #293699; }
+    .flow { display: flex; align-items: center; gap: 0.45em; margin-top: 1.1em; flex-wrap: wrap; }
+    .flow .step {
+      background: #f3f5fb; border: 2px solid #09135a; border-radius: 12px;
+      padding: 0.45em 0.7em; font-weight: 700;
+    }
+    .flow .step.hot { background: #fff5f8; border-color: #c23b78; }
+    .flow .arr { color: #c23b78; font-weight: 700; }
+    .viz { display: grid; grid-template-columns: 1.15fr 0.95fr; column-gap: 0.8em; align-content: start; }
+    .viz .kicker, .viz h2 { grid-column: 1 / -1; }
+    .viz h2 { font-size: 1.28em; margin-bottom: 0.25em; }
+    .viz .copy {
+      position: static;
+      left: auto;
+      top: auto;
+      width: auto;
+      min-width: 0;
+      z-index: auto;
+    }
+    .viz .fig { margin: 0; align-self: center; position: static; width: auto; }
+    .viz svg { width: 100%; height: auto; display: block; }
+    .viz li { margin: 0.18em 0; }
+    .cap { margin: 0.25em 0 0; font-size: 0.75em; color: #293699; }
+    .slide.active .pop { animation: pop .5s ease both; }
+    .slide.active .d1 { animation-delay: .15s; }
+    .slide.active .d2 { animation-delay: .3s; }
+    .slide.active .d3 { animation-delay: .45s; }
+    .slide.active .d4 { animation-delay: .6s; }
+    @keyframes pop { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .edge { stroke: #c23b78; stroke-width: 2.5; fill: none; stroke-dasharray: 7 5; }
+    .slide.active .edge { animation: march 1.1s linear infinite; }
+    @keyframes march { to { stroke-dashoffset: -24; } }
+    .ball { fill: #c23b78; }
+    .slide.active .ball { offset-distance: 0%; animation: roll 1.8s ease-in-out forwards; }
+    @keyframes roll { to { offset-distance: 100%; } }
+    .grow { transform-box: fill-box; transform-origin: bottom; transform: scaleY(0); }
+    .slide.active .grow { animation: grow .7s ease forwards; }
+    @keyframes grow { to { transform: scaleY(1); } }
+    .slide.active .blink { animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 50% { fill: #c23b78; } }
+  </style>
 </head>
 <body>
-  <article class="doc">
-    <a class="back" href="slide4.html">← Оглавление</a>
-    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>6.0. Введение в машинное обучение</h1>
-<p><strong>Цель:</strong> на таблице квартир увидеть, как дерево решений получает цену из признаков, измерить ошибку на отложенных строках, подобрать число листьев и сравнить одно дерево со случайным лесом.</p>
-<p><strong>Опора:</strong> последовательность курса <a href="https://www.kaggle.com/learn/intro-to-machine-learning">Kaggle Learn: Intro to Machine Learning</a> — как устроена модель, разведка таблицы, первая модель, проверка, недообучение и переобучение, случайный лес, прогноз для новых строк. В курсе Kaggle берут файл цен домов штата Айова. Здесь тот же ход работы на локальном файле <code>module-6-0/data/flats.csv</code>: аккаунт Kaggle для занятия не нужен. Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
-<p>Цена в таблице — тысячи рублей. Вопрос занятия: по площади, году постройки и числу комнат оценить цену квартиры, которой не было в обучении.</p>
-<p><strong>Итоговые артефакты</strong> (в папке <code>module-6-0/</code>):</p>
-<table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>data/flats.csv</code></td><td>12 квартир с ценой</td></tr><tr><td><code>lab60-intro.ipynb</code></td><td>Разведка, дерево, проверка, лес</td></tr><tr><td><code>data/new_prices.csv</code></td><td>Прогноз для двух новых квартир</td></tr></tbody></table>
-<hr>
-<h2>Подготовка</h2>
-<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
-python -m pip install pandas scikit-learn</code></pre>
-<p>Создайте ноутбук <code>module-6-0/lab60-intro.ipynb</code> и выберите ядро <code>.venv</code>.</p>
-<p>Первая ячейка — markdown: ФИО, дата, заголовок «6.0 Введение в машинное обучение».</p>
-<hr>
-<h2>6.0.1. Как модель получает ответ</h2>
-<p>Модель учится на уже известных парах «признаки — цена». Дерево решений делит квартиры по порогу одного признака. В каждом листе прогноз — среднее цен квартир, которые в этот лист попали.</p>
-<p>В этой таблице порог по площади виден без библиотеки. Квартиры до 60 м² включительно — одна группа, квартиры просторнее — другая.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">import pandas as pd
+  <div class="bar" id="bar"></div>
+  <div class="deck" id="deck">
 
-raw = pd.read_csv(&quot;module-6-0/data/flats.csv&quot;, encoding=&quot;utf-8&quot;)
-print(raw.shape)
-print(raw.head(3))
+    <section class="slide title-slide active">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Введение</p>
+        <h1>Введение в Анализ данных и машинное обучение</h1>
+        <p class="lead">Постановка задачи, модели, метрики и проверка.</p>
+        <p>После этого — таблица книг и цены квартир.</p>
+        <div class="flow">
+          <span class="step pop">выборка (x, y)</span>
+          <span class="arr pop d1">→</span>
+          <span class="step pop d2">модель a(x)</span>
+          <span class="arr pop d3">→</span>
+          <span class="step hot pop d4">ошибка на новых x</span>
+        </div>
+      </div>
+      <aside class="notes">Откройте занятие без оглавления. Скажите: сегодня две половины. Сначала договариваемся, что такое модель, ошибка и проверка. Потом те же слова встречаются в pandas и в дереве на двенадцати квартирах. По порядку на слайдах: объект и ответ, потеря, линейная модель, спуск, соседи, дерево, смещение и разброс, ансамбль, метрики, отложенные строки. Затем сети, порождение и остальные постановки — коротко, чтобы было видно, куда это растёт. Формулы на слайдах нарочно короткие: их стоит проговорить вслух, а не оставлять как украшение. Если в аудитории тишина после первого слайда, спросите, кто уже ставил цену квартире «на глаз». Обычно поднимается половина, и дальше есть с кем разговаривать. Следующий слайд — разминка кликами, не прячьте её «на потом».</aside>
+    </section>
 
-left = raw.loc[raw[&quot;area&quot;] &lt;= 60, &quot;price&quot;]
-right = raw.loc[raw[&quot;area&quot;] &gt; 60, &quot;price&quot;]
-print(&quot;среднее до 60 м2&quot;, left.mean())
-print(&quot;среднее больше 60 м2&quot;, right.mean())
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">С чего начать</p>
+        <h2>Крупные задачи: разобрать данные или предсказать</h2>
+        <div class="copy">
+          <p>Четыре задачи без частных примеров. Клик кладёт задачу в <strong>таблицу</strong> или в <strong>модель</strong>.</p>
+          <div class="roles" id="goals"></div>
+          <div class="choice"><button type="button" id="goals-check">Проверить расклад</button></div>
+          <p class="feedback" id="goals-msg">Сначала расклад, потом проверка.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 160" aria-hidden="true">
+            <rect class="pop" x="8" y="12" width="84" height="56" rx="10" fill="#09135a"/>
+            <text x="50" y="45" text-anchor="middle" fill="#fff" font-size="13">таблица</text>
+            <rect class="pop d2" x="108" y="12" width="84" height="56" rx="10" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="150" y="45" text-anchor="middle" fill="#c23b78" font-size="13">модель</text>
+            <text x="50" y="88" text-anchor="middle" fill="#09135a" font-size="11">строки уже есть</text>
+            <text x="150" y="88" text-anchor="middle" fill="#c23b78" font-size="11">нового x нет</text>
+            <text x="100" y="124" text-anchor="middle" font-size="12" fill="#293699">один вопрос — один ящик</text>
+          </svg>
+          <p class="cap">Описание данных не предсказывает. Прогноз не чинит таблицу.</p>
+        </figure>
+      </div>
+      <aside class="notes">Разминка на две минуты, ещё без книг и квартир. На карточках крупные задачи, не упражнения из ноутбука. Клик меняет подпись на «таблица» или «модель», затем «Проверить расклад». Не подсказывайте заранее. Верный расклад такой. Описать и сравнить уже собранные данные — таблица: средние, доли, группы по строкам, которые уже есть. Найти пропуски, ошибки и связи — тоже таблица: смотрят файл, а не выдают ответ новому объекту. Предсказать число или класс для объекта, которого в данных ещё нет, — модель. Выбрать модель по ошибке на новых объектах — тоже модель: сложность решают по проверке, а не по красоте сводки. Если описание данных уехало в модель, спросите, какой новый объект тут появляется. Ответ — никакой, строки уже собраны. Рисунок справа без подсказок, только два ящика. После зелёных карточек можно говорить, что pandas закрывает левый ящик, а дерево с проверкой — правый.</aside>
+    </section>
 
-pred_rule = raw[&quot;area&quot;].apply(lambda area: left.mean() if area &lt;= 60 else right.mean())
-mae_rule = (raw[&quot;price&quot;] - pred_rule).abs().mean()
-print(&quot;ошибка правила&quot;, round(mae_rule))</code></pre>
-<p>Шесть небольших квартир дают среднее <strong>5000</strong>. Шесть больших — <strong>9000</strong>. Правило «маленькая → 5000, большая → 9000» ошибается в среднем на <strong>533</strong> тысячи рублей. Это ручная проверка порога. В разделе 6.0.3 дерево само выбирает пороги и может делить лист повторно.</p>
-<p><strong>Критерий 6.0.1:</strong> в файле 12 строк и 7 столбцов. Средние групп — 5000 и 9000. Округлённая ошибка правила — 533.</p>
-<hr>
-<h2>6.0.2. Разведка таблицы</h2>
-<p>Перед обучением смотрят размер, типы, пропуски и сводку по числам. Так видно, какой столбец является целью и какие столбцы нельзя отдавать модели.</p>
-<table><thead><tr><th>Столбец</th><th>Роль</th></tr></thead><tbody><tr><td><code>area</code>, <code>year</code>, <code>rooms</code></td><td>Признаки</td></tr><tr><td><code>price</code></td><td>Цель, тысячи рублей</td></tr><tr><td><code>flat_id</code></td><td>Номер квартиры</td></tr><tr><td><code>district</code></td><td>Район текстом. В первой модели его нет: кодирование категорий — отдельная тема</td></tr><tr><td><code>price_note</code></td><td>Текст, в котором уже записана цена</td></tr></tbody></table>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">print(raw.dtypes)
-print(&quot;пропуски&quot;, int(raw.isna().sum().sum()))
-print(raw[[&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;price&quot;]].describe())
-print(&quot;средняя цена&quot;, raw[&quot;price&quot;].mean())
-print(&quot;сумма цен&quot;, int(raw[&quot;price&quot;].sum()))
-print(&quot;сумма площадей&quot;, int(raw[&quot;area&quot;].sum()))</code></pre>
-<p>В курсе Kaggle у части домов нет цены продажи, и такие строки убирают: без цели строку не на чем учить. В <code>flats.csv</code> пустых ячеек нет, сумма пропусков равна 0. Средняя цена по всем 12 квартирам — <strong>7000</strong>.</p>
-<p><strong>Практика 6.0.2.</strong> В markdown напишите, какую цену модель увидит заранее, если в признаки попадёт <code>price_note</code>.</p>
-<p><strong>Критерий 6.0.2:</strong> пропусков 0, средняя цена 7000, сумма цен <strong>84000</strong>, сумма площадей <strong>761</strong>.</p>
-<hr>
-<h2>6.0.3. Первая модель</h2>
-<p>Признаки собирают в <code>X</code>, цель — в <code>y</code>. <code>DecisionTreeRegressor</code> строит дерево: <code>fit</code> подбирает разбиения по известным ценам, <code>predict</code> выдаёт цену для переданных строк.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_absolute_error
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">1. Введение</p>
+        <h2>Модель задают функцией и обучают по выборке</h2>
+        <div class="copy">
+          <p>Готовая модель уже выдаёт ответ. Обучение подбирает её параметры по парам «признаки — ответ».</p>
+          <ul>
+            <li>Медицина, финансы, беспилотники, рекомендации — разные x и y, одна схема.</li>
+            <li>Вектор и матрица задают признаки и веса.</li>
+            <li>Производная двигает веса. Вероятность задаёт потерю и метрику.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 280 180" aria-hidden="true">
+            <rect class="pop" x="16" y="28" width="70" height="120" rx="10" fill="#f3f5fb" stroke="#09135a" stroke-width="2"/>
+            <text x="51" y="52" text-anchor="middle" font-size="13" fill="#09135a" font-weight="700">данные</text>
+            <text x="51" y="78" text-anchor="middle" font-size="12" fill="#293699">x₁, y₁</text>
+            <text x="51" y="98" text-anchor="middle" font-size="12" fill="#293699">x₂, y₂</text>
+            <text x="51" y="118" text-anchor="middle" font-size="12" fill="#293699">…</text>
+            <path class="edge" d="M90 88 H130"/>
+            <polygon points="130,82 142,88 130,94" fill="#c23b78"/>
+            <rect class="pop d2" x="146" y="48" width="110" height="80" rx="10" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="201" y="78" text-anchor="middle" font-size="14" fill="#09135a" font-weight="700">a(x)</text>
+            <text x="201" y="102" text-anchor="middle" font-size="12" fill="#293699">параметры w</text>
+          </svg>
+          <p class="cap">Параметры w подбирают по известным парам, прогноз считают для нового x.</p>
+        </figure>
+      </div>
+      <aside class="notes">Три слова, без которых дальше будет магия из воздуха: вектор, производная, вероятность. Вектор — это строка признаков. Производная — куда крутить веса, чтобы ошибка уменьшилась. Вероятность — как честно записать, что ответ всё равно случайный. Дерево и средняя ошибка дальше считаются и без полного вывода, но названия методов живут в этих трёх областях. Не устраивайте здесь лекцию по матанализу. Достаточно, чтобы «градиент» и «правдоподобие» не звучали как заклинания из другого курса. Если кто-то вздохнул на слове «производная», успокойте: на квартирах мы её руками не считаем, дерево перебирает пороги.</aside>
+    </section>
 
-features = [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]
-X = raw[features].copy()
-y = raw[&quot;price&quot;].copy()
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">1. Введение</p>
+        <h2>Объект, признаки, ответ, модель</h2>
+        <div class="copy">
+          <ul>
+            <li>Объект — одна строка. Признаки собирают в вектор <span class="mono">x</span>.</li>
+            <li>Ответ <span class="mono">y</span> — число или метка класса. Выборка — пары <span class="mono">(x<sub>i</sub>, y<sub>i</sub>)</span>.</li>
+            <li>Модель <span class="mono">a(x)</span> по признакам выдаёт прогноз <span class="mono">ŷ</span>.</li>
+            <li>Квартира: <span class="mono">x = (45, 1988, 2)</span>, <span class="mono">y = 5000</span>.</li>
+            <li>Книга: признаки описания, ответ — оценка от 80 до 100.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 280 170" aria-hidden="true">
+            <rect x="8" y="20" width="150" height="28" rx="4" fill="#09135a"/>
+            <text x="83" y="39" text-anchor="middle" fill="#fff" font-size="12">площадь · год · комнаты</text>
+            <rect class="pop" x="8" y="52" width="46" height="32" fill="#f3f5fb" stroke="#09135a"/>
+            <rect class="pop d1" x="54" y="52" width="52" height="32" fill="#f3f5fb" stroke="#09135a"/>
+            <rect class="pop d2" x="106" y="52" width="52" height="32" fill="#f3f5fb" stroke="#09135a"/>
+            <text x="31" y="73" text-anchor="middle" font-size="13" fill="#09135a">45</text>
+            <text x="80" y="73" text-anchor="middle" font-size="13" fill="#09135a">1988</text>
+            <text x="132" y="73" text-anchor="middle" font-size="13" fill="#09135a">2</text>
+            <rect class="pop d3" x="190" y="52" width="74" height="32" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="227" y="73" text-anchor="middle" font-size="13" fill="#c23b78" font-weight="700">5000</text>
+            <text x="83" y="110" text-anchor="middle" font-size="13" fill="#293699">x</text>
+            <text x="227" y="110" text-anchor="middle" font-size="13" fill="#c23b78">y</text>
+            <text x="140" y="150" text-anchor="middle" font-size="13" fill="#09135a">a(x) → ŷ</text>
+          </svg>
+          <p class="cap">Номер квартиры и текст с уже записанной ценой в x не входят.</p>
+        </figure>
+      </div>
+      <aside class="notes">Запишите на доске одну строку как вектор x и одно число как y. Модель — функция a(x). Обучение подбирает её параметры по известным парам, а не выдумывает формулу из головы. Номер строки и текст, где ответ уже написан, в x не кладут. Это пока общая фраза, но она выстрелит на price_note: там цена уже сидит в примечании, и модель с удовольствием спишет. Пока хватает слов «признак» и «ответ». Покажите на рисунке: 45, 1988 и 2 входят, подпись «цена 5000» — нет. Спросите, что модель должна выдать на новом x, которого в таблице не было. Ответ — число, а не «я это уже видела».</aside>
+    </section>
 
-model = DecisionTreeRegressor(random_state=1)
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">1. Введение</p>
+        <h2>Три способа ставить задачу</h2>
+        <div class="copy">
+          <ul>
+            <li><strong>С учителем.</strong> У каждой строки есть ответ. Регрессия выдаёт число, классификация — класс.</li>
+            <li><strong>Без учителя.</strong> Ответов нет. Ищут группы, сжатое описание, необычные объекты.</li>
+            <li><strong>Со средой.</strong> Действие меняет следующую награду или новую разметку.</li>
+          </ul>
+          <p>Практика занятия — регрессия с учителем: цена известна на части строк.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 170" aria-hidden="true">
+            <g class="pop">
+              <rect x="8" y="8" width="60" height="40" rx="6" fill="#09135a"/>
+              <text x="38" y="26" text-anchor="middle" fill="#fff" font-size="11">x</text>
+              <text x="38" y="40" text-anchor="middle" fill="#c23b78" font-size="11">y = 5000</text>
+            </g>
+            <g class="pop d2">
+              <circle cx="38" cy="92" r="10" fill="#293699"/>
+              <circle cx="58" cy="108" r="10" fill="#293699"/>
+              <circle cx="22" cy="112" r="8" fill="#d9def0" stroke="#09135a"/>
+              <text x="40" y="140" text-anchor="middle" font-size="11" fill="#09135a">группы без y</text>
+            </g>
+            <g class="pop d3">
+              <rect x="130" y="24" width="70" height="28" rx="6" fill="#fff5f8" stroke="#c23b78"/>
+              <text x="165" y="42" text-anchor="middle" font-size="11" fill="#c23b78">действие</text>
+              <path class="edge" d="M165 52 v18"/>
+              <rect x="130" y="72" width="70" height="28" rx="6" fill="#09135a"/>
+              <text x="165" y="90" text-anchor="middle" fill="#fff" font-size="11">награда</text>
+            </g>
+          </svg>
+          <p class="cap">Слева строка с ответом. В центре кучки без меток. Справа цикл со средой.</p>
+        </figure>
+      </div>
+      <aside class="notes">Три способа, и путать их на экзамене обидно, потому что они отвечают на разные вопросы. С учителем есть y: цена по площади или класс по тексту. Без учителя y нет: ищем группы книг по описаниям, никто оценку не ставил. Со средой решение меняет то, что будет дальше: награда за действие или новая разметка. Ноутбуки этого занятия считают регрессию с учителем. Цена известна на части строк, и мы притворяемся, что на остальных её ещё нет. Если кто-то скажет «кластеризация тоже предсказывает цену», верните его к рисунку: у кластера нет числа, которое можно вычесть из факта.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">2. Обучение с учителем</p>
+        <h2>Учат то, что уменьшает среднюю потерю</h2>
+        <div class="copy">
+          <pre>L(a(x), y) = |ŷ − y|
+R = (1/n) · Σ L</pre>
+          <ul>
+            <li><span class="mono">L</span> — промах на одном объекте. <span class="mono">R</span> — средний промах по выборке, эмпирический риск.</li>
+            <li>Параметры ищут так, чтобы <span class="mono">R</span> на обучении уменьшился.</li>
+            <li>Рабочая величина — тот же риск на объектах, которых в обучении не было.</li>
+            <li>Пример: промахи 100, 400 и 700. Риск = 400.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 160" aria-hidden="true">
+            <line x1="30" y1="140" x2="240" y2="140" stroke="#09135a"/>
+            <rect class="grow" x="50" y="110" width="36" height="30" fill="#293699"/>
+            <rect class="grow d2" x="110" y="70" width="36" height="70" fill="#293699"/>
+            <rect class="grow d3" x="170" y="30" width="36" height="110" fill="#c23b78"/>
+            <text x="68" y="156" text-anchor="middle" font-size="12" fill="#09135a">100</text>
+            <text x="128" y="156" text-anchor="middle" font-size="12" fill="#09135a">400</text>
+            <text x="188" y="156" text-anchor="middle" font-size="12" fill="#09135a">700</text>
+          </svg>
+          <p class="cap">Среднее трёх модулей ошибки — 400. Крупный промах тянет риск вверх.</p>
+        </figure>
+      </div>
+      <aside class="notes">Потеря — насколько один прогноз промахнулся. Для цены это модуль или квадрат разности. Эмпирический риск — среднее по тем строкам, на которых учим. На слайде промахи 100, 400 и 700, риск 400. Посчитайте вслух, это двадцать секунд и сразу снимает страх перед буквой R. Ноль на тех же двенадцати квартирах — маленький риск на учебных строках. Про новую квартиру он молчит. К этому вернёмся, когда дерево «сдаст работу на отлично» по таблице, которую только что видело. Шутка для зала: студент, который переписал конспект и получил пять, ещё не сдал экзамен по новым билетам.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">2. Линейные модели</p>
+        <h2>Прогноз — взвешенная сумма признаков</h2>
+        <div class="copy">
+          <pre>a(x) = w · x + w₀</pre>
+          <ul>
+            <li>Регрессия выдаёт число. Вес при площади — сколько цены добавляет 1 м² при фиксированных остальных признаках.</li>
+            <li>Классификация смотрит на знак той же суммы. Сигмоида переводит сумму в вероятность: логистическая регрессия.</li>
+            <li>Регуляризация штрафует большие <span class="mono">w</span>, чтобы прямая не повторила учебные точки.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 160" aria-hidden="true">
+            <line x1="28" y1="140" x2="240" y2="140" stroke="#09135a"/>
+            <line x1="28" y1="140" x2="28" y2="16" stroke="#09135a"/>
+            <circle cx="60" cy="112" r="4" fill="#293699"/>
+            <circle cx="100" cy="90" r="4" fill="#293699"/>
+            <circle cx="140" cy="70" r="4" fill="#293699"/>
+            <circle cx="180" cy="58" r="4" fill="#293699"/>
+            <circle cx="210" cy="40" r="4" fill="#293699"/>
+            <path class="edge" d="M40 128 L230 28"/>
+            <text x="150" y="24" font-size="12" fill="#c23b78">w · x + w₀</text>
+          </svg>
+          <p class="cap">Точки — квартиры. Прямая — прогноз цены по одному признаку.</p>
+        </figure>
+      </div>
+      <aside class="notes">Каждый признак умножают на свой вес, складывают и прибавляют свободный член. Это и есть прямая, которую рисует схема. Веса можно сравнивать, только когда признаки в одном масштабе. Иначе год «2015» перекричит площадь «45», и свободный член будет делать вид, что так и задумано. Регуляризация штрафует большие веса и не даёт прямой пройти через каждую учебную точку. Для квартир мы прямую руками не настраиваем: она здесь, чтобы было с чем сравнить дерево. Дерево не рисует одну прямую на все случаи, оно режет плоскость порогами.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">14. Оптимизация</p>
+        <h2>Градиент показывает, куда потеря растёт</h2>
+        <div class="copy">
+          <ul>
+            <li>Градиент — направление самого быстрого локального роста.</li>
+            <li>Шаг против градиента уменьшает потерю. Длина шага решает, попадём ли в минимум.</li>
+            <li>Линейная регрессия со квадратом ошибки выпукла: локальный минимум один.</li>
+            <li>У сети поверхность с несколькими впадинами. Спуск находит хорошую точку, не обязательно единственную.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 160" aria-hidden="true">
+            <path d="M16 36 C 70 36, 80 130, 130 130 C 180 130, 190 40, 244 40" fill="none" stroke="#09135a" stroke-width="2"/>
+            <circle class="ball" r="7" fill="#c23b78" style="offset-path: path('M16 36 C 70 36, 80 130, 130 130'); offset-rotate: 0deg;"/>
+            <text x="130" y="154" text-anchor="middle" font-size="12" fill="#293699">минимум потери</text>
+          </svg>
+          <p class="cap">Точка идёт против роста функции и останавливается во впадине.</p>
+        </figure>
+      </div>
+      <aside class="notes">Антиградиент идёт вниз по склону. Шарик на рисунке как раз катится в яму. Слишком большой шаг перескакивает минимум и вылетает на другой склон с видом победителя. Слишком маленький ползёт так долго, что занятие успевает закончиться. У линейной регрессии со квадратом ошибки яма одна: задача выпуклая, локальный минимум совпадает с глобальным. У сети поверхность с несколькими впадинами, и спуск находит хорошую точку, не обязательно единственную. Не обещайте, что «градиент всегда доходит». Обещайте, что направление шага — против роста потери.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">14–15. Спуск по выборке</p>
+        <h2>SGD считает шаг по части объектов</h2>
+        <div class="copy">
+          <p>Риск — среднее потерь, градиент риска — среднее градиентов по объектам.</p>
+          <ul>
+            <li><strong>GD</strong> берёт все n объектов. Шаг точный и дорогой.</li>
+            <li><strong>SGD</strong> берёт один объект или батч. Оценка шумная, шаг дешёвый.</li>
+            <li>Инерция копит прошлые шаги. Adam дополнительно держит свой шаг на каждый вес.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 150" aria-hidden="true">
+            <text x="8" y="18" font-size="12" fill="#09135a" font-weight="700">GD, вся выборка</text>
+            <g class="pop">
+              <circle cx="20" cy="48" r="7" fill="#293699"/><circle cx="42" cy="48" r="7" fill="#293699"/>
+              <circle cx="64" cy="48" r="7" fill="#293699"/><circle cx="86" cy="48" r="7" fill="#293699"/>
+              <circle cx="108" cy="48" r="7" fill="#293699"/><circle cx="130" cy="48" r="7" fill="#293699"/>
+            </g>
+            <text x="8" y="88" font-size="12" fill="#c23b78" font-weight="700">SGD, один батч</text>
+            <g>
+              <circle class="blink" cx="20" cy="118" r="7" fill="#c23b78"/>
+              <circle class="blink d2" cx="42" cy="118" r="7" fill="#d9def0"/>
+              <circle cx="64" cy="118" r="7" fill="#d9def0"/>
+              <circle cx="86" cy="118" r="7" fill="#d9def0"/>
+              <circle cx="108" cy="118" r="7" fill="#d9def0"/>
+              <circle cx="130" cy="118" r="7" fill="#d9def0"/>
+            </g>
+          </svg>
+          <p class="cap">На каждом шаге SGD подсвечен новый кусок выборки.</p>
+        </figure>
+      </div>
+      <aside class="notes">Риск — среднее потерь, его градиент — среднее градиентов по объектам. Полный градиент честный и дорогой: каждый шаг трогает всю выборку. Один объект или батч даёт шумную, зато дешёвую оценку. На рисунке подсвечен новый кусок. Adam копит инерцию и держит свой шаг на каждый вес, чтобы редкий признак не топтался на месте. Дерево градиент не считает: оно перебирает пороги. Спуск двигает веса линейной модели и сети. Если спросят, зачем тогда SGD на занятии про дерево, ответ простой: чтобы слово «обучение» не слиплось с одним алгоритмом.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">2. Метрические алгоритмы</p>
+        <h2>Ответ берут у близких объектов</h2>
+        <div class="copy">
+          <ul>
+            <li>k ближайших соседей ищет k объектов с наименьшим расстоянием до нового.</li>
+            <li>Регрессия усредняет их ответы. Классификация берёт частый класс.</li>
+            <li>Весов нет: модель хранит выборку и при прогнозе читает её целиком.</li>
+            <li>Если площадь в метрах, а год как 2015, расстояние почти целиком определяется площадью. Признаки выравнивают по масштабу.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 240 160" aria-hidden="true">
+            <circle class="pop d3" cx="120" cy="80" r="46" fill="none" stroke="#c23b78" stroke-width="2" stroke-dasharray="4 3"/>
+            <circle cx="120" cy="80" r="7" fill="#c23b78"/>
+            <circle cx="100" cy="66" r="5" fill="#09135a"/>
+            <circle cx="138" cy="60" r="5" fill="#09135a"/>
+            <circle cx="146" cy="96" r="5" fill="#09135a"/>
+            <circle cx="40" cy="30" r="5" fill="#d9def0" stroke="#293699"/>
+            <circle cx="200" cy="130" r="5" fill="#d9def0" stroke="#293699"/>
+            <circle cx="36" cy="120" r="5" fill="#d9def0" stroke="#293699"/>
+            <text x="120" y="152" text-anchor="middle" font-size="12" fill="#09135a">k = 3, среднее их y</text>
+          </svg>
+          <p class="cap">Новая точка внутри кольца. Три тёмных соседа входят в прогноз, серые — нет.</p>
+        </figure>
+      </div>
+      <aside class="notes">Новая квартира смотрит на k ближайших и берёт среднюю их цену. На рисунке k равно 3, серые точки в прогноз не входят. Отдельных весов нет: модель — это сама выборка плюс линейка. Поэтому прогноз читает все учебные строки каждый раз. Ловушка масштаба: если площадь в метрах, а год записан как 2015, расстояние почти целиком определяется площадью. Год становится зрителем. Перед таким методом столбцы выравнивают. Для классификации вместо среднего берут частый класс среди соседей. Спросите: что будет при k равном числу всех квартир. Ответ — одна и та же средняя цена всем. Соседи превращаются в всю таблицу.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">2. Решающие деревья</p>
+        <h2>Порог в узле, константа в листе</h2>
+        <div class="copy">
+          <ul>
+            <li>Узел сравнивает один признак с порогом. Квартиры до 60 м² идут влево, остальные вправо.</li>
+            <li>Лист регрессии хранит среднее ответов. Лист классификации — частый класс.</li>
+            <li>Признак и порог выбирают так, чтобы ответы внутри листа стали ближе друг к другу.</li>
+            <li>Мало листьев смешивает разные объекты. Много листьев оставляет в листе одну учебную строку.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 170" aria-hidden="true">
+            <rect class="pop" x="78" y="8" width="104" height="36" rx="8" fill="#09135a"/>
+            <text x="130" y="31" text-anchor="middle" fill="#fff" font-size="13">площадь ≤ 60?</text>
+            <path class="edge" d="M100 44 L48 78"/>
+            <path class="edge" d="M160 44 L212 78"/>
+            <rect class="pop d2" x="8" y="80" width="88" height="48" rx="8" fill="#f3f5fb" stroke="#09135a" stroke-width="2"/>
+            <text x="52" y="100" text-anchor="middle" font-size="12" fill="#09135a">да</text>
+            <text x="52" y="118" text-anchor="middle" font-size="14" font-weight="700" fill="#09135a">5000</text>
+            <rect class="pop d3" x="164" y="80" width="88" height="48" rx="8" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="208" y="100" text-anchor="middle" font-size="12" fill="#c23b78">нет</text>
+            <text x="208" y="118" text-anchor="middle" font-size="14" font-weight="700" fill="#c23b78">9000</text>
+          </svg>
+          <p class="cap">Два листа. Средняя ошибка этого правила на 12 квартирах — 533.</p>
+        </figure>
+      </div>
+      <aside class="notes">Порог 60 метров и средние 5000 и 9000 — дерево из одного вопроса и двух листьев. Это ещё не sklearn, это правило на пальцах. Признак и порог выбирают так, чтобы цены внутри листа стали ближе друг к другу. Мало листьев смешивает непохожие квартиры. Много листьев оставляет в листе одну учебную строку, и модель превращается в записную книжку. Глубина и число листьев — гиперпараметры, их сравним позже по отложенным строкам. Покажите стрелки: «да» уходит в 5000, «нет» в 9000. Средняя ошибка этого правила на 12 квартирах — 533 тысячи рублей. Единицу назовите сразу, иначе 533 прочитают как рубли и решат, что модель почти святая.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">12. Теория ML</p>
+        <h2>Ошибка = шум + смещение + разброс</h2>
+        <div class="copy">
+          <ul>
+            <li><strong>Шум.</strong> В цене есть то, чего нет в площади, годе и комнатах. Сменой алгоритма это не убрать.</li>
+            <li><strong>Смещение.</strong> Модель слишком простая и промахивается в одну сторону. Два листа усредняют непохожие квартиры.</li>
+            <li><strong>Разброс.</strong> Модель повторяет состав учебной выборки. Лист на каждую квартиру на новых строках прыгает.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 240 160" aria-hidden="true">
+            <circle cx="70" cy="70" r="48" fill="none" stroke="#d9def0" stroke-width="10"/>
+            <circle cx="70" cy="70" r="28" fill="none" stroke="#293699" stroke-width="8"/>
+            <circle cx="70" cy="70" r="6" fill="#09135a"/>
+            <circle class="pop" cx="92" cy="58" r="5" fill="#293699"/>
+            <circle class="pop d1" cx="84" cy="80" r="5" fill="#293699"/>
+            <text x="70" y="140" text-anchor="middle" font-size="12" fill="#09135a">малый разброс</text>
+            <circle cx="180" cy="70" r="48" fill="none" stroke="#d9def0" stroke-width="10"/>
+            <circle class="pop d2" cx="150" cy="40" r="5" fill="#c23b78"/>
+            <circle class="pop d3" cx="210" cy="50" r="5" fill="#c23b78"/>
+            <circle class="pop d4" cx="200" cy="100" r="5" fill="#c23b78"/>
+            <circle cx="180" cy="70" r="6" fill="#09135a"/>
+            <text x="180" y="140" text-anchor="middle" font-size="12" fill="#c23b78">большой разброс</text>
+          </svg>
+          <p class="cap">Центр — истинный ответ. Точки — прогнозы на разных учебных выборках.</p>
+        </figure>
+      </div>
+      <aside class="notes">Ошибку удобно разложить на три части, иначе «модель плохая» ни о чём не говорит. Шум — то, чего нет в признаках. Сменой алгоритма его не убрать: в цене есть ремонт, вид из окна и настроение продавца, а у нас только площадь, год и комнаты. Смещение — модель слишком простая и промахивается в одну сторону. Два листа как раз отсюда. Разброс — модель слишком чуткая к составу выборки. Лист на каждую квартиру на новых строках прыгает. На мишени слева попадания кучно, справа разбросаны. Отложенная выборка показывает сумму этих частей, а не выдаёт их по отдельности. Это стоит сказать, чтобы никто не искал в ноутбуке три отдельных числа.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">2. Ансамбли и бустинг</p>
+        <h2>Несколько моделей собирают в один прогноз</h2>
+        <div class="copy">
+          <ul>
+            <li>Бэггинг учит модели на разных подвыборках и усредняет ответы. Разброс падает.</li>
+            <li>Случайный лес — бэггинг деревьев. В каждом разбиении участвует случайный набор признаков.</li>
+            <li>Бустинг добавляет модели по очереди: следующая уменьшает остаток предыдущих.</li>
+            <li>Градиентный бустинг строит добавку по градиенту потерь.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 150" aria-hidden="true">
+            <rect class="pop" x="8" y="20" width="52" height="36" rx="6" fill="#f3f5fb" stroke="#09135a"/>
+            <rect class="pop d1" x="8" y="64" width="52" height="36" rx="6" fill="#f3f5fb" stroke="#09135a"/>
+            <rect class="pop d2" x="8" y="108" width="52" height="28" rx="6" fill="#f3f5fb" stroke="#09135a"/>
+            <text x="34" y="43" text-anchor="middle" font-size="12" fill="#09135a">5200</text>
+            <text x="34" y="87" text-anchor="middle" font-size="12" fill="#09135a">4800</text>
+            <text x="34" y="127" text-anchor="middle" font-size="12" fill="#09135a">5100</text>
+            <path class="edge" d="M64 38 H120"/><path class="edge" d="M64 82 H120"/><path class="edge" d="M64 122 H120"/>
+            <rect class="pop d3" x="124" y="58" width="120" height="40" rx="8" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="184" y="83" text-anchor="middle" font-size="14" font-weight="700" fill="#c23b78">5033</text>
+          </svg>
+          <p class="cap">Три дерева дали три цены. Прогноз леса — их среднее.</p>
+        </figure>
+      </div>
+      <aside class="notes">Одно дерево можно успокоить компанией. Лес учит деревья на разных подвыборках и усредняет ответы. На рисунке 5200, 4800 и 5100 дают 5033. Одно неудачное дерево меньше сдвигает итог. В каждом разбиении леса участвует случайный набор признаков, поэтому деревья не повторяют друг друга дословно. Бустинг устроен иначе: следующее дерево уменьшает остаток уже построенных, а градиентный бустинг строит эту добавку по градиенту потери. Оба приёма бьют по разбросу одного глубокого дерева. В ноутбуке запускают лес, бустинг только называем. Не обещайте, что на двенадцати строках лес всегда точнее. Это сравнение печатают и записывают как факт запуска.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">3. Метрики</p>
+        <h2>Метрика переводит прогноз в число качества</h2>
+        <div class="copy">
+          <ul>
+            <li>MAE — среднее <span class="mono">|ŷ − y|</span>. Промахи 100 и 900 дают MAE = 500.</li>
+            <li>MSE — среднее квадрата. Те же промахи дают (100² + 900²) / 2 = 410000: крупный промах доминирует.</li>
+            <li>В классификации доля верных, точность и полнота считают разные доли. Их сводит матрица ошибок.</li>
+            <li>Для цены квартиры берут MAE.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 240 160" aria-hidden="true">
+            <text x="48" y="16" text-anchor="middle" font-size="12" fill="#09135a">|ошибка|</text>
+            <text x="150" y="16" text-anchor="middle" font-size="12" fill="#c23b78">квадрат</text>
+            <rect class="grow" x="30" y="100" width="28" height="40" fill="#293699"/>
+            <rect class="grow d2" x="66" y="28" width="28" height="112" fill="#293699"/>
+            <rect class="grow" x="126" y="124" width="28" height="16" fill="#c23b78"/>
+            <rect class="grow d2" x="162" y="20" width="28" height="120" fill="#c23b78"/>
+            <line x1="16" y1="140" x2="210" y2="140" stroke="#09135a"/>
+            <text x="44" y="156" text-anchor="middle" font-size="11" fill="#09135a">100</text>
+            <text x="80" y="156" text-anchor="middle" font-size="11" fill="#09135a">900</text>
+            <text x="140" y="156" text-anchor="middle" font-size="11" fill="#c23b78">100²</text>
+            <text x="176" y="156" text-anchor="middle" font-size="11" fill="#c23b78">900²</text>
+          </svg>
+          <p class="cap">Квадрат растягивает большой промах относительно модуля.</p>
+        </figure>
+      </div>
+      <aside class="notes">Метрика переводит прогноз в одно число, с которым можно спорить. Два промаха, 100 и 900. Средний модуль — 500. Средний квадрат — 410000, и 900 там главный герой. Если заказчику больно от редких больших промахов, берут квадрат. Если все промахи примерно равноценны, берут MAE. Для цены квартиры на этом занятии берут MAE. В классификации доля верных умеет льстить: если редкий класс почти не встречается, ответ «нет» всем даёт высокую долю и нулевую полноту по этому классу. Точность и полнота делят верные срабатывания на разные знаменатели, матрица ошибок их сводит. Не уходите в длинный зоопарк метрик. Хватит контраста модуля и квадрата.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">3. Проверка и гиперпараметры</p>
+        <h2>Качество смотрят на данных вне подбора</h2>
+        <div class="copy">
+          <ul>
+            <li>Отложенная часть: одно деление. На 12 квартирах это 9 и 3 строки. Оценка быстрая и шумная.</li>
+            <li>Кросс-валидация режет выборку на K частей. Каждая по очереди служит проверкой, K чисел усредняют.</li>
+            <li>Число листьев, число соседей, длина шага — гиперпараметры. Их сравнивают по проверочной метрике.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 250 150" aria-hidden="true">
+            <g class="pop">
+              <rect x="10" y="16" width="36" height="28" fill="#09135a"/><rect x="48" y="16" width="36" height="28" fill="#09135a"/>
+              <rect x="86" y="16" width="36" height="28" fill="#09135a"/><rect x="124" y="16" width="36" height="28" fill="#09135a"/>
+              <rect class="blink" x="162" y="16" width="36" height="28" fill="#c23b78"/>
+            </g>
+            <g class="pop d2">
+              <rect x="10" y="56" width="36" height="28" fill="#09135a"/><rect x="48" y="56" width="36" height="28" fill="#09135a"/>
+              <rect x="86" y="56" width="36" height="28" fill="#09135a"/><rect class="blink" x="124" y="56" width="36" height="28" fill="#c23b78"/>
+              <rect x="162" y="56" width="36" height="28" fill="#09135a"/>
+            </g>
+            <g class="pop d3">
+              <rect class="blink" x="10" y="96" width="36" height="28" fill="#c23b78"/><rect x="48" y="96" width="36" height="28" fill="#09135a"/>
+              <rect x="86" y="96" width="36" height="28" fill="#09135a"/><rect x="124" y="96" width="36" height="28" fill="#09135a"/>
+              <rect x="162" y="96" width="36" height="28" fill="#09135a"/>
+            </g>
+          </svg>
+          <p class="cap">Три фолда. Розовая клетка — проверка, тёмные — обучение. Итог — среднее трёх MAE.</p>
+        </figure>
+      </div>
+      <aside class="notes">Качество смотрят на строках, которых не было в подборе. Иначе победит самое глубокое дерево: оно честно выучило учебник, включая опечатки. На двенадцати квартирах деление одно: 9 строк на обучение и 3 на проверку. Оценка быстрая и шумная, три квартиры — не парламент. Кросс-валидация режет выборку на K частей, каждая по очереди розовая на рисунке, K чисел усредняют. Число листьев, число соседей, длина шага — гиперпараметры. Их сравнивают по проверочной метрике, не по учебной. Если кто-то предлагает «выбрать листья по ошибке на всех двенадцати», похвалите честность и отберите ключи от модели.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">4. Вероятностные модели</p>
+        <h2>Ответ случаен, модель задаёт распределение</h2>
+        <div class="copy">
+          <ul>
+            <li>Условная модель задаёт <span class="mono">P(y | x)</span>. Обучение максимизирует правдоподобие выборки.</li>
+            <li>Квадрат ошибки соответствует нормальному шуму вокруг прямой. Логистическая потеря — вероятности класса.</li>
+            <li>Генеративный подход сначала описывает объекты каждого класса, затем получает <span class="mono">P(y | x)</span>.</li>
+            <li>Байесовский подход хранит распределение на весах, а не одну точку <span class="mono">w</span>.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 240 150" aria-hidden="true">
+            <path d="M20 120 C 50 120, 60 30, 120 30 C 180 30, 190 120, 220 120" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <line x1="120" y1="30" x2="120" y2="120" stroke="#09135a" stroke-dasharray="3 3"/>
+            <text x="120" y="142" text-anchor="middle" font-size="12" fill="#09135a">y при данном x</text>
+          </svg>
+          <p class="cap">Прогноз — центр распределения. Ширина — оставшийся шум.</p>
+        </figure>
+      </div>
+      <aside class="notes">Можно считать ответ не одним числом, а распределением. Условная модель задаёт P(y|x). Обучение максимизирует правдоподобие учебной выборки, то есть подгоняет распределение так, чтобы виденные ответы были для него правдоподобны. Потеря часто равна минус логарифму этого правдоподобия. Квадрат ошибки соответствует нормальному шуму вокруг прямой: центр на рисунке — прогноз, ширина — оставшийся шум. Логистическая потеря — вероятность класса. Генеративный подход сначала описывает, как выглядят объекты каждого класса, и уже оттуда получает P(y|x). Байесовский подход хранит распределение на весах, а не одну точку w. На квартирах мы остаёмся при точечном прогнозе и MAE, но слово «распределение» больше не должно пугать.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5. Глубинное обучение</p>
+        <h2>Сеть — слои <span class="mono">σ(Wx + b)</span></h2>
+        <div class="copy">
+          <ul>
+            <li>Полносвязный слой: матрица на вектор, сдвиг, затем нелинейность σ.</li>
+            <li>Без σ два слоя равны одному линейному. С σ функция становится составной.</li>
+            <li>Обратное распространение считает градиент потери по каждому весу. SGD этот градиент применяет.</li>
+            <li>Почему гибкая сеть всё же обобщает, разбирают отдельно: PAC-байес, бесконечная ширина, implicit bias.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 260 160" aria-hidden="true">
+            <g fill="#09135a">
+              <circle cx="30" cy="40" r="8"/><circle cx="30" cy="80" r="8"/><circle cx="30" cy="120" r="8"/>
+              <circle cx="120" cy="30" r="8"/><circle cx="120" cy="70" r="8"/><circle cx="120" cy="110" r="8"/><circle cx="120" cy="145" r="8"/>
+              <circle cx="210" cy="70" r="10" fill="#c23b78"/>
+            </g>
+            <g class="edge" stroke="#c23b78" fill="none">
+              <path d="M38 40 H112"/><path d="M38 40 L112 70"/><path d="M38 80 H112"/><path d="M38 80 L112 110"/>
+              <path d="M38 120 L112 110"/><path d="M128 70 H200"/><path d="M128 110 L200 70"/>
+            </g>
+            <text x="30" y="18" text-anchor="middle" font-size="11" fill="#293699">x</text>
+            <text x="120" y="18" text-anchor="middle" font-size="11" fill="#293699">слой</text>
+            <text x="214" y="96" font-size="12" fill="#c23b78">ŷ</text>
+          </svg>
+          <p class="cap">Стрелки — веса. Ошибка ŷ проходит обратно по тем же стрелкам.</p>
+        </figure>
+      </div>
+      <aside class="notes">Сеть — несколько слоёв. Полносвязный слой считает матрицу на вектор, прибавляет сдвиг и пропускает через нелинейность σ. Без σ два слоя равны одному линейному: стопка линеек остаётся линейкой. С σ функция становится составной, и картинка справа уже не прямая. Обратное распространение считает градиент потери по каждому весу, ошибка ŷ идёт обратно по тем же стрелкам. Дальше тот же SGD двигает веса. У дерева таких весов нет, ему этот абзац не нужен для практики. Почему гибкая сеть всё же обобщает, а не запоминает всё подряд, разбирают отдельно: PAC-байес, бесконечная ширина, implicit bias. Назовите это и не разворачивайте. Иначе до квартир не дойдёте.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6–7. Архитектуры</p>
+        <h2>Форма данных выбирает вид слоя</h2>
+        <div class="copy">
+          <ul>
+            <li>Картинка: свёртка смотрит квадрат пикселей, один и тот же фильтр едет по кадру.</li>
+            <li>Текст и ряд: рекуррентная сеть несёт состояние по шагам, трансформер связывает позиции напрямую.</li>
+            <li>Граф и облако точек: слой собирает соседей вершины или точки, а не фиксированную решётку.</li>
+            <li>Веса с большой задачи доучивают на своей, меньшей: это перенос.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 160" aria-hidden="true">
+            <g class="pop">
+              <rect x="16" y="16" width="22" height="22" fill="#d9def0" stroke="#09135a"/>
+              <rect x="40" y="16" width="22" height="22" fill="#c23b78"/>
+              <rect x="64" y="16" width="22" height="22" fill="#d9def0" stroke="#09135a"/>
+              <rect x="16" y="40" width="22" height="22" fill="#d9def0" stroke="#09135a"/>
+              <rect x="40" y="40" width="22" height="22" fill="#c23b78"/>
+              <rect x="64" y="40" width="22" height="22" fill="#d9def0" stroke="#09135a"/>
+            </g>
+            <text x="52" y="84" text-anchor="middle" font-size="11" fill="#09135a">фильтр 2×2</text>
+            <g class="pop d2">
+              <circle cx="150" cy="28" r="6" fill="#09135a"/>
+              <circle cx="176" cy="48" r="6" fill="#09135a"/>
+              <circle cx="150" cy="68" r="6" fill="#09135a"/>
+              <path class="edge" d="M156 28 L170 48 L156 68 L156 28"/>
+            </g>
+            <text x="162" y="96" text-anchor="middle" font-size="11" fill="#09135a">соседи графа</text>
+            <text class="pop d3" x="20" y="130" font-size="13" fill="#293699">токен₁ → токен₂ → токен₃</text>
+          </svg>
+          <p class="cap">Один и тот же полносвязный слой эти соседства не видит.</p>
+        </figure>
+      </div>
+      <aside class="notes">Форма данных выбирает слой. Картинка: свёртка смотрит квадрат пикселей, один и тот же фильтр едет по кадру. Фильтр 3 на 3 как раз ищет край. Текст и ряд: рекуррентная сеть несёт состояние по шагам, трансформер связывает позиции напрямую, без очереди «сначала первое слово, потом когда-нибудь последнее». Граф и облако точек: слой собирает соседей вершины, а не фиксированную решётку. Полносвязный слой эти соседства не видит, он видит плоский вектор. Веса, выученные на большой задаче, доучивают на своей, меньшей. Это перенос. Для таблицы квартир ни свёртка, ни трансформер не нужны. Слайд отвечает на вопрос «а почему все вокруг говорят про картинки», и после этого возвращаемся к строкам.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">8. Генеративные модели</p>
+        <h2>Модель порождает новые объекты</h2>
+        <div class="copy">
+          <ul>
+            <li>Прогноз по <span class="mono">x</span> выдаёт цену, класс или вероятность.</li>
+            <li>Порождение выдаёт новый объект, похожий на учебные: текст, изображение, звук.</li>
+            <li>VAE сжимает объект в скрытый код и собирает обратно. GAN учит генератор обманывать различитель.</li>
+            <li>Поток гонит простое распределение в сложное. Диффузия снимает шум шаг за шагом. Языковая модель продолжает последовательность.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 240 150" aria-hidden="true">
+            <g class="pop">
+              <circle cx="40" cy="40" r="3" fill="#d9def0"/><circle cx="55" cy="28" r="3" fill="#d9def0"/>
+              <circle cx="28" cy="60" r="3" fill="#d9def0"/><circle cx="62" cy="55" r="3" fill="#d9def0"/>
+              <circle cx="48" cy="70" r="3" fill="#d9def0"/>
+            </g>
+            <path class="edge" d="M80 55 H120"/>
+            <polygon points="120,50 132,55 120,60" fill="#c23b78"/>
+            <rect class="pop d3" x="146" y="28" width="70" height="54" rx="8" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="181" y="60" text-anchor="middle" font-size="13" fill="#c23b78">новый x</text>
+          </svg>
+          <p class="cap">Слева шум. Справа объект из распределения учебных данных.</p>
+        </figure>
+      </div>
+      <aside class="notes">До этого модель отвечала на вопрос «какая цена» или «какой класс». Генеративная модель отвечает на другой: «нарисуй ещё один объект, похожий на учебные». Слева на схеме шум, справа новый x. VAE сжимает объект в скрытый код и собирает обратно. GAN учит генератор обманывать различитель: один рисует, второй ловит за руку, и оба от этого умнеют. Поток гонит простое распределение в сложное. Диффузия снимает шум шаг за шагом. Языковая модель продолжает последовательность. На занятии мы ничего из этого не обучаем. Достаточно границы: прогноз выдаёт y, порождение выдаёт новый объект. Если зал оживился, не уходите в демо на десять минут. Скажите, что это соседняя дверь, и закройте её.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">9–11. Прикладные части</p>
+        <h2>Отдельные постановки</h2>
+        <div class="copy">
+          <ul>
+            <li>Рекомендация заполняет пустые клетки матрицы «человек × объект» и учитывает признаки объекта.</li>
+            <li>Кластеризация группирует объекты без <span class="mono">y</span>. ARIMA пишет следующее значение ряда через предыдущие. Ранжирование упорядочивает выдачу.</li>
+            <li>В обучении с подкреплением действие меняет следующую награду.</li>
+            <li>Краудсорсинг собирает <span class="mono">y</span> у многих людей. Метки шумят, это учитывают в потере.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <g class="pop">
+              <rect x="20" y="16" width="28" height="22" fill="#09135a"/>
+              <rect x="52" y="16" width="28" height="22" fill="#fff5f8" stroke="#c23b78"/>
+              <rect x="84" y="16" width="28" height="22" fill="#09135a"/>
+              <rect x="20" y="42" width="28" height="22" fill="#fff5f8" stroke="#c23b78"/>
+              <rect x="52" y="42" width="28" height="22" fill="#09135a"/>
+              <rect x="84" y="42" width="28" height="22" fill="#fff5f8" stroke="#c23b78"/>
+            </g>
+            <text x="66" y="84" text-anchor="middle" font-size="11" fill="#293699">пустые клетки</text>
+            <polyline class="edge" points="150,20 166,36 158,36 174,52 190,28" fill="none"/>
+            <text x="170" y="78" text-anchor="middle" font-size="11" fill="#09135a">ряд</text>
+          </svg>
+          <p class="cap">Розовые клетки ещё не наблюдали. Модель их заполняет.</p>
+        </figure>
+      </div>
+      <aside class="notes">Короткий обход остальных постановок, чтобы карта не оборвалась на дереве. Рекомендация заполняет пустые клетки матрицы «человек на объект» и учитывает признаки самого объекта. Кластеризация группирует без y. ARIMA пишет следующее значение ряда через предыдущие: порядок во времени здесь главный, перетасовать строки нельзя. Ранжирование упорядочивает выдачу, а не ставит каждому объекту независимую оценку. В обучении с подкреплением действие меняет следующую награду. Краудсорсинг — способ собрать y у многих людей. Метки шумят и противоречат друг другу, это учитывают в потере, а не «исправляют большинством и забывают». На практике сегодня ни одной из этих задач нет. Есть книги и квартиры.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Дальше на занятии</p>
+        <h2>Четыре шага до ноутбука</h2>
+        <div class="flow">
+          <span class="step pop">X, y</span>
+          <span class="arr">→</span>
+          <span class="step pop d1">дерево, листья</span>
+          <span class="arr">→</span>
+          <span class="step pop d2">MAE на 3 строках</span>
+          <span class="arr">→</span>
+          <span class="step hot pop d3">лес</span>
+        </div>
+        <ul>
+          <li>Признаки и ответ. Риск на учебных строках и риск на новых.</li>
+          <li>Дерево: порог, лист, число листьев как сложность.</li>
+          <li>MAE считают на отложенных строках и по ней выбирают гиперпараметр.</li>
+          <li>Лес усредняет деревья. Смещение и разброс объясняют, зачем сравнивать одно дерево и лес.</li>
+        </ul>
+        <p>Дальше слайды собирают таблицу в pandas и проводят эти шаги на файле квартир: 12 книг и 12 квартир, контрольные числа из методичек.</p>
+      </div>
+      <aside class="notes">Соберите четыре шага, которыми сейчас пойдёт ноутбук. Сначала признаки и ответ, риск на учебных строках и риск на новых. Потом дерево: порог, лист, число листьев как сложность. Потом MAE на трёх отложенных строках и выбор гиперпараметра по ней. В конце лес, который усредняет деревья. Смещение и разброс объясняют, зачем сравнивать одно дерево и лес, а не потому что «лес звучит солиднее». Дальше слайды про таблицу. Контрольные числа из методичек: 12 книг и 12 квартир. Предупредите, что шпаргалить ответ по числу листьев бесполезно. Его печатает ноутбук, и в этом как раз упражнение.</aside>
+    </section>
+
+    <section class="slide title-slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Практика курса</p>
+        <h1>От таблицы к прогнозу</h1>
+        <p class="lead">Дальше — pandas и первая модель на числах из методичек.</p>
+        <p>12 книг в каталоге и 12 квартир с ценой. Сначала таблицу разбирают, потом по ней учат дерево и лес.</p>
+        <div class="flow">
+          <span class="step pop">файл</span>
+          <span class="arr">→</span>
+          <span class="step pop d1">срез и сводка</span>
+          <span class="arr">→</span>
+          <span class="step pop d2">X и y</span>
+          <span class="arr">→</span>
+          <span class="step hot pop d3">проверка</span>
+        </div>
+      </div>
+      <aside class="notes">Переключайте регистр и покажите цепочку внизу пальцем: файл, срез, признаки, проверка. Теория кончилась, начались файлы. Эти слайды готовят ноутбук 5.1: таблица, срез, сводка, группа, пропуск, соединение. Затем ноутбук 6.0: признаки, дерево, нулевая ошибка на обучении, число листьев, лес, две новые квартиры. Цифры на слайдах — контрольные из методичек, их потом сверяют с печатью. После слайдов открывают lab51 и lab60. Скажите, что слайд не заменяет ячейку. Если число на экране и число в ноутбуке разошлись, верит ноутбук и методичка, а не память о красивой схеме. И да, коровы с козами ещё появятся. Это не фермерский модуль, это проверка, что индекс пережил поездку в файл. Дайте на эту половину минут сорок, не больше. Если уходите в долгий рассказ про каждую ячейку pandas, до леса не дойдёте, а лес как раз то, ради чего терпели срез. Цепочку внизу проговорите один раз и больше к ней не возвращайтесь: файл, таблица, признаки, проверка.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">Маршрут</p>
+        <h2>Два вопроса, одна табличная грамотность</h2>
+        <div class="copy">
+          <ul>
+            <li><strong>5.1 Книги.</strong> Достать строки, сводку по городу и жанру, каталог изданий со складским остатком.</li>
+            <li><strong>6.0 Квартиры.</strong> По площади, году и комнатам оценить цену, которой в обучении не было.</li>
+            <li>Порядок один: таблица, выборка, сводки, группы, пропуски, соединение, затем модель, проверка, листья и лес.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 160" aria-hidden="true">
+            <g class="pop">
+              <rect x="16" y="18" width="78" height="96" rx="8" fill="#09135a"/>
+              <text x="55" y="48" text-anchor="middle" fill="#fff" font-size="13">книги</text>
+              <text x="55" y="70" text-anchor="middle" fill="#c23b78" font-size="12">12 строк</text>
+              <text x="55" y="90" text-anchor="middle" fill="#fff" font-size="11">срез, группа</text>
+            </g>
+            <path class="edge" d="M100 66 H118"/>
+            <g class="pop d2">
+              <rect x="124" y="18" width="82" height="96" rx="8" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+              <text x="165" y="48" text-anchor="middle" fill="#c23b78" font-size="13">квартиры</text>
+              <text x="165" y="70" text-anchor="middle" fill="#09135a" font-size="12">12 строк</text>
+              <text x="165" y="90" text-anchor="middle" fill="#09135a" font-size="11">дерево, лес</text>
+            </g>
+          </svg>
+          <p class="cap">Оба файла лежат от корня курса. Сначала каталог, потом цена.</p>
+        </figure>
+      </div>
+      <aside class="notes">Назовите оба файла вслух: module-5/data/books.csv и module-6-0/data/flats.csv. Пути считаются от корня курса. Тот, кто запустит ноутбук из чужой папки, получит FileNotFoundError и будет искать книгу в квартире. Модель не начнётся, пока слушатель не отличает столбец от строки и пустую ячейку от нуля. Практика идёт по чеклистам методичек, слайды эти чеклисты не заменяют. Порядок один: создание таблицы, выборка, сводки, группы, пропуски, соединение, затем модель, проверка, листья и лес. Если кто-то хочет сразу к лесу, попросите его сначала достать из каталога казанские книги. Обычно после этого спешка проходит. Покажите два прямоугольника на рисунке и скажите вслух пути. Книги — module-5/data/books.csv, квартиры — module-6-0/data/flats.csv. Если кто-то уже открыл ноутбук, пусть свернет: сначала маршрут, потом ячейки. Иначе люди считают схемы, пока у соседа уже KeyError.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.1</p>
+        <h2>DataFrame — таблица, Series — один столбец</h2>
+        <div class="copy">
+          <ul>
+            <li>DataFrame: у ячейки есть строка и столбец. Это несколько Series с общим индексом.</li>
+            <li>Series: один столбец и метки строк. Имени столбца нет, есть <code>name</code>.</li>
+            <li><code>fruits</code> — форма <code>(1, 2)</code>. <code>fruit_sales</code> — <code>(2, 2)</code>, яблок в 2018 году 41.</li>
+            <li>Серия «Ужин» начинается с метки «Мука».</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 230 150" aria-hidden="true">
+            <text x="70" y="14" text-anchor="middle" font-size="11" fill="#293699">DataFrame</text>
+            <rect class="pop" x="8" y="22" width="54" height="22" fill="#09135a"/>
+            <rect class="pop d1" x="64" y="22" width="54" height="22" fill="#09135a"/>
+            <text x="35" y="37" text-anchor="middle" fill="#fff" font-size="11">Яблоки</text>
+            <text x="91" y="37" text-anchor="middle" fill="#fff" font-size="11">Бананы</text>
+            <rect x="8" y="46" width="54" height="22" fill="#f3f5fb" stroke="#09135a"/>
+            <rect x="64" y="46" width="54" height="22" fill="#f3f5fb" stroke="#09135a"/>
+            <rect x="8" y="70" width="54" height="22" fill="#fff5f8" stroke="#c23b78"/>
+            <rect x="64" y="70" width="54" height="22" fill="#f3f5fb" stroke="#09135a"/>
+            <text x="35" y="85" text-anchor="middle" font-size="12" fill="#c23b78">41</text>
+            <text x="91" y="61" text-anchor="middle" font-size="12" fill="#09135a">21</text>
+            <text x="91" y="85" text-anchor="middle" font-size="12" fill="#09135a">34</text>
+            <text x="35" y="61" text-anchor="middle" font-size="12" fill="#09135a">35</text>
+            <rect class="pop d3" x="150" y="46" width="64" height="46" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="182" y="66" text-anchor="middle" font-size="11" fill="#c23b78">Series</text>
+            <text x="182" y="82" text-anchor="middle" font-size="12" fill="#09135a">35, 41</text>
+          </svg>
+          <p class="cap">Розовая клетка — яблоки 2018. Вырезанный столбец справа — Series.</p>
+        </figure>
+      </div>
+      <aside class="notes">Нарисуйте две колонки: яблоки и бананы. DataFrame — таблица, у ячейки есть строка и столбец. Series — один столбец с метками. Серия «Ужин» — это рецепт, а не таблица из одного столбца: у неё имя и индекс ингредиентов, начинается с «Мука». Критерий практики: fruits имеет форму (1, 2), fruit_sales — (2, 2), в строке «Продажи 2018» яблок 41. Если type показывает DataFrame там, где ждали Series, человек взял двойные скобки вокруг одного имени столбца. Одинарные скобки отдают столбец, двойные — таблицу из одного столбца. Это любимая путаница курса, встречайте её с улыбкой и с type(). Ткните в розовую клетку: это и есть 41, яблоки 2018 года. Справа тот же столбец уже как Series, без второго заголовка. Попросите нарисовать пальцем, где строка, а где столбец. Кто путает, тот через пять минут напишет books[0] и будет искренне удивлён.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.1</p>
+        <h2>Словарь становится таблицей, список меток — индексом</h2>
+        <div class="copy">
+          <pre>{"Яблоки": [35, 41],
+ "Бананы": [21, 34]}
+index = 2017, 2018</pre>
+          <ul>
+            <li>Ключ — имя столбца, список — ячейки сверху вниз.</li>
+            <li>Без <code>index</code> метки строк были бы 0 и 1.</li>
+            <li>Длины списков совпадают, иначе прямоугольник не соберётся.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 210 150" aria-hidden="true">
+            <text class="pop" x="18" y="28" font-size="13" fill="#293699">Яблоки →</text>
+            <rect class="pop d1" x="100" y="12" width="44" height="24" fill="#09135a"/>
+            <text x="122" y="28" text-anchor="middle" fill="#fff" font-size="11">столбец</text>
+            <rect class="pop d2" x="16" y="52" width="70" height="22" fill="#fff5f8" stroke="#c23b78"/>
+            <text x="51" y="67" text-anchor="middle" font-size="11" fill="#c23b78">2018</text>
+            <rect class="pop d2" x="90" y="52" width="44" height="22" fill="#fff5f8" stroke="#c23b78"/>
+            <text x="112" y="67" text-anchor="middle" font-size="13" fill="#c23b78">41</text>
+            <rect x="138" y="52" width="44" height="22" fill="#f3f5fb" stroke="#09135a"/>
+            <text x="160" y="67" text-anchor="middle" font-size="13">34</text>
+            <text x="105" y="110" text-anchor="middle" font-size="12" fill="#09135a">пересечение — 41</text>
+          </svg>
+          <p class="cap">Метка строки и имя столбца вместе выбирают одну ячейку.</p>
+        </figure>
+      </div>
+      <aside class="notes">Пройдите конструктор по словам. Ключ «Яблоки» — заголовок, список из двух чисел — ячейки сверху вниз. Параметр index подписывает строки «Продажи 2017» и «Продажи 2018». Без index метки были бы 0 и 1, и разговаривать с таблицей стало бы скучнее. Длины списков в словаре совпадают, иначе конструктор откажется собирать прямоугольник. Спросите, что на пересечении «Продажи 2018» и «Яблоки». Ответ — 41. В книгах индекс потом приедет из файла. Здесь его задают руками, чтобы объект Index увидели до read_csv и не решили, что индексы бывают только у баз данных. На рисунке стрелка от ключа к заголовку и розовая 41 на пересечении. Это стоит показать до того, как откроете код: люди лучше держат таблицу, если сначала увидели одну клетку. Спросите ещё раз вслух, не глядя в слайд. Если зал отвечает «сорок один» хором, конструктор усвоен.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.1</p>
+        <h2>CSV читают дважды: с номером и без него</h2>
+        <div class="copy">
+          <ul>
+            <li>Без <code>index_col</code> форма <code>(12, 9)</code>: пустой заголовок остался лишним столбцом.</li>
+            <li>С <code>index_col=0</code> форма <code>(12, 8)</code>: номер ушёл в индекс.</li>
+            <li>Восемь полей: название, город, аннотация, жанр, оценка, цена, рецензент, отметка.</li>
+            <li><code>head(3)</code> — первые три книги. Первая — «Тихий двор».</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 150" aria-hidden="true">
+            <text x="48" y="16" text-anchor="middle" font-size="12" fill="#c23b78">9 столбцов</text>
+            <g class="pop">
+              <rect x="8" y="24" width="16" height="70" fill="#c23b78"/>
+              <rect x="26" y="24" width="14" height="70" fill="#09135a"/>
+              <rect x="42" y="24" width="14" height="70" fill="#293699"/>
+              <rect x="58" y="24" width="14" height="70" fill="#09135a"/>
+              <rect x="74" y="24" width="14" height="70" fill="#293699"/>
+            </g>
+            <path class="edge" d="M100 58 H124"/>
+            <text x="168" y="16" text-anchor="middle" font-size="12" fill="#09135a">8 столбцов</text>
+            <g class="pop d2">
+              <rect x="130" y="24" width="16" height="70" fill="#d9def0" stroke="#09135a"/>
+              <rect x="148" y="24" width="14" height="70" fill="#09135a"/>
+              <rect x="164" y="24" width="14" height="70" fill="#293699"/>
+              <rect x="180" y="24" width="14" height="70" fill="#09135a"/>
+            </g>
+            <text x="110" y="120" text-anchor="middle" font-size="12" fill="#293699">розовый столбец стал индексом</text>
+          </svg>
+          <p class="cap">shape считает и строки, и столбцы. Девять — значит параметр забыт.</p>
+        </figure>
+      </div>
+      <aside class="notes">В books.csv первый столбец — уже готовый номер, у него пустой заголовок. Без index_col pandas заводит ещё один индекс, и столбцов становится девять. Таблица толстеет на ровном месте. С index_col=0 рабочих полей восемь: название, город, аннотация, жанр, оценка, цена, рецензент, отметка. Формы (12, 9) и (12, 8) — критерий. shape — число строк и столбцов, head(3) показывает первые три книги, первая — «Тихий двор». Путь module-5/data/books.csv от корня курса. Если слушатель видит девять столбцов, параметр забыт. Попросите не спорить с файлом, а добавить index_col. Файл старше нашего самолюбия. Розовый столбик на рисунке — тот самый пустой заголовок. Он уезжает в индекс, и столбцов становится восемь. Посчитайте поля на пальцах: название, город, аннотация, жанр, оценка, цена, рецензент, отметка. Девятый палец означает, что index_col забыли. «Тихий двор» — проверка, что открыт нужный файл, а не чужой черновик.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.1</p>
+        <h2>Таблица уходит на диск и приходит из SQL</h2>
+        <div class="copy">
+          <ul>
+            <li><code>to_csv</code> по умолчанию пишет и индекс. Обратно «Год 1» читают с <code>index_col=0</code>.</li>
+            <li>В «Год 1» коров 12 и коз 22. Если год пропал, индекс не записали или не прочитали.</li>
+            <li><code>read_sql</code> берёт таблицу <code>authors</code> из PostgreSQL, база <code>course</code>.</li>
+            <li>Три автора: Иванова, Петров, Смирнова. Это тот же DataFrame.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 210 155" aria-hidden="true">
+            <rect class="pop" x="8" y="16" width="70" height="36" rx="8" fill="#09135a"/>
+            <text x="43" y="38" text-anchor="middle" fill="#fff" font-size="12">Год 1</text>
+            <path class="edge" d="M82 34 H118"/>
+            <polygon points="118,28 130,34 118,40" fill="#c23b78"/>
+            <rect class="pop d2" x="134" y="16" width="68" height="36" rx="8" fill="#fff5f8" stroke="#c23b78"/>
+            <text x="168" y="32" text-anchor="middle" font-size="11" fill="#c23b78">12 коров</text>
+            <text x="168" y="46" text-anchor="middle" font-size="11" fill="#c23b78">22 козы</text>
+            <rect class="pop d3" x="20" y="78" width="170" height="28" rx="8" fill="#f3f5fb" stroke="#09135a"/>
+            <text x="105" y="96" text-anchor="middle" font-size="12">Иванова · Петров · Смирнова</text>
+          </svg>
+          <p class="cap">Сверху файл помнит метку строки. Снизу прямоугольник приехал из базы course.</p>
+        </figure>
+      </div>
+      <aside class="notes">Коровы и козы — круговая поездка индекса. Записали таблицу, прочитали обратно. В «Год 1» коров 12 и коз 22. По умолчанию to_csv пишет и индекс. Обратно метку «Год 1» достают с index_col=0. Если при чтении год пропал, файл писали с index=False или читали без index_col. Оба способа честные, они просто про разное: нужен ли нам ярлык строки. SQL здесь короткий, три автора: Иванова, Петров, Смирнова. Источник — таблица authors в PostgreSQL, база course, не конструктор из словаря. Это тот же DataFrame. Базе всё равно, как мы потом назовём объект в Python, ей важно, что запрос вернул прямоугольник. Сначала обведите поездку коров: таблица ушла в файл и вернулась с меткой «Год 1», 12 и 22. Потом нижнюю строку: Иванова, Петров, Смирнова приехали не из словаря, а из таблицы authors, база course, PostgreSQL. Если год пропал, не чините коров, чините index. Если авторов не три, запрос сходил не в ту базу.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.2</p>
+        <h2>Столбец — по имени, строка — по позиции</h2>
+        <div class="copy">
+          <ul>
+            <li><code>books["city"]</code> и <code>books.city</code> — столбец. Скобки нужны при пробеле в имени.</li>
+            <li><code>books.iloc[0]</code> — первая строка. <code>books[0]</code> ищет столбец «0» и падает с KeyError.</li>
+            <li><code>set_index("title")</code> возвращает новую таблицу. Исходный <code>books</code> не меняется, пока результат не сохранили.</li>
+            <li>Первая метка после смены индекса — «Тихий двор».</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 155" aria-hidden="true">
+            <rect x="20" y="16" width="36" height="78" fill="#09135a" class="pop"/>
+            <text x="38" y="110" text-anchor="middle" font-size="11" fill="#09135a">столбец</text>
+            <rect x="80" y="16" width="100" height="20" fill="#c23b78" class="pop d2"/>
+            <text x="130" y="52" text-anchor="middle" font-size="11" fill="#c23b78">iloc[0], строка</text>
+            <text class="blink" x="100" y="130" font-size="14" font-weight="700" fill="#c23b78">books[0] → ошибка</text>
+          </svg>
+          <p class="cap">Вертикальный срез — имя. Горизонтальный — позиция. Ноль именем не является.</p>
+        </figure>
+      </div>
+      <aside class="notes">Здесь практика спотыкается чаще всего, можно даже объявить это официально. books["city"] и books.city — столбец. books.iloc[0] — первая строка. books[0] ищет столбец с именем 0 и честно падает с KeyError. Ноль — не имя поля. Атрибут короче, но ломается на пробеле в имени и на совпадении с методом. Скобки тогда обязательны. set_index("title") возвращает новую таблицу. Исходный books остаётся с числовым индексом, пока результат не сохранили. Первая метка после смены индекса — «Тихий двор». Попросите в практике одной фразой объяснить KeyError. Хорошая фраза звучит так: «я попросил столбец, а думал, что прошу строку». Покажите вертикальный тёмный столбец и розовую полоску строки. books[0] на рисунке мигает как ошибка не для красоты: это самый частый стоп практики. Хорошая фраза для тетради: скобки с именем режут столбец, iloc режет строку, ноль именем не является. «Тихий двор» после set_index — проверка, что результат сохранили в новую переменную.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.2 · проверка</p>
+        <h2>Край среза: позиция и метка</h2>
+        <div class="copy">
+          <p><code>iloc</code> считает с нуля и правый край не берёт. <code>loc</code> берёт метки, правый край входит. Сначала строки, потом столбцы.</p>
+          <div class="choice">
+            <button type="button" data-quiz="slice" data-ok="0">iloc[0:10] → 10 строк</button>
+            <button type="button" data-quiz="slice" data-ok="1">loc[0:10] → 11 строк</button>
+          </div>
+          <p class="feedback" id="slice-msg">Нажмите оба варианта.</p>
+          <p class="muted">Метки 1, 2, 3, 5, 8 дают <code>(5, 8)</code>. Три поля у трёх книг — <code>(3, 3)</code>. Срез до метки 7 по двум столбцам — <code>(8, 2)</code>.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 230 140" aria-hidden="true">
+            <text x="8" y="18" font-size="12" fill="#09135a">iloc</text>
+            <g class="pop">
+              <rect x="8" y="26" width="18" height="22" fill="#09135a"/>
+              <rect x="28" y="26" width="18" height="22" fill="#09135a"/>
+              <rect x="48" y="26" width="18" height="22" fill="#09135a"/>
+              <rect x="68" y="26" width="18" height="22" fill="#09135a"/>
+              <rect x="88" y="26" width="18" height="22" fill="#d9def0" stroke="#293699"/>
+            </g>
+            <text x="8" y="78" font-size="12" fill="#c23b78">loc</text>
+            <g class="pop d2">
+              <rect x="8" y="86" width="18" height="22" fill="#c23b78"/>
+              <rect x="28" y="86" width="18" height="22" fill="#c23b78"/>
+              <rect x="48" y="86" width="18" height="22" fill="#c23b78"/>
+              <rect x="68" y="86" width="18" height="22" fill="#c23b78"/>
+              <rect class="blink" x="88" y="86" width="18" height="22" fill="#c23b78"/>
+            </g>
+            <text x="120" y="42" font-size="12" fill="#293699">0…9, десять</text>
+            <text x="120" y="102" font-size="12" fill="#c23b78">метка 10 тоже</text>
+          </svg>
+          <p class="cap">Серая клетка у iloc уже за бортом. У loc она ещё внутри.</p>
+        </figure>
+      </div>
+      <aside class="notes">Дайте пять секунд до кнопок, не подсказывайте глазами. iloc считает позиции с нуля, правый край не входит: iloc[0:10] — позиции 0…9, десять строк. loc берёт метки, правый край входит: loc[0:10] на индексе 0, 1, 2, … включает метку 10, одиннадцать строк. Обе кнопки верные, в этом и шутка проверки. Фраза для зала: «iloc отрезает правый край, loc его берёт, как вежливый гость». Сначала строки, потом столбцы. Одинокое двоеточие — все строки или все столбцы. Ещё формы с занятия: выборка меток 1, 2, 3, 5, 8 даёт (5, 8), три поля у трёх книг — (3, 3), срез до метки 7 по двум столбцам — (8, 2). Первая аннотация — «Спокойный сюжет без спешки». Если кто-то получил не то, пусть сначала скажет, позиции он режет или метки. Линейка на рисунке — весь слайд. Верхние клетки обрываются на серой: iloc правый край выкинул. Нижние все розовые, включая последнюю: loc метку 10 взял. Обе кнопки верные, не делайте из этого ловушку «одна правильная». После кликов назовите остальные формы: (5, 8), (3, 3), (8, 2) и первую аннотацию «Спокойный сюжет без спешки».</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.2</p>
+        <h2>Условие — столбец из True и False</h2>
+        <div class="copy">
+          <p><code>loc</code> оставляет строки, где маска истинна. <code>&amp;</code> требует скобок вокруг сравнений.</p>
+          <ul>
+            <li>Казань — 3. Казань и оценка от 90 — 2. Казань или оценка от 90 — 7.</li>
+            <li><code>isin</code> Москва или Казань — 8. Цена заполнена — 11.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 160" aria-hidden="true">
+            <g font-size="13" font-weight="700">
+              <rect class="pop" x="16" y="10" width="36" height="22" rx="4" fill="#09135a"/><text x="34" y="26" text-anchor="middle" fill="#fff">T</text>
+              <rect class="pop d1" x="16" y="38" width="36" height="22" rx="4" fill="#d9def0"/><text x="34" y="54" text-anchor="middle" fill="#293699">F</text>
+              <rect class="pop d2" x="16" y="66" width="36" height="22" rx="4" fill="#09135a"/><text x="34" y="82" text-anchor="middle" fill="#fff">T</text>
+              <rect class="pop d3" x="16" y="94" width="36" height="22" rx="4" fill="#09135a"/><text x="34" y="110" text-anchor="middle" fill="#fff">T</text>
+              <rect class="pop d4" x="16" y="122" width="36" height="22" rx="4" fill="#d9def0"/><text x="34" y="138" text-anchor="middle" fill="#293699">F</text>
+            </g>
+            <path class="edge" d="M60 21 H90 M60 77 H90 M60 105 H90"/>
+            <rect x="96" y="8" width="88" height="110" rx="8" fill="#fff5f8" stroke="#c23b78"/>
+            <text x="140" y="36" text-anchor="middle" font-size="12" fill="#c23b78">3 строки</text>
+            <text x="140" y="56" text-anchor="middle" font-size="12" fill="#09135a">Казань</text>
+            <text x="140" y="78" text-anchor="middle" font-size="12" fill="#09135a">остаются</text>
+          </svg>
+          <p class="cap">Маска сама ничего не печатает. Фильтр делает loc.</p>
+        </figure>
+      </div>
+      <aside class="notes">Условие само по себе ничего не фильтрует. books.city == "Казань" — это столбец из True и False, маска. Фильтр делает loc, когда маску ему отдают. На рисунке три истины проходят, две лжи остаются за дверью. Оператор & требует скобок вокруг каждого сравнения: его приоритет выше, чем у равенства, и без скобок выражение разваливается не там, где вы думали. Вертикальная черта оставляет строку, если истинно хотя бы одно условие. isin принимает список городов. Числа, которые должны напечататься: Казань — 3, Казань и оценка от 90 — 2, Казань или оценка от 90 — 7, Москва или Казань — 8, цена заполнена — 11. Одна цена пустая, поэтому не 12. Если кто-то получил 12, он забыл про дырку и немного идеализировал каталог. Маска слева зажигается по одной. В розовую рамку проходят только T, и подпись «3 строки» — это как раз Казань, не все истины вселенной. Добавьте вслух остальные критерии, если их нет на слайде крупно: 2, 7, 8 и 11. Двенадцатая книга с пустой ценой в notnull не входит, и это не баг фильтра.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.2</p>
+        <h2>Новый столбец пишут в копию</h2>
+        <div class="copy">
+          <pre>marked = books.copy()
+marked["critic"] = "все"
+marked["index_backwards"] =
+    range(len(marked), 0, -1)</pre>
+          <ul>
+            <li>Константа заполняет весь столбец. Список той же длины — ячейки по порядку: 12, 11, …, 1.</li>
+            <li>У строки 0 стоит «все» и 12. У строки 11 стоит 1.</li>
+            <li>Дальше снова читают <code>books</code>, восемь столбцов, не <code>marked</code>.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 155" aria-hidden="true">
+            <rect x="16" y="20" width="36" height="90" fill="#09135a" class="pop"/>
+            <text x="34" y="128" text-anchor="middle" font-size="11">books</text>
+            <rect x="70" y="20" width="36" height="90" fill="#293699" class="pop d1"/>
+            <rect class="grow" x="112" y="20" width="36" height="90" fill="#c23b78"/>
+            <text x="130" y="128" text-anchor="middle" font-size="11" fill="#c23b78">12…1</text>
+          </svg>
+          <p class="cap">Розовый столбец живёт только в копии. Исходные восемь полей не толстеют.</p>
+        </figure>
+      </div>
+      <aside class="notes">Новый столбец пишут в копию. marked = books.copy(), затем critic со значением «все» и index_backwards. Постоянное значение заполняет весь столбец. Список той же длины заполняет ячейки по порядку. range(len, 0, -1) даёт 12, 11, …, 1. У строки 0 стоит «все» и 12, у строки 11 стоит 1. copy нужен, чтобы не получить предупреждение о записи во фрагмент и не испортить исходную таблицу. Дальше занятие снова читает books с восемью столбцами, не marked. Если слушатель продолжит с marked, в группах появятся лишние столбцы, и контрольные числа поплывут. Скажите это вслух. Иначе через два слайда начнётся детектив «куда делась медиана». Розовый столбец на рисунке вырастает только у копии. Скажите: books остаётся худым, восемь полей. marked толстеет на critic и обратный номер. Если дальше groupby вдруг знает слово «все», человек ушёл в marked и взял его с собой. Верните его на books до сводок, иначе медиана начнёт жить своей жизнью.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.3</p>
+        <h2>Сводка смотрит на тип столбца</h2>
+        <div class="copy">
+          <ul>
+            <li>Число: count, mean, квартили. Медиана оценки — 89, по всем 12.</li>
+            <li>Текст: 11 рецензентов, 3 имени, Анна встречается 4 раза.</li>
+            <li>Города, <code>value_counts</code> без пустых: Москва 5, Казань 3, Новосибирск 3.</li>
+            <li>Первая цена выше средней на 15.45, оценка — на 1.17. Склейка — «Москва - роман».</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 155" aria-hidden="true">
+            <rect class="grow" x="24" y="28" width="28" height="80" fill="#09135a"/>
+            <rect class="grow d1" x="64" y="52" width="28" height="56" fill="#293699"/>
+            <rect class="grow d2" x="104" y="52" width="28" height="56" fill="#293699"/>
+            <rect class="grow d3" x="144" y="70" width="28" height="38" fill="#c23b78"/>
+            <text x="38" y="124" text-anchor="middle" font-size="11">5</text>
+            <text x="78" y="124" text-anchor="middle" font-size="11">3</text>
+            <text x="118" y="124" text-anchor="middle" font-size="11">3</text>
+            <text x="158" y="124" text-anchor="middle" font-size="11" fill="#c23b78">89</text>
+            <text x="100" y="146" text-anchor="middle" font-size="11" fill="#293699">города и медиана оценки</text>
+          </svg>
+          <p class="cap">Пустой город в частоты не входит. Средняя цена считается по 11 книгам.</p>
+        </figure>
+      </div>
+      <aside class="notes">describe смотрит на тип и притворяется разным человеком. На оценке — count, mean, std, min, квартили, max. Медиана оценки 89, по всем двенадцати, оценки заполнены. На имени рецензента — непустые, число разных, самое частое: рецензентов 11, имён 3, Анна встречается 4 раза. value_counts по городам пропускает пустые: Москва 5, Казань 3, Новосибирск 3. Двенадцатой книги в частотах нет, она без города, и обижаться на это не надо. Центрирование — вычитание среднего сразу из всего столбца. Цена первой книги выше средней на 15.45, оценка — на 1.17. Склейка первой строки — «Москва - роман». Первая строка выбрана потому, что город там заполнен: пустой город в склейке даёт пустой текст, и пример становится немым. Средняя цена считается по одиннадцати ценам. Это хороший вопрос самопроверки: почему у оценки и у цены разные знаменатели. Столбики справа — не абстрактная диаграмма. Три левых — Москва, Казань, Новосибирск: 5, 3 и 3. Короткий розовый — напоминание про медиану 89, она не высота города. Пустой город на рисунке отсутствует специально. Средняя цена по 11, не по 12: одна цена пустая. «Москва - роман» склейте вслух, с пробелами и дефисом, как в ячейке.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.3</p>
+        <h2>Ветвление по строке делает apply</h2>
+        <div class="copy">
+          <ul>
+            <li>Вычитание и склейка идут по столбцу и быстрее <code>map</code> с <code>apply</code>.</li>
+            <li>«юмор» в аннотациях — 4, «детектив» — 3. Заглавная «Детектив» в «Старом мосте» не считается.</li>
+            <li>Звёзды: Казань — 3; иначе 3 от 95, 2 от 85, иначе 1. Итог: две единицы, шесть двоек, четыре тройки.</li>
+            <li>Лучшее отношение оценки к цене — метка 9, «Последний трамвай».</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 155" aria-hidden="true">
+            <text class="pop" x="20" y="36" font-size="22" fill="#d9def0">★</text>
+            <text class="pop" x="48" y="36" font-size="22" fill="#d9def0">★</text>
+            <text class="pop d1" x="20" y="70" font-size="22" fill="#293699">★★</text>
+            <text class="pop d2" x="20" y="104" font-size="22" fill="#c23b78">★★★</text>
+            <text x="20" y="132" font-size="12" fill="#09135a">2 · 6 · 4 книги</text>
+          </svg>
+          <p class="cap">Казань получает три звезды отдельной веткой, не из-за баллов.</p>
+        </figure>
+      </div>
+      <aside class="notes">Вычитание и склейка идут сразу по столбцу. Они быстрее map и apply, и для простой арифметики apply — это пушка по воробьям. map вызывает функцию для каждого значения Series. «юмор» в аннотациях — 4 раза, «детектив» — 3. Поиск подстроки различает регистр. «Детектив» в «Старом мосте» в этот счёт не входит: заглавная буква, строчный шаблон. Это отдельная фраза практики, произнесите её с паузой, чтобы не решили, что pandas «потерял книгу». apply по axis="columns" получает строку целиком. Звёзды: Казань — 3; иначе 3 от 95 баллов, 2 от 85, иначе 1. Итог: 1 звезда у двух книг, 2 у шести, 3 у четырёх. Лучшее отношение оценки к цене — метка 9, «Последний трамвай». Пустая цена даёт NaN и в максимум не попадает. map и apply исходную таблицу не меняют. Казанская книга и книга с оценкой 96 из другого города обе получают 3, но по разным веткам. Разберите одну и другую, иначе правило звёзд останется стихом. Звёзды справа растут не для открытки. Две книги с одной, шесть с двумя, четыре с тремя. Казань получает три звезды отдельной веткой: город, не балл. «Последний трамвай», метка 9, — лучшее отношение оценки к цене. «Старый мост» в счёт «детектив» не входит из-за заглавной буквы. Проговорите это медленно, это любимый ложный баг.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.4</p>
+        <h2>groupby режет таблицу и считает сводку</h2>
+        <div class="copy">
+          <ul>
+            <li>Пока нет <code>count</code>, <code>mean</code> или <code>apply</code>, группа ничего не печатает.</li>
+            <li>Первый роман в порядке файла — «Тихий двор». Это первая строка группы, не лучшая оценка.</li>
+            <li>Лучший роман Москвы — «Дом у парка»: <code>idxmax</code> внутри пары город–жанр.</li>
+            <li>Отметки: @anna 4, @boris 4, @vera 3. Средние: 89.50, 86.75, 92.33. При цене 150 максимум оценки 83.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 210 160" aria-hidden="true">
+            <rect class="pop" x="8" y="16" width="50" height="120" rx="8" fill="#f3f5fb" stroke="#09135a"/>
+            <text x="33" y="36" text-anchor="middle" font-size="11" fill="#09135a">все</text>
+            <text x="33" y="80" text-anchor="middle" font-size="18" fill="#09135a">12</text>
+            <path class="edge" d="M62 70 H88"/>
+            <rect class="pop d2" x="92" y="8" width="108" height="36" rx="6" fill="#09135a"/>
+            <text x="146" y="30" text-anchor="middle" fill="#fff" font-size="12">Анна 89.50</text>
+            <rect class="pop d3" x="92" y="52" width="108" height="36" rx="6" fill="#293699"/>
+            <text x="146" y="74" text-anchor="middle" fill="#fff" font-size="12">Борис 86.75</text>
+            <rect class="pop d4" x="92" y="96" width="108" height="36" rx="6" fill="#c23b78"/>
+            <text x="146" y="118" text-anchor="middle" fill="#fff" font-size="12">Вера 92.33</text>
+          </svg>
+          <p class="cap">Один столбец режется на три корзины. В каждой — своё среднее.</p>
+        </figure>
+      </div>
+      <aside class="notes">groupby сам ничего не печатает, пока к нему не пристроили count, mean, size или apply. Это групповой объект, а не таблица. На рисунке двенадцать книг разъезжаются по корзинам, и только тогда появляется среднее. value_counts — короткий путь для пары groupby и count. Первое название романа в порядке файла — «Тихий двор». Это первая строка группы, не книга с максимальной оценкой. Путаница здесь почти гарантирована, встретьте её спокойно. Лучший роман Москвы — «Дом у парка», его выбирает idxmax внутри пары город–жанр. Отметки: @anna 4, @boris 4, @vera 3. Средние оценки: Анна 89.50, Борис 86.75, Вера 92.33, округление до двух знаков. При цене 150 максимальная оценка 83. Цена 150 — ключ индекса после groupby("price"), поэтому loc[150.0], не loc["150"]. Ключ числовой, даже если в голове он выглядит как ценник. Корзины Анны, Бориса и Веры уже нарисованы: 89.50, 86.75, 92.33. Добавьте то, чего на рисунке нет, но в печати есть. «Тихий двор» — первая строка романа, не лучшая. «Дом у парка» — лучший роман Москвы. Отметки 4, 4 и 3. При цене 150 максимум оценки 83, и ключ именно 150.0. Если groupby молчит, к нему забыли пристроить среднее.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.4</p>
+        <h2>MultiIndex возвращают в столбцы и сортируют</h2>
+        <div class="copy">
+          <ul>
+            <li><code>agg</code> считает минимум и максимум цены по жанру за один проход.</li>
+            <li>После сортировки по минимуму сверху <code>детектив</code>: 280 и 900.</li>
+            <li>Город и жанр вместе — MultiIndex. <code>reset_index</code> делает из уровней обычные столбцы.</li>
+            <li>Пустой город не входит. В парах 11 книг, самая большая пара имеет размер 2.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 210 155" aria-hidden="true">
+            <rect class="pop" x="8" y="16" width="88" height="28" rx="6" fill="#09135a"/>
+            <text x="52" y="34" text-anchor="middle" fill="#fff" font-size="12">Москва</text>
+            <rect class="pop d1" x="8" y="48" width="88" height="24" rx="6" fill="#293699"/>
+            <text x="52" y="64" text-anchor="middle" fill="#fff" font-size="12">роман</text>
+            <path class="edge" d="M100 50 H124"/>
+            <rect class="pop d3" x="128" y="28" width="74" height="44" rx="6" fill="#fff5f8" stroke="#c23b78"/>
+            <text x="165" y="46" text-anchor="middle" font-size="11" fill="#c23b78">два столбца</text>
+            <text x="165" y="62" text-anchor="middle" font-size="11" fill="#09135a">детектив 280</text>
+          </svg>
+          <p class="cap">Пара ключей — одна полка. После reset_index полку можно сортировать как столбец.</p>
+        </figure>
+      </div>
+      <aside class="notes">MultiIndex — пара ключей, город и жанр вместе, а не два независимых фильтра. Покажите это на пальцах: «Москва и роман» — одна полка, не «все москвичи» плюс «все романы». agg считает минимум и максимум цены по жанру за один проход. После сортировки по минимуму цены сверху детектив: минимум 280, максимум 900. sort_values по умолчанию идёт по возрастанию, ascending=False переворачивает. reset_index превращает уровни в обычные столбцы, и только тогда count можно сортировать как столбец. Пустой город в сводку не входит. В парах 11 книг, самая большая пара имеет размер 2. Книга без handle из своей группировки тоже выпадает. Если сумма размеров групп равна 12, пустую метку куда-то подставили раньше времени. Это не успех, это преждевременная доброта. Слева полка из двух этажей: Москва и роман. Справа те же ключи уже лежат столбцами, и внизу детектив с минимумом 280. Максимум у него 900, на рисунке тесно, скажите число вслух. В парах 11 книг, самая толстая пара — две книги. Сумма 12 означает, что пустой город кто-то успел подписать. Это радость не по адресу.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.5</p>
+        <h2>Одна пустая цена меняет тип столбца</h2>
+        <div class="copy">
+          <ul>
+            <li><code>score</code> — int64, пустых нет. <code>price</code> — float64: одна пустая ячейка тянет весь столбец в float.</li>
+            <li><code>fillna("Неизвестно")</code> добавляет город один раз. Москва остаётся 5.</li>
+            <li><code>bfill</code> в строке 5 ставит «Москва».</li>
+            <li><code>replace</code> пишет копию: в исходной строке 0 по-прежнему <code>@anna</code>, в копии <code>@anna_books</code> стоит четыре раза.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 160" aria-hidden="true">
+            <rect x="40" y="16" width="44" height="22" fill="#09135a"/>
+            <text x="62" y="32" text-anchor="middle" fill="#fff" font-size="12">price</text>
+            <rect class="pop" x="40" y="40" width="44" height="18" fill="#f3f5fb" stroke="#09135a"/><text x="62" y="53" text-anchor="middle" font-size="11">420</text>
+            <rect class="blink" x="40" y="60" width="44" height="18" fill="#fff5f8" stroke="#c23b78"/><text x="62" y="73" text-anchor="middle" font-size="11" fill="#c23b78">NaN</text>
+            <rect class="pop d2" x="40" y="80" width="44" height="18" fill="#f3f5fb" stroke="#09135a"/><text x="62" y="93" text-anchor="middle" font-size="11">280</text>
+            <text x="90" y="130" text-anchor="middle" font-size="13" font-weight="700" fill="#c23b78">dtype float64</text>
+          </svg>
+          <p class="cap">NaN — число с плавающей точкой. Целые цены рядом с ним тоже становятся float.</p>
+        </figure>
+      </div>
+      <aside class="notes">Одна пустая цена, а тип поплыл у всего столбца. NaN — число с плавающей точкой, поэтому price становится float64, хотя в файле цены выглядят целыми. score остаётся int64, title — строка, индекс — int64. Практика просит одну фразу: почему price не int64. Ответ — одна пустая ячейка. astype, fillna и replace возвращают новый объект и старый не переписывают. fillna("Неизвестно") добавляет этот город один раз, Москва остаётся 5. bfill в строке 5 ставит «Москва»: для «Речного света» берётся следующий непустой город, «Москва» у «Красного шарфа». replace даёт копию отметок. В исходном books у строки 0 по-прежнему @anna. В копии @anna_books стоит в четырёх строках. Если исходная таблица тоже изменилась, присваивание забыли и поправили оригинал. Каталог такого не прощает. Мигающая ячейка — единственная пустая цена, и из-за неё весь столбец float64. Рядом вслух: score остаётся int64, Москва после fillna всё ещё 5, строка 5 после bfill — «Москва» от «Красного шарфа» к «Речному свету». В исходной строке 0 по-прежнему @anna. @anna_books живёт в копии и встречается четыре раза. Кто поправил оригинал, тот поправил каталог.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">5.1.6</p>
+        <h2>Переименовать, сложить, подтянуть по ключу</h2>
+        <div class="copy">
+          <ul>
+            <li><code>rename</code>: столбец <code>genre</code> становится «жанр». Индекс — «книги», столбцы — «поля».</li>
+            <li><code>concat</code> ставит магазины друг под друга. Форма <code>(4, 2)</code>, сумма <code>qty</code> равна 14.</li>
+            <li><code>join</code> оставляет строки слева. Четыре издания, пустой остаток у книги 4, сумма <code>copies</code> — 16.</li>
+            <li>Книга 8 есть только на складе. В каталоге её нет, join её не показывает. <code>sum</code> пустую ячейку пропускает.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 160" aria-hidden="true">
+            <text x="36" y="16" text-anchor="middle" font-size="11" fill="#293699">издания</text>
+            <rect class="pop" x="12" y="24" width="48" height="20" fill="#09135a"/><text x="36" y="38" text-anchor="middle" fill="#fff" font-size="11">1</text>
+            <rect class="pop d1" x="12" y="46" width="48" height="20" fill="#09135a"/><text x="36" y="60" text-anchor="middle" fill="#fff" font-size="11">2</text>
+            <rect class="pop d2" x="12" y="68" width="48" height="20" fill="#09135a"/><text x="36" y="82" text-anchor="middle" fill="#fff" font-size="11">3</text>
+            <rect class="blink" x="12" y="90" width="48" height="20" fill="#fff5f8" stroke="#c23b78"/><text x="36" y="104" text-anchor="middle" fill="#c23b78" font-size="11">4 ∅</text>
+            <path class="edge" d="M66 70 H100"/>
+            <text x="150" y="16" text-anchor="middle" font-size="11" fill="#293699">склад</text>
+            <rect x="118" y="24" width="64" height="20" fill="#f3f5fb" stroke="#09135a"/><text x="150" y="38" text-anchor="middle" font-size="11">1 · 6</text>
+            <rect x="118" y="46" width="64" height="20" fill="#f3f5fb" stroke="#09135a"/><text x="150" y="60" text-anchor="middle" font-size="11">2 · 4</text>
+            <rect x="118" y="68" width="64" height="20" fill="#f3f5fb" stroke="#09135a"/><text x="150" y="82" text-anchor="middle" font-size="11">3 · 6</text>
+            <rect x="118" y="112" width="64" height="20" fill="#d9def0" stroke="#293699"/><text x="150" y="126" text-anchor="middle" font-size="11">8 · вне</text>
+          </svg>
+          <p class="cap">Книга 4 остаётся с пустым остатком. Книга 8 в левую таблицу не попадает.</p>
+        </figure>
+      </div>
+      <aside class="notes">Три инструмента, и они не взаимозаменяемы, как вилка, ложка и нож. rename переименовывает: столбец genre становится «жанр». rename_axis называет индекс «книги», а столбцы — «поля». concat ставит одинаковые по смыслу таблицы друг под друга. Два магазина, форма (4, 2), сумма qty равна 14. join подтягивает по ключу и оставляет строки левой таблицы. Издания слева, склад по book_id. Четыре строки. У книги 4 остатка нет, ячейка пустая, строка всё равно остаётся. Сумма copies — 16, sum пустую ячейку пропускает. Книга 8 есть только на складе, издания с таким номером нет, join её не показывает. Если в каталоге пять строк, стороны перепутали или склеили через concat. merge на этом занятии не требуется: индекс уже выставлен через set_index. Слева издания 1, 2, 3 и пустая четвёрка. Справа склад, книга 8 отдельно, она в каталог не входит. Сумма copies 16, qty двух магазинов 14, форма склейки (4, 2). Если строк стало пять, join перепутали сторонами или вместо него вызвали concat. rename на этом слайде тихий: genre становится «жанр», индекс — «книги», столбцы — «поля».</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">Мост к модели</p>
+        <h2>Перед fit таблица отвечает на три вопроса</h2>
+        <div class="copy">
+          <ol>
+            <li><code>iloc[0:10]</code> — 10 строк, <code>loc[0:10]</code> — 11. Правый край разный.</li>
+            <li>Средняя цена по 11 книгам. Медиана оценки 89 — по 12, оценки заполнены.</li>
+            <li>Книга без города выпадает из группы. Сумма размеров — 11.</li>
+          </ol>
+          <p>Дальше на квартирах: признаки отдельно от цели, ошибка только на строках, которых <code>fit</code> не видел.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 160" aria-hidden="true">
+            <circle class="pop" cx="90" cy="36" r="16" fill="#09135a"/><text x="90" y="41" text-anchor="middle" fill="#fff" font-size="14">10</text>
+            <circle class="pop d1" cx="90" cy="80" r="16" fill="#293699"/><text x="90" y="85" text-anchor="middle" fill="#fff" font-size="14">11</text>
+            <circle class="pop d2" cx="90" cy="124" r="16" fill="#c23b78"/><text x="90" y="129" text-anchor="middle" fill="#fff" font-size="14">11</text>
+          </svg>
+          <p class="cap">Три допуска: край среза, знаменатель среднего, пустая метка в группе.</p>
+        </figure>
+      </div>
+      <aside class="notes">Остановитесь. Три вопроса — допуск к модели, не формальность. iloc[0:10] даёт 10 строк, loc[0:10] — 11, потому что правый край у них разный. Средняя цена считается по 11 книгам, одна цена пустая. Медиана оценки — по 12, оценки заполнены. Книга без города выпадает из groupby по городу и жанру, сумма размеров групп — 11. Пустота меняет и среднее, и группу, и тип. Если эти три ответа звучат уверенно, можно переворачивать пример. У квартир пустот нет. Зато есть столбец, в котором цена уже написана текстом. Эта ловушка опаснее пропущенного города: город просто выпадает из частоты, а текст с ценой модель прочитает как подсказку и сделает вид, что она пророк. Три круга — три допуска, не три оценки. 10 против 11 на срезе, 11 в знаменателе средней цены при медиане по 12 оценкам, 11 в сумме групп. Кто отвечает уверенно, переходит к квартирам. Предупредите: у квартир дырок нет, зато price_note уже содержит цену текстом. Это шпаргалка опаснее пустого города.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.2 · проверка</p>
+        <h2>Каждый столбец квартиры получает роль</h2>
+        <div class="copy">
+          <p>Нажмите столбец: признак, цель или вне модели. Затем проверьте.</p>
+          <div class="roles" id="roles"></div>
+          <div class="choice"><button type="button" id="roles-check">Проверить роли</button></div>
+          <p class="feedback" id="roles-msg"></p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 160" aria-hidden="true">
+            <rect class="pop" x="16" y="16" width="148" height="28" rx="6" fill="#09135a"/>
+            <text x="90" y="35" text-anchor="middle" fill="#fff" font-size="13">признак</text>
+            <rect class="pop d1" x="16" y="54" width="148" height="28" rx="6" fill="#c23b78"/>
+            <text x="90" y="73" text-anchor="middle" fill="#fff" font-size="13">цель</text>
+            <rect class="pop d2" x="16" y="92" width="148" height="28" rx="6" fill="#d9def0" stroke="#293699"/>
+            <text x="90" y="111" text-anchor="middle" fill="#09135a" font-size="13">вне модели</text>
+          </svg>
+          <p class="cap">Три роли. Какой столбец в какую, решают клики, не рисунок.</p>
+        </figure>
+      </div>
+      <aside class="notes">Дайте минуту на клики, не комментируйте в процессе. Признаки — area, year, rooms. Цель — price, в тысячах рублей. Вне модели — flat_id, это номер, district, текст района, его кодирование отложено, и price_note. В примечании цена уже написана. Если price_note попадёт в X, модель прочитает ответ до прогноза и будет очень довольна собой. Это шпаргалка, не признак. В файле 12 строк и 7 столбцов, пропусков 0, средняя цена 7000, сумма цен 84000, сумма площадей 761. Эти числа — разведка, их записывают до fit. Если роли не сходятся, пусть человек проговорит вслух, что именно модель имеет право видеть в момент прогноза. Номер квартиры она видеть не обязана. Цену в тексте — тем более. Рисунок справа — легенда, не ответ за слушателя. Тёмная полоса: area, year, rooms. Розовая: price, это y, тысячи рублей. Серая: номер, район и примечание, в X их нет. Пусть кликают сами. В файле 12 на 7, пропусков 0, средняя цена 7000, сумма цен 84000, сумма площадей 761. Если роли сошлись со шпаргалки без кликов, попросите проговорить price_note своими словами.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.1</p>
+        <h2>Дерево делит строки порогом и ставит среднее</h2>
+        <div class="copy">
+          <ul>
+            <li>Площадь до 60 м² включительно: шесть квартир, средняя цена 5000.</li>
+            <li>Площадь больше 60: шесть квартир, средняя цена 9000.</li>
+            <li>В листе прогноз — среднее цен, которые туда попали. Порог пока задан руками.</li>
+            <li>Дальше дерево выбирает пороги само и может делить лист повторно.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 155" aria-hidden="true">
+            <rect class="grow" x="28" y="40" width="48" height="70" fill="#09135a"/>
+            <rect class="grow d2" x="108" y="24" width="48" height="86" fill="#c23b78"/>
+            <text x="52" y="128" text-anchor="middle" font-size="12" fill="#09135a">6 → 5000</text>
+            <text x="132" y="128" text-anchor="middle" font-size="12" fill="#c23b78">6 → 9000</text>
+            <text x="100" y="148" text-anchor="middle" font-size="11" fill="#293699">порог 60 м²</text>
+          </svg>
+          <p class="cap">45 метров получает 5000, 88 метров — 9000. Пока вопрос один.</p>
+        </figure>
+      </div>
+      <aside class="notes">sklearn пока не открывайте. Покажите два средних на пальцах. Площадь до 60 включительно: шесть квартир, средняя цена 5000. Больше 60: шесть квартир, средняя 9000. Это уже модель из одного вопроса. Спросите, какую цену получит квартира 45 метров и какая — 88. Пока правило одно, ответы 5000 и 9000. Потом лес добавит год и комнаты, и числа разойдутся с этими средними. Не пугайтесь расхождения, оно как раз значит, что модель увидела больше одного порога. Равенство 60 метров входит в левую группу. Если среднее не сошлось, фильтр отрезал границу не с той стороны. И да, 60 — не магическое число из учебника физики. Его выбрали, потому что на этих двенадцати строках группы получаются равными и средние легко проверить руками. Два столбика — шесть и шесть. Слева 5000, справа 9000, порог 60 включительно в левую группу. Квартира 45 метров получает 5000, 88 метров — 9000. sklearn ещё закрыт. Скажите, что дальше числа разъедутся, потому что дерево увидит год и комнаты. Расхождение с этими средними — не поломка, а второе разбиение.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.1</p>
+        <h2>Ошибка правила — среднее модуля промаха</h2>
+        <div class="copy">
+          <pre>pred = 5000, если area &lt;= 60
+иначе 9000
+mae = среднее |price − pred|</pre>
+          <p>Округлённая ошибка — <strong>533</strong> тысячи рублей. Ту же формулу потом считает <code>mean_absolute_error</code>. Сейчас порог выбирает человек, дальше — <code>DecisionTreeRegressor</code>.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 150" aria-hidden="true">
+            <text class="pop" x="90" y="70" text-anchor="middle" font-size="42" font-weight="700" fill="#c23b78">533</text>
+            <text x="90" y="96" text-anchor="middle" font-size="13" fill="#09135a">тыс. рублей</text>
+            <text x="90" y="124" text-anchor="middle" font-size="12" fill="#293699">round среднего модуля</text>
+          </svg>
+          <p class="cap">Ноль здесь был бы сравнением прогноза с самим собой. Факт в вычитании нужен.</p>
+        </figure>
+      </div>
+      <aside class="notes">MAE по-русски: сложили модули «прогноз минус факт» и разделили на число квартир. Правило то же, что на прошлом слайде: 5000, если площадь не больше 60, иначе 9000. Округлённая ошибка — 533 тысячи рублей. 533 — это round от точного среднего, не «примерно пятьсот». Единицу назовите ещё раз. Формула та же, что позже считает mean_absolute_error. Разница в том, кто выбирает порог: сейчас человек, на следующем шаге DecisionTreeRegressor. Критерий файла: 12 на 7, средние 5000 и 9000, ошибка 533. Если кто-то получил красивый ноль, он сравнил прогноз с прогнозом. Факт в вычитании тоже нужен, иначе метрика измеряет согласие модели с самой собой. Число 533 на рисунке крупное специально, чтобы его не прочитали как «около пятисот» и не в рублях. Это round среднего модуля, тысячи рублей. Правило то же: не больше 60 метров — 5000, иначе 9000. Если у кого-то вышел ноль, он вычел прогноз из прогноза. Факт в формуле обязателен. Критерий файла: 12 на 7, средние 5000 и 9000, ошибка 533.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.2</p>
+        <h2>Разведка идёт до обучения</h2>
+        <div class="copy">
+          <ul>
+            <li><code>shape</code>, <code>dtypes</code>, пропуски, <code>describe</code> по площади, году, комнатам и цене.</li>
+            <li>Пустых ячеек нет. Строку без цены в обучение не берут.</li>
+            <li>Средняя цена 7000. Сумма цен 84000. Сумма площадей 761.</li>
+            <li>Если в признаки попадёт <code>price_note</code>, модель увидит цену заранее.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 190 155" aria-hidden="true">
+            <rect class="pop" x="12" y="16" width="166" height="26" rx="6" fill="#09135a"/>
+            <text x="95" y="34" text-anchor="middle" fill="#fff" font-size="13">пропусков 0</text>
+            <rect class="pop d1" x="12" y="50" width="166" height="26" rx="6" fill="#293699"/>
+            <text x="95" y="68" text-anchor="middle" fill="#fff" font-size="13">средняя 7000</text>
+            <rect class="pop d2" x="12" y="84" width="166" height="26" rx="6" fill="#c23b78"/>
+            <text x="95" y="102" text-anchor="middle" fill="#fff" font-size="13">сумма цен 84000</text>
+            <text x="95" y="136" text-anchor="middle" font-size="12" fill="#09135a">площади в сумме 761</text>
+          </svg>
+          <p class="cap">Эти четыре числа записывают до fit. Они проверяют, что открыт нужный файл.</p>
+        </figure>
+      </div>
+      <aside class="notes">Разведка идёт до обучения и отвечает, можно ли учить вообще. shape, dtypes, число пропусков, describe по площади, году, комнатам и цене. В flats.csv пустых ячеек нет. Строку без цены в обучение не берут: без цели её не на чем учить. Средняя цена 7000, сумма цен 84000, сумма площадей 761. Типы чисел целые, текст живёт в районе и в примечании. Опишите price_note вслух. Строка вроде «цена 4200» уже содержит ответ. Модель, которая видит этот текст, предсказывает не по площади, а по подсказке. Пустых цен нет, и это тоже результат разведки, его записывают, а не считают очевидным. Очевидное в данных обычно как раз и кусается. Четыре плашки — конспект разведки, их записывают до fit. Пропусков ноль, средняя цена 7000, сумма цен 84000, площади в сумме 761. Отдельно, не на плашке: price_note вроде «цена 4200» уже содержит ответ. Модель, которая это видит, предсказывает по подсказке. Пустых цен нет, и это тоже результат, его не считают очевидным.</aside>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.3</p>
+        <h2>X — признаки, y — цель, fit учит, predict отвечает</h2>
+        <div class="copy">
+          <pre>X = raw[features].copy()
+y = raw["price"].copy()
 model.fit(X, y)
-pred_train = model.predict(X)
+pred = model.predict(X)</pre>
+          <p>Признаки — area, year, rooms. Форма <code>X</code> — <code>(12, 3)</code>, прогноз длины 12. <code>random_state=1</code> фиксирует выбор признака, если дереву всё равно. Пока <code>predict</code> видит тот же <code>X</code>, на котором учили.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 155" aria-hidden="true">
+            <rect class="pop" x="8" y="40" width="40" height="36" rx="6" fill="#09135a"/>
+            <text x="28" y="62" text-anchor="middle" fill="#fff" font-size="12">X</text>
+            <rect class="pop d1" x="56" y="40" width="40" height="36" rx="6" fill="#293699"/>
+            <text x="76" y="62" text-anchor="middle" fill="#fff" font-size="12">y</text>
+            <path class="edge" d="M100 58 H118"/>
+            <rect class="pop d2" x="122" y="36" width="66" height="28" rx="6" fill="#fff5f8" stroke="#c23b78"/>
+            <text x="155" y="54" text-anchor="middle" font-size="12" fill="#c23b78">fit</text>
+            <rect class="pop d3" x="122" y="72" width="66" height="28" rx="6" fill="#c23b78"/>
+            <text x="155" y="90" text-anchor="middle" fill="#fff" font-size="12">predict</text>
+          </svg>
+          <p class="cap">Четыре имени по очереди. Ошибка этого запуска ещё не про новую квартиру.</p>
+        </figure>
+      </div>
+      <aside class="notes">Разложите четыре имени, медленно. features — список из трёх строк: area, year, rooms. X — таблица только из них, форма (12, 3), и это копия, не вид на кусок исходной таблицы. y — столбец цены той же длины и в том же порядке строк. fit подбирает разбиения по известным ценам. predict выдаёт цену для переданных строк, длина прогноза 12. random_state=1 фиксирует выбор, если алгоритму всё равно, какой признак взять. Пока в predict уходит тот же X, на котором учили. Это законный первый запуск, не ошибка новичка. Следующий слайд объясняет, почему его ошибка обманчиво красивая. Если X случайно включил price, модель будет предсказывать цену по цене. Форма станет (12, 4), и праздник будет недолгим. Пройдите схему слева направо: X формы (12, 3), y той же длины, fit, predict. Пока predict получает тот же X. Это законный первый запуск, и следующая картинка объяснит, почему ноль здесь льстит. Если форма стала (12, 4), в признаки затесалась цена. random_state=1 нужен, когда дереву всё равно, какой столбец резать.</aside>
+    </section>
 
-print(X.shape, y.shape, pred_train.shape)
-print(pred_train[:3])
-print(&quot;ошибка на тех же строках&quot;, mean_absolute_error(y, pred_train))</code></pre>
-<p><code>random_state=1</code> фиксирует выбор, если алгоритму всё равно, какой признак взять. Ошибка на тех же строках, на которых дерево училось, равна <strong>0</strong>: у каждой квартиры свой набор <code>area</code>, <code>year</code>, <code>rooms</code>, и дерево доводит лист до одной квартиры. Такая ошибка показывает, что дерево запомнило таблицу. Про новые квартиры она ничего не говорит.</p>
-<p><strong>Критерий 6.0.3:</strong> <code>X</code> имеет форму <code>(12, 3)</code>, прогноз — длину 12, средняя абсолютная ошибка на этих 12 строках равна 0.</p>
-<hr>
-<h2>6.0.4. Проверка на отложенных строках</h2>
-<p>Часть квартир откладывают до <code>fit</code>. Дерево их не видит, и ошибка на них ближе к ошибке на новой квартире. Деление делает <code>train_test_split</code>. Метрика занятия — средняя абсолютная ошибка, MAE: среднее модуля «прогноз минус факт».</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">from sklearn.model_selection import train_test_split
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.3</p>
+        <h2>Ошибка 0: дерево запомнило таблицу</h2>
+        <div class="copy">
+          <ul>
+            <li>У каждой квартиры свой набор площади, года и комнат.</li>
+            <li>Дерево без лимита листьев кладёт в лист одну квартиру и возвращает её цену.</li>
+            <li>На тех же 12 строках MAE = 0. Для квартиры, которой в таблице не было, этот ноль ничего не говорит.</li>
+            <li>Если MAE на всех двенадцати больше нуля, в X есть повтор признаков или уже стоит <code>max_leaf_nodes</code>.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <g class="pop">
+              <rect x="70" y="8" width="60" height="24" rx="6" fill="#09135a"/>
+              <text x="100" y="24" text-anchor="middle" fill="#fff" font-size="11">12 строк</text>
+            </g>
+            <g class="edge">
+              <path d="M85 32 L30 58"/><path d="M100 32 L100 58"/><path d="M115 32 L170 58"/>
+            </g>
+            <g class="pop d2" fill="#fff5f8" stroke="#c23b78">
+              <rect x="8" y="60" width="40" height="22" rx="4"/><rect x="54" y="60" width="40" height="22" rx="4"/>
+              <rect x="100" y="60" width="40" height="22" rx="4"/><rect x="146" y="60" width="40" height="22" rx="4"/>
+              <rect x="8" y="90" width="40" height="22" rx="4"/><rect x="54" y="90" width="40" height="22" rx="4"/>
+              <rect x="100" y="90" width="40" height="22" rx="4"/><rect x="146" y="90" width="40" height="22" rx="4"/>
+            </g>
+            <text x="100" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#c23b78">MAE = 0</text>
+          </svg>
+          <p class="cap">Двенадцать листьев, в каждом ровно одна учебная цена.</p>
+        </figure>
+      </div>
+      <aside class="notes">Ноль на тех же двенадцати строках — не талант модели. У каждой квартиры свой набор площади, года и комнат. Дерево без лимита листьев кладёт в лист одну квартиру и возвращает её цену. На рисунке как раз двенадцать листьев. Для новой квартиры эта ошибка ничего не говорит: новая строка в обучении не сидела. Если ошибка на всех двенадцати больше нуля, в X попали повторяющиеся комбинации или уже стоит max_leaf_nodes. Скажите прямо, можно даже с улыбкой: заказчику этот ноль не несут. Это оценка памяти, не оценка прогноза. Его несут после того, как три квартиры отложили в конверт. Аналогия, если зал заскучал: прочитать билет перед экзаменом и получить пять по этому же билету — приятно, но приёмную комиссию не убеждает. Двенадцать маленьких листьев на рисунке — и есть причина нуля. Комбинации площади, года и комнат уникальны, лимит листьев не стоит, каждая квартира сидит в своём листе. Заказчику этот ноль не несут. Если ошибка на всех двенадцати больше нуля, либо признаки повторяются, либо max_leaf_nodes уже включили. Аналогия с билетом перед экзаменом здесь уместна второй раз, короче.</aside>
+    </section>
 
-train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=1)
-print(train_X.shape, val_X.shape)
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.4</p>
+        <h2>Часть строк откладывают до fit</h2>
+        <div class="copy">
+          <pre>train_test_split(X, y, random_state=1)</pre>
+          <ul>
+            <li>Обучение: 9 строк, форма <code>(9, 3)</code>. MAE на них снова 0.</li>
+            <li>Проверка: 3 строки, форма <code>(3, 3)</code>. Их цены в <code>fit</code> не передают. MAE больше 0.</li>
+            <li>Доля проверки по умолчанию 0.25. <code>random_state=1</code> фиксирует, какие три квартиры отложены.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 140" aria-hidden="true">
+            <g class="pop">
+              <rect x="8" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="34" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="60" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="86" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="112" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="138" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="164" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="190" y="20" width="22" height="28" fill="#09135a"/>
+              <rect x="8" y="52" width="22" height="28" fill="#09135a"/>
+            </g>
+            <g class="pop d3">
+              <rect class="blink" x="40" y="52" width="22" height="28" fill="#c23b78"/>
+              <rect class="blink" x="66" y="52" width="22" height="28" fill="#c23b78"/>
+              <rect class="blink" x="92" y="52" width="22" height="28" fill="#c23b78"/>
+            </g>
+            <text x="100" y="104" text-anchor="middle" font-size="12" fill="#09135a">9 в обучении</text>
+            <text x="100" y="124" text-anchor="middle" font-size="12" fill="#c23b78">3 в конверте до predict</text>
+          </svg>
+          <p class="cap">Дерево конверт не открывает. Ошибку считают уже после predict.</p>
+        </figure>
+      </div>
+      <aside class="notes">Нарисуйте 12 карточек и отложите три в конверт. Дерево конверт не открывает. train_test_split с random_state=1, доля проверки по умолчанию 0.25. Обучение — 9 строк, форма (9, 3), MAE на них снова 0, потому что комбинации признаков по-прежнему уникальны. Проверка — 3 строки, форма (3, 3). Эти цены в fit не передают. MAE на них больше нуля, и это первое честное число за всё занятие. Если в проверке не три строки, передали другой test_size. Если MAE проверки равна нулю, в fit ушли все двенадцать. random_state нужен, чтобы у соседнего слушателя совпали те же три квартиры и те же критерии. Иначе каждый принесёт свой «лучший» результат, и сравнивать будет нечего, кроме красноречия. Девять тёмных клеток и три розовые — буквально конверт. Доля 0.25, random_state=1, формы (9, 3) и (3, 3). На девяти MAE снова 0. На трёх больше нуля, и это первое честное число. Не те три строки — другой test_size. Ноль на проверке — в fit ушёл весь X. Одинаковый seed нужен, чтобы у соседа совпали те же квартиры, а не чтобы «так в методичке написано».</aside>
+    </section>
 
-val_model = DecisionTreeRegressor(random_state=1)
-val_model.fit(train_X, train_y)
-val_pred = val_model.predict(val_X)
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.4 · проверка</p>
+        <h2>Какое число показать заказчику</h2>
+        <div class="copy">
+          <div class="choice">
+            <button type="button" data-quiz="mae" data-ok="0">MAE на обучении, она равна 0</button>
+            <button type="button" data-quiz="mae" data-ok="1">MAE на проверке, она больше 0</button>
+          </div>
+          <p class="feedback" id="mae-msg">Выберите одну карточку.</p>
+          <p>Оба числа в практике записывают. В ответе называют проверочное: оно про квартиры, которых <code>fit</code> не видел.</p>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 180 150" aria-hidden="true">
+            <rect class="pop" x="16" y="20" width="64" height="64" rx="8" fill="#d9def0"/>
+            <text x="48" y="48" text-anchor="middle" font-size="22" fill="#293699">0</text>
+            <text x="48" y="66" text-anchor="middle" font-size="11" fill="#293699">учеба</text>
+            <rect class="pop d2" x="100" y="20" width="64" height="64" rx="8" fill="#c23b78"/>
+            <text x="132" y="48" text-anchor="middle" font-size="18" fill="#fff">&gt; 0</text>
+            <text x="132" y="66" text-anchor="middle" font-size="11" fill="#fff">проверка</text>
+            <text x="90" y="112" text-anchor="middle" font-size="12" fill="#09135a">заказчику — правая</text>
+          </svg>
+          <p class="cap">Ноль описывает уже виденные строки. Справа — три отложенные квартиры.</p>
+        </figure>
+      </div>
+      <aside class="notes">Пусть выберут до пояснения. Не кивайте на правильную кнопку, даже если очень хочется. Верный показ заказчику — MAE на трёх отложенных квартирах, она больше нуля. Ноль на обучении уже объяснён: лист на каждую учебную квартиру. Заказчику нужно число про квартиры, которых модель не видела. В практике оба числа записывают, а в ответе называют проверочное. Если кто-то выбрал ноль, не устраивайте разнос. Спросите, какую квартиру это число описывает. Обычно человек сам слышит, что описывает оно только уже виденные. Фраза на экране после верного клика: заказчику показывают MAE на трёх отложенных квартирах. Её можно повторить своими словами. Две карточки на рисунке: серый ноль и розовое «больше нуля». Заказчику правая. Не кивайте, пока не кликнули. Если выбрали ноль, спросите, какую квартиру это число описывает. Оба числа в тетрадь, в ответе — проверочное. Фраза после верного клика уже на слайде, её можно сказать своими словами: три отложенные квартиры.</aside>
+    </section>
 
-mae_train = mean_absolute_error(train_y, val_model.predict(train_X))
-mae_val = mean_absolute_error(val_y, val_pred)
-print(&quot;MAE обучение&quot;, mae_train)
-print(&quot;MAE проверка&quot;, mae_val)</code></pre>
-<p>При 12 строках и доле проверки по умолчанию 0,25 в обучении 9 квартир, в проверке 3. <code>random_state=1</code> оставляет тот же состав групп при повторном запуске.</p>
-<p><strong>Практика 6.0.4.</strong> В markdown запишите оба числа MAE и ответьте, какое из них вы покажете заказчику как оценку качества.</p>
-<p><strong>Критерий 6.0.4:</strong> формы <code>(9, 3)</code> и <code>(3, 3)</code>. MAE на обучении равна 0. MAE на проверке больше 0.</p>
-<hr>
-<h2>6.0.5. Число листьев</h2>
-<p>Мало листьев — дерево делит квартиры слишком грубо, прогнозы в листе усредняют непохожие цены. Много листьев — дерево подстраивается под каждую учебную квартиру, и на отложенных строках ошибка снова растёт. Размер ограничивают параметром <code>max_leaf_nodes</code>.</p>
-<p>Сравнивают несколько значений на одной и той же проверке.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">def mae_for_leaves(max_leaf_nodes):
-    tree = DecisionTreeRegressor(max_leaf_nodes=max_leaf_nodes, random_state=1)
-    tree.fit(train_X, train_y)
-    return mean_absolute_error(val_y, tree.predict(val_X))
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.5</p>
+        <h2>Число листьев выбирают по проверке</h2>
+        <div class="copy">
+          <ul>
+            <li>Мало листьев: в одном листе усредняются непохожие цены. Два листа близки к правилу «до 60 и больше 60».</li>
+            <li>Много листьев: дерево повторяет учебные квартиры. На отложенных строках ошибка снова растёт.</li>
+            <li>Сравнивают <code>max_leaf_nodes</code> из 2, 4, 6, 8 на одном и том же <code>val_y</code>.</li>
+            <li>Берут число с наименьшей проверочной MAE. Какое именно — печатает ноутбук.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 150" aria-hidden="true">
+            <line x1="28" y1="120" x2="200" y2="120" stroke="#09135a"/>
+            <line x1="28" y1="16" x2="28" y2="120" stroke="#09135a"/>
+            <rect class="grow" x="48" y="36" width="28" height="84" fill="#293699"/>
+            <rect class="grow d1" x="88" y="70" width="28" height="50" fill="#293699"/>
+            <rect class="grow d2" x="128" y="58" width="28" height="62" fill="#293699"/>
+            <rect class="grow d3" x="168" y="28" width="28" height="92" fill="#293699"/>
+            <text x="62" y="138" text-anchor="middle" font-size="12" fill="#09135a">2</text>
+            <text x="102" y="138" text-anchor="middle" font-size="12" fill="#09135a">4</text>
+            <text x="142" y="138" text-anchor="middle" font-size="12" fill="#09135a">6</text>
+            <text x="182" y="138" text-anchor="middle" font-size="12" fill="#09135a">8</text>
+          </svg>
+          <p class="cap">Высота — схема проверочной MAE. Какой столбец ниже на этих данных, печатает ноутбук.</p>
+        </figure>
+      </div>
+      <aside class="notes">Не называйте победившее число листьев. Его печатает ноутбук, и в этом смысл практики. Сравнивают max_leaf_nodes из списка 2, 4, 6, 8 на одном и том же val_y. Берут число с наименьшей проверочной MAE. Критерий — четыре ошибки напечатаны и выбран минимум. Столбики на слайде — схема формы ошибки, не ответ. Мало листьев: в одном листе усредняются непохожие цены. Два листа близки к правилу «до 60 и больше 60», почти всем маленьким одну цену, почти всем большим другую. Много листьев: дерево подстраивается под учебные квартиры, и на отложенных строках ошибка снова растёт. Если у всех четырёх значений одна и та же ошибка, параметр не дошёл до конструктора. Обучение по-прежнему только на train_X. Конверт по-прежнему закрыт. Столбики — схема ямы, не ответ. Не тыкайте в четвёрку как в победителя. Сравнивают 2, 4, 6 и 8 на одном и том же val_y, победителя печатает ноутбук. Если четыре ошибки одинаковые, max_leaf_nodes не дошёл до конструктора. Два листа опишите как почти правило «до 60 и больше 60». Обучение только на train_X, конверт закрыт.</aside>
+    </section>
 
-candidates = [2, 4, 6, 8]
-scores = {leaves: mae_for_leaves(leaves) for leaves in candidates}
-for leaves, score in scores.items():
-    print(leaves, round(score, 1))
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.6</p>
+        <h2>Лес — много деревьев, наружу одно среднее</h2>
+        <div class="copy">
+          <ul>
+            <li>Каждое дерево видит свою подвыборку и свой набор признаков в разбиениях.</li>
+            <li>Наружу выходит среднее. Одно неудачное дерево меньше сдвигает ответ.</li>
+            <li><code>fit</code> только на <code>train_X</code> и <code>train_y</code>. Три проверочные квартиры не входят.</li>
+            <li><code>n_estimators</code> больше 1. Сравнивают MAE леса и MAE дерева с лучшим числом листьев.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 150" aria-hidden="true">
+            <rect class="pop" x="8" y="16" width="44" height="28" rx="6" fill="#09135a"/><text x="30" y="34" text-anchor="middle" fill="#fff" font-size="12">4800</text>
+            <rect class="pop d1" x="8" y="52" width="44" height="28" rx="6" fill="#293699"/><text x="30" y="70" text-anchor="middle" fill="#fff" font-size="12">5200</text>
+            <rect class="pop d2" x="8" y="88" width="44" height="28" rx="6" fill="#09135a"/><text x="30" y="106" text-anchor="middle" fill="#fff" font-size="12">5100</text>
+            <path class="edge" d="M56 30 H100 M56 66 H100 M56 102 H100"/>
+            <rect class="pop d3" x="104" y="48" width="84" height="36" rx="8" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="146" y="71" text-anchor="middle" font-size="16" font-weight="700" fill="#c23b78">5033</text>
+          </svg>
+          <p class="cap">Три разных ответа. Одно число леса — их среднее, не голос самого громкого дерева.</p>
+        </figure>
+      </div>
+      <aside class="notes">Вопрос самопроверки, задайте его в зал: откуда одно число, если деревьев много. Ответ — усреднение. Каждое дерево видит свою выборку строк и свой набор признаков в разбиениях, поэтому они спорят. Прогноз леса — их среднее, одно неудачное дерево меньше сдвигает ответ. fit вызывают от train_X и train_y. Три проверочные квартиры в обучение не входят. n_estimators больше 1, иначе это дерево, которое надело плащ. В практике сравнивают MAE леса и MAE дерева с лучшим числом листьев. Не обещайте, что лес всегда точнее на двенадцати строках. Это факт конкретного запуска, его записывают. Если лес видел проверочные цены, fit случайно получил весь X. random_state=1 снова фиксирует воспроизводимость, чтобы спор «у меня лучше» не заменил сравнение. 4800, 5200 и 5100 на рисунке дают 5033. Это пример усреднения, не контрольное число квартир. Контроль другого рода: одно число на выходе, fit только на учебных девяти, n_estimators больше одного. Не обещайте, что лес точнее дерева. Запишите факт запуска. Если лес видел проверочные цены, он списал, а не усреднил.</aside>
+    </section>
 
-best_leaves = min(scores, key=scores.get)
-print(&quot;листьев&quot;, best_leaves, &quot;MAE&quot;, round(scores[best_leaves], 1))</code></pre>
-<p><strong>Практика 6.0.5.</strong> В markdown выпишите четыре MAE и число листьев с наименьшей ошибкой на проверке. Рядом одной фразой опишите, что делает с прогнозом дерево из двух листьев.</p>
-<p><strong>Критерий 6.0.5:</strong> для каждого значения из списка <code>2, 4, 6, 8</code> напечатана ошибка на <code>val_y</code>. Выбранное число листьев — то, у которого эта ошибка минимальна.</p>
-<hr>
-<h2>6.0.6. Случайный лес</h2>
-<p>Случайный лес строит много деревьев. Каждое видит свою выборку строк и свой набор признаков в разбиениях. Прогноз леса — среднее прогнозов деревьев. Одно неудачное дерево меньше сдвигает ответ.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">from sklearn.ensemble import RandomForestRegressor
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">6.0.7</p>
+        <h2>Новая квартира приходит без цены</h2>
+        <div class="copy">
+          <ul>
+            <li>101: 45 м², 1988, 2 комнаты. Ближе к группе до 60 м².</li>
+            <li>102: 88 м², 2015, 3 комнаты. Ближе к просторным.</li>
+            <li>В <code>new_X</code> только <code>area</code>, <code>year</code>, <code>rooms</code> и в этом порядке. Если поставить комнаты первыми, лес прочитает их как площадь.</li>
+            <li><code>new_prices.csv</code> — две колонки, <code>flat_id</code> и <code>price</code>. Факта в файле нет.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 220 150" aria-hidden="true">
+            <g class="pop">
+              <rect x="28" y="48" width="56" height="48" fill="#09135a"/>
+              <polygon points="20,48 56,18 92,48" fill="#c23b78"/>
+              <text x="56" y="116" text-anchor="middle" font-size="12" fill="#09135a">101 · 45 м²</text>
+            </g>
+            <g class="pop d2">
+              <rect x="136" y="36" width="64" height="60" fill="#293699"/>
+              <polygon points="126,36 168,8 210,36" fill="#c23b78"/>
+              <text x="168" y="116" text-anchor="middle" font-size="12" fill="#09135a">102 · 88 м²</text>
+            </g>
+            <text x="110" y="142" text-anchor="middle" font-size="12" fill="#c23b78">цены в признаках нет</text>
+          </svg>
+          <p class="cap">Порядок столбцов совпадает с обучением: площадь, год, комнаты.</p>
+        </figure>
+      </div>
+      <aside class="notes">Две квартиры приходят без цены, и это впервые похоже на работу, а не на экзамен по таблице. 101: 45 квадратных метров, 1988 год, 2 комнаты. Ближе к группе до 60. 102: 88 метров, 2015 год, 3 комнаты. Ближе к просторным. В new_X только area, year, rooms, и в этом порядке. Если поставить rooms перед area, лес прочитает комнаты как площадь и оценит квартиру как очень тесную или очень огромную, в зависимости от чувства юмора столбца. price и price_note в new_X отсутствуют. Файл new_prices.csv — две колонки, flat_id и price, без факта. Критерий: две строки, номера 101 и 102. Числа прогноза не обязаны совпасть с 5000 и 9000. Лес видит ещё год и комнаты. Если совпали, это не ошибка. Если разошлись, тоже не ошибка. Ошибка — это перепутанный порядок столбцов. Два домика: узкий 101 на 45 метрах 1988 года с двумя комнатами и пошире 102 на 88 метрах 2015 года с тремя. Цены на крышах нет. Порядок столбцов area, year, rooms. Файл new_prices.csv — номер и цена, две строки, 101 и 102. Прогноз не обязан совпасть с 5000 и 9000. Совпал — не ошибка. Разошёлся — тоже. Ошибка — комнаты, прочитанные как площадь.</aside>
+    </section>
 
-forest = RandomForestRegressor(random_state=1)
-forest.fit(train_X, train_y)
-forest_mae = mean_absolute_error(val_y, forest.predict(val_X))
-print(&quot;MAE лес&quot;, round(forest_mae, 1))
-print(&quot;MAE лучшее дерево&quot;, round(scores[best_leaves], 1))
-print(&quot;число деревьев&quot;, forest.n_estimators)</code></pre>
-<p>Лес учат на <code>train_X</code> и <code>train_y</code>. Проверочные три квартиры в <code>fit</code> не передают.</p>
-<p><strong>Практика 6.0.6.</strong> В markdown запишите, какая MAE меньше: у леса или у дерева с <code>best_leaves</code>.</p>
-<p><strong>Критерий 6.0.6:</strong> напечатаны обе ошибки на <code>val_y</code>. <code>forest.n_estimators</code> больше 1.</p>
-<hr>
-<h2>6.0.7. Прогноз для новых квартир</h2>
-<p>Новая квартира приходит без цены и без текста <code>price_note</code>. Столбцы и их порядок те же, что у <code>X</code>. Файл с прогнозом — две колонки: номер и цена. В курсе Kaggle такой файл отправляют в соревнование. Здесь его сохраняют локально.</p>
-<p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">from pathlib import Path
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">Перед запуском ноутбука</p>
+        <h2>Симптом сразу указывает на проверку</h2>
+        <div class="copy">
+          <ul>
+            <li>Ширина 9 — забыт <code>index_col=0</code>. <code>loc</code> дал 10 строк — ждали <code>iloc</code>.</li>
+            <li>В группах 12 книг — пустой город заполнили раньше времени.</li>
+            <li>Ошибка на 12 строках больше 0 — лимит листьев или повтор признаков.</li>
+            <li>MAE проверки равна 0 — в <code>fit</code> ушёл весь X. <code>FileNotFoundError</code> — путь не от корня.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 155" aria-hidden="true">
+            <g class="pop">
+              <rect x="8" y="12" width="70" height="24" rx="6" fill="#fff5f8" stroke="#c23b78"/>
+              <text x="43" y="28" text-anchor="middle" font-size="11" fill="#c23b78">симптом</text>
+            </g>
+            <path class="edge" d="M82 24 H108"/>
+            <polygon points="108,18 120,24 108,30" fill="#c23b78"/>
+            <g class="pop d2">
+              <rect x="124" y="12" width="68" height="24" rx="6" fill="#09135a"/>
+              <text x="158" y="28" text-anchor="middle" fill="#fff" font-size="11">куда</text>
+            </g>
+            <text x="16" y="64" font-size="12" fill="#09135a">9 столбцов → index</text>
+            <text x="16" y="88" font-size="12" fill="#09135a">MAE 0 → весь X</text>
+            <text x="16" y="112" font-size="12" fill="#09135a">нет файла → путь</text>
+            <text class="blink" x="16" y="140" font-size="12" fill="#c23b78">сначала путь и seed</text>
+          </svg>
+          <p class="cap">Карта отладки. Спор с теорией начинают после пути и random_state.</p>
+        </figure>
+      </div>
+      <aside class="notes">Таблица симптомов — карта отладки, не список запретов. Проговорите её как «если видите это, смотрите туда». books шириной 9 — забыт index_col=0. loc[0:10] дал 10 строк — ждали поведение iloc, а loc правый край берёт. В группах 12 книг — пустой город в groupby не входит, кто-то его заранее заполнил. Ошибка дерева на 12 строках больше нуля — лимит листьев или повторы признаков. MAE проверки равна нулю — в fit ушёл весь X, конверт открыли слишком рано. FileNotFoundError — путь не от корня курса. В ноутбуке слушатель сверяет печать с критерием раздела и только потом идёт дальше. Если числа разошлись, сначала путь и random_state, потом состав столбцов. И только потом теория заговора. Стрелка на рисунке — весь жанр слайда: симптом слева, место проверки справа. Пройдите шесть пар, не все они нарисованы крупно. Ширина 9, loc на десять строк, двенадцать книг в группах, ошибка дерева больше нуля, нулевая MAE проверки, FileNotFoundError. Сначала путь и random_state, потом состав столбцов, и только потом разговор о том, что pandas «сломан».</aside>
+    </section>
 
-new_flats = pd.DataFrame(
-    [
-        {&quot;flat_id&quot;: 101, &quot;area&quot;: 45, &quot;year&quot;: 1988, &quot;rooms&quot;: 2},
-        {&quot;flat_id&quot;: 102, &quot;area&quot;: 88, &quot;year&quot;: 2015, &quot;rooms&quot;: 3},
-    ]
-)
-new_X = new_flats[features]
-new_price = forest.predict(new_X)
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad viz">
+        <p class="kicker">Практика</p>
+        <h2>Открывают два ноутбука и сверяют чеклист</h2>
+        <div class="copy">
+          <ul>
+            <li><code>lab51-pandas.ipynb</code>: медиана 89, «Последний трамвай», детектив сверху по минимальной цене, сумма копий 16.</li>
+            <li><code>lab60-intro.ipynb</code>: ошибка правила 533, три отложенные строки, выбор листьев, лес, цены для 101 и 102.</li>
+            <li>Ядро — <code>.venv</code>. Первая ячейка: ФИО, дата, заголовок. Тексты — в двух <code>metodichka.md</code>.</li>
+          </ul>
+        </div>
+        <figure class="fig">
+          <svg viewBox="0 0 200 155" aria-hidden="true">
+            <rect class="pop" x="12" y="20" width="78" height="96" rx="8" fill="#09135a"/>
+            <text x="51" y="52" text-anchor="middle" fill="#fff" font-size="13">lab51</text>
+            <text x="51" y="74" text-anchor="middle" fill="#c23b78" font-size="12">книги</text>
+            <text x="51" y="94" text-anchor="middle" fill="#fff" font-size="11">медиана 89</text>
+            <rect class="pop d2" x="108" y="20" width="78" height="96" rx="8" fill="#fff5f8" stroke="#c23b78" stroke-width="2"/>
+            <text x="147" y="52" text-anchor="middle" fill="#c23b78" font-size="13">lab60</text>
+            <text x="147" y="74" text-anchor="middle" fill="#09135a" font-size="12">квартиры</text>
+            <text x="147" y="94" text-anchor="middle" fill="#09135a" font-size="11">ошибка 533</text>
+          </svg>
+          <p class="cap">Два файла, два чеклиста. Слайд число не подписывает вместо ячейки.</p>
+        </figure>
+      </div>
+      <aside class="notes">Закройте показ перечислением артефактов и отпустите в ноутбуки. Ядро — .venv. Первая ячейка каждого ноутбука: ФИО, дата, заголовок занятия. module-5/lab51-pandas.ipynb: книги, авторы, два магазина, каталог. Медиана 89, «Последний трамвай», детектив сверху по минимальной цене, сумма копий 16. На диске появится cows_and_goats.csv. module-6-0/lab60-intro.ipynb: ошибка правила 533, дерево, три отложенные строки, выбор листьев, лес, new_prices.csv для квартир 101 и 102. Три фразы, которые стоит услышать в конце: почему ноль на обучении, чем два листа отличаются от листа на каждую квартиру, откуда у леса одна цена. Тексты методичек: module-5/metodichka.md и module-6-0/metodichka.md. На вопросы по коду отвечайте номером раздела, не переписывайте ячейку вслух. И поблагодарите. Они только что пережили и loc, и дерево, это уже не мало. Две обложки: lab51 с медианой 89 и lab60 с ошибкой 533. На диске у первого появится cows_and_goats.csv, у второго new_prices.csv. Три фразы на выходе из класса: почему ноль на обучении, чем два листа отличаются от листа на каждую квартиру, откуда у леса одна цена. На вопросы по коду отвечайте номером раздела методички. И отпустите, они это заслужили.</aside>
+    </section>
 
-submission = pd.DataFrame(
-    {&quot;flat_id&quot;: new_flats[&quot;flat_id&quot;], &quot;price&quot;: new_price.round(1)}
-)
-out = Path(&quot;module-6-0/data/new_prices.csv&quot;)
-submission.to_csv(out, index=False, encoding=&quot;utf-8&quot;)
-print(submission)
-print(&quot;столбцы как у X&quot;, list(new_X.columns) == features)</code></pre>
-<p>Квартира 101 ближе к группе до 60 м², квартира 102 — к группе просторных. Прогноз леса складывается из площади, года и числа комнат.</p>
-<p><strong>Критерий 6.0.7:</strong> в <code>new_prices.csv</code> две строки, столбцы <code>flat_id</code> и <code>price</code>, номера 101 и 102. В <code>new_X</code> нет <code>price</code> и <code>price_note</code>.</p>
-<hr>
-<h2>6.0.8. Самопроверка</h2>
-<p>В конце ноутбука ответьте в markdown:</p>
-<ol><li>Почему MAE, посчитанная на тех же строках, на которых дерево училось, равна 0 и что из этого следует для новой квартиры.</li><li>Чем дерево с двумя листьями отличается от дерева, у которого лист на каждую учебную квартиру.</li><li>Откуда у случайного леса одно число цены, если внутри него много деревьев.</li></ol>
-<h3>Чеклист</h3>
-<table><thead><tr><th>№</th><th>Действие</th><th>Готово</th></tr></thead><tbody><tr><td>1</td><td>Правило по площади: средние 5000 и 9000, ошибка правила 533</td><td>☐</td></tr><tr><td>2</td><td>Пропусков 0, сумма цен 84000, сумма площадей 761</td><td>☐</td></tr><tr><td>3</td><td><code>X</code> формы <code>(12, 3)</code>, ошибка дерева на всех 12 строках равна 0</td><td>☐</td></tr><tr><td>4</td><td>Обучение <code>(9, 3)</code>, проверка <code>(3, 3)</code>, MAE проверки больше 0</td><td>☐</td></tr><tr><td>5</td><td>Сравнены листья 2, 4, 6 и 8, выбран минимум по проверке</td><td>☐</td></tr><tr><td>6</td><td>Лес обучен на <code>train_X</code>, его MAE сравнена с лучшим деревом</td><td>☐</td></tr><tr><td>7</td><td><code>data/new_prices.csv</code>: квартиры 101 и 102</td><td>☐</td></tr><tr><td>8</td><td>Три ответа самопроверки</td><td>☐</td></tr></tbody></table>
-<h3>Типовые ошибки</h3>
-<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td>Ошибка на всех 12 строках больше 0</td><td>В <code>X</code> попали одинаковые комбинации признаков или стоит <code>max_leaf_nodes</code></td></tr><tr><td>В проверке не 3 строки</td><td><code>train_test_split(X, y, random_state=1)</code> без другого <code>test_size</code></td></tr><tr><td>MAE проверки равна 0</td><td>В <code>fit</code> ушли все 12 строк, а не <code>train_X</code></td></tr><tr><td>У всех чисел листьев одна и та же ошибка</td><td>В <code>DecisionTreeRegressor</code> не передан <code>max_leaf_nodes</code></td></tr><tr><td>Лес видел проверочные цены</td><td><code>fit</code> вызывают от <code>train_X, train_y</code></td></tr><tr><td>В прогнозе для 101 и 102 есть столбец <code>price_note</code></td><td>В <code>new_X</code> список <code>features</code></td></tr><tr><td><code>FileNotFoundError</code></td><td>Путь <code>module-6-0/data/flats.csv</code> от корня курса</td></tr></tbody></table>
-<p>После занятия слушатель отделяет разведку от обучения, считает MAE на отложенных строках, выбирает число листьев по этой ошибке и получает прогноз леса для квартиры, которой в таблице не было.</p>
-  </article>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-<script>document.querySelectorAll("code.language-python, code.language-sql, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+  </div>
+
+  <div class="notes-panel" id="notes"></div>
+  <div class="overview" id="overview"><div class="grid" id="grid"></div></div>
+  <div class="chrome">
+    <button type="button" id="prev">←</button>
+    <button type="button" id="next">→</button>
+    <button type="button" id="notes-btn" aria-pressed="false">Текст</button>
+    <button type="button" id="over-btn">Все слайды</button>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".deck .slide"));
+    const notes = document.getElementById("notes");
+    const notesBtn = document.getElementById("notes-btn");
+    const overview = document.getElementById("overview");
+    const grid = document.getElementById("grid");
+    const bar = document.getElementById("bar");
+    let index = 0;
+
+    slides.forEach((slide, i) => {
+      const mark = document.createElement("div");
+      mark.className = "num";
+      mark.textContent = (i + 1) + " / " + slides.length;
+      slide.appendChild(mark);
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "tile";
+      const title = slide.querySelector("h1, h2");
+      tile.textContent = (i + 1) + ". " + (title ? title.textContent : "");
+      tile.addEventListener("click", () => { show(i); overview.classList.remove("open"); });
+      grid.appendChild(tile);
+    });
+
+    function show(i) {
+      index = (i + slides.length) % slides.length;
+      slides.forEach((slide) => slide.classList.remove("active"));
+      void slides[index].offsetWidth;
+      slides[index].classList.add("active");
+      const aside = slides[index].querySelector(".notes");
+      notes.textContent = aside ? aside.textContent : "";
+      bar.style.width = ((index + 1) / slides.length * 100) + "%";
+      grid.querySelectorAll(".tile").forEach((tile, n) => tile.classList.toggle("here", n === index));
+    }
+
+    document.getElementById("prev").addEventListener("click", () => show(index - 1));
+    document.getElementById("next").addEventListener("click", () => show(index + 1));
+    notesBtn.addEventListener("click", () => {
+      const open = notes.classList.toggle("open");
+      notesBtn.setAttribute("aria-pressed", open ? "true" : "false");
+    });
+    document.getElementById("over-btn").addEventListener("click", () => overview.classList.toggle("open"));
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        show(index + 1);
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        show(index - 1);
+      } else if (event.key === "Home") {
+        show(0);
+      } else if (event.key === "End") {
+        show(slides.length - 1);
+      } else if (event.key === "n" || event.key === "N" || event.key === "т" || event.key === "Т") {
+        notesBtn.click();
+      } else if (event.key === "Escape" || event.key === "o" || event.key === "O" || event.key === "щ" || event.key === "Щ") {
+        overview.classList.toggle("open");
+      }
+    });
+
+    const sliceState = { 0: false, 1: false };
+    document.querySelectorAll("[data-quiz='slice']").forEach((button) => {
+      button.addEventListener("click", () => {
+        sliceState[button.dataset.ok] = true;
+        button.classList.add("good");
+        const msg = document.getElementById("slice-msg");
+        if (sliceState[0] && sliceState[1]) {
+          msg.textContent = "Оба верны: iloc отрезает правый край, loc его включает.";
+        } else {
+          msg.textContent = "Верно. Проверьте и второй срез.";
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-quiz='mae']").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-quiz='mae']").forEach((item) => {
+          item.classList.remove("good", "bad");
+        });
+        const msg = document.getElementById("mae-msg");
+        if (button.dataset.ok === "1") {
+          button.classList.add("good");
+          msg.textContent = "Заказчику показывают MAE на трёх отложенных квартирах.";
+        } else {
+          button.classList.add("bad");
+          msg.textContent = "Ноль на обучении значит, что дерево запомнило учебные строки.";
+        }
+      });
+    });
+
+    const goals = [
+      ["Описать и сравнить уже собранные данные", "таблица"],
+      ["Найти пропуски, ошибки и связи", "таблица"],
+      ["Предсказать число или класс новому объекту", "модель"],
+      ["Выбрать модель по ошибке на новых объектах", "модель"]
+    ];
+    const goalCycle = ["не выбрано", "таблица", "модель"];
+    const goalBox = document.getElementById("goals");
+    goals.forEach(([name]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.name = name;
+      button.dataset.box = goalCycle[0];
+      button.textContent = name + " · не выбрано";
+      button.addEventListener("click", () => {
+        const next = (goalCycle.indexOf(button.dataset.box) + 1) % goalCycle.length;
+        button.dataset.box = goalCycle[next];
+        button.textContent = name + " · " + goalCycle[next];
+        button.classList.remove("good", "bad");
+      });
+      goalBox.appendChild(button);
+    });
+    document.getElementById("goals-check").addEventListener("click", () => {
+      let wrong = 0;
+      goalBox.querySelectorAll("button").forEach((button) => {
+        const expected = goals.find((item) => item[0] === button.dataset.name)[1];
+        const ok = button.dataset.box === expected;
+        button.classList.toggle("good", ok);
+        button.classList.toggle("bad", !ok);
+        if (!ok) wrong += 1;
+      });
+      document.getElementById("goals-msg").textContent = wrong === 0
+        ? "Сходится: описание и проверка данных остаются в таблице. Прогноз и выбор модели — для новых объектов."
+        : "Пока не легло: " + wrong + ". Спросите, объект уже есть в данных или его ещё нет.";
+    });
+
+    const roles = [
+      ["area", "признак"],
+      ["year", "признак"],
+      ["rooms", "признак"],
+      ["price", "цель"],
+      ["flat_id", "вне модели"],
+      ["district", "вне модели"],
+      ["price_note", "вне модели"]
+    ];
+    const cycle = ["признак", "цель", "вне модели"];
+    const roleBox = document.getElementById("roles");
+    roles.forEach(([name]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.name = name;
+      button.dataset.role = cycle[0];
+      button.textContent = name + " · признак";
+      button.addEventListener("click", () => {
+        const next = (cycle.indexOf(button.dataset.role) + 1) % cycle.length;
+        button.dataset.role = cycle[next];
+        button.textContent = name + " · " + cycle[next];
+        button.classList.remove("good", "bad");
+      });
+      roleBox.appendChild(button);
+    });
+    document.getElementById("roles-check").addEventListener("click", () => {
+      let wrong = 0;
+      roleBox.querySelectorAll("button").forEach((button) => {
+        const expected = roles.find((item) => item[0] === button.dataset.name)[1];
+        const ok = button.dataset.role === expected;
+        button.classList.toggle("good", ok);
+        button.classList.toggle("bad", !ok);
+        if (!ok) wrong += 1;
+      });
+      document.getElementById("roles-msg").textContent = wrong === 0
+        ? "Роли собраны: в X идут area, year, rooms, цель — price."
+        : "Осталось поправить: " + wrong + ".";
+    });
+
+    show(0);
+  </script>
 </body>
 </html>
