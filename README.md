@@ -32,5 +32,8 @@
   - [3.4 Устранение излишней и избыточной информации](https://nesrv.github.io/python-for-data-analysis/module-3-4.html)
   - [3.5 Нормализация данных. Форматирование данных](https://nesrv.github.io/python-for-data-analysis/module-3-5.html)
 - [Модуль 4. Анализ, исследование и визуализация данных](https://nesrv.github.io/python-for-data-analysis/module-4.html)
+- [Презентация. От таблицы к прогнозу](https://nesrv.github.io/python-for-data-analysis/analysis-deck.html)
 - [Модуль 5. Извлечение и манипулирование данными Pandas](https://nesrv.github.io/python-for-data-analysis/module-5.html)
+  - [5.1 Манипулирование данными в Pandas](https://nesrv.github.io/python-for-data-analysis/module-5-1.html)
 - [Модуль 6. Машинное обучение](https://nesrv.github.io/python-for-data-analysis/module-6.html)
+  - [6.0 Введение в машинное обучение](https://nesrv.github.io/python-for-data-analysis/module-6-0.html)

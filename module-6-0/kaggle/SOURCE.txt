@@ -1,0 +1,15 @@
+Исходники курса Intro to Machine Learning из открытого репозитория Kaggle:
+https://github.com/Kaggle/learntools
+Лицензия: Apache 2.0, файл LICENSE.
+
+Ноутбуки: notebooks/machine_learning/raw
+Проверки упражнений: learntools/machine_learning
+
+Файлы данных лежат там, куда смотрит setup_data.sh:
+notebooks/machine_learning/input/home-data-for-ml-course
+notebooks/machine_learning/input/melbourne-housing-snapshot
+
+С Kaggle их нельзя скачать без ключа API (файла kaggle.json на этой машине нет).
+CSV взяты из публичных копий тех же наборов:
+train.csv, test.csv, sample_submission.csv, data_description.txt — home-data-for-ml-course
+melb_data.csv — melbourne-housing-snapshot

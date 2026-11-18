@@ -1,0 +1,7 @@
+*/input
+*/*/rendered
+*/*/kernels_api_metadata
+
+# Локальная копия датасетов курса. В репозитории Kaggle их нет: их качает setup_data.sh.
+!machine_learning/input/
+!machine_learning/input/**
