@@ -13,7 +13,7 @@
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
     <h1>6.0. Введение в машинное обучение</h1>
 <p><strong>Цель:</strong> на таблице квартир увидеть, как дерево решений получает цену из признаков, измерить ошибку на отложенных строках, подобрать число листьев и сравнить одно дерево со случайным лесом.</p>
-<p><strong>Опора:</strong> последовательность курса <a href="https://www.kaggle.com/learn/intro-to-machine-learning">Kaggle Learn: Intro to Machine Learning</a> — как устроена модель, разведка таблицы, первая модель, проверка, недообучение и переобучение, случайный лес, прогноз для новых строк. В курсе Kaggle берут файл цен домов штата Айова. Здесь тот же ход работы на локальном файле <code>module-6-0/data/flats.csv</code>: аккаунт Kaggle для занятия не нужен. Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
+<p><strong>Опора:</strong> ход занятия — как устроена модель, разведка таблицы, первая модель, проверка, недообучение и переобучение, случайный лес, прогноз для новых строк. Берут файл цен квартир города М. Здесь тот же ход работы на локальном файле <code>module-6-0/data/flats.csv</code>. Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p>Цена в таблице — тысячи рублей. Вопрос занятия: по площади, году постройки и числу комнат оценить цену квартиры, которой не было в обучении.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-6-0/</code>):</p>
 <table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>data/flats.csv</code></td><td>12 квартир с ценой</td></tr><tr><td><code>lab60-intro.ipynb</code></td><td>Разведка, дерево, проверка, лес</td></tr><tr><td><code>data/new_prices.csv</code></td><td>Прогноз для двух новых квартир</td></tr></tbody></table>
@@ -55,7 +55,7 @@ print(raw[[&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;price&qu
 print(&quot;средняя цена&quot;, raw[&quot;price&quot;].mean())
 print(&quot;сумма цен&quot;, int(raw[&quot;price&quot;].sum()))
 print(&quot;сумма площадей&quot;, int(raw[&quot;area&quot;].sum()))</code></pre>
-<p>В курсе Kaggle у части домов нет цены продажи, и такие строки убирают: без цели строку не на чем учить. В <code>flats.csv</code> пустых ячеек нет, сумма пропусков равна 0. Средняя цена по всем 12 квартирам — <strong>7000</strong>.</p>
+<p>У части квартир нет цены продажи, и такие строки убирают: без цели строку не на чем учить. В <code>flats.csv</code> пустых ячеек нет, сумма пропусков равна 0. Средняя цена по всем 12 квартирам — <strong>7000</strong>.</p>
 <p><strong>Практика 6.0.2.</strong> В markdown напишите, какую цену модель увидит заранее, если в признаки попадёт <code>price_note</code>.</p>
 <p><strong>Критерий 6.0.2:</strong> пропусков 0, средняя цена 7000, сумма цен <strong>84000</strong>, сумма площадей <strong>761</strong>.</p>
 <hr>
@@ -134,7 +134,7 @@ print(&quot;число деревьев&quot;, forest.n_estimators)</code></pre>
 <p><strong>Критерий 6.0.6:</strong> напечатаны обе ошибки на <code>val_y</code>. <code>forest.n_estimators</code> больше 1.</p>
 <hr>
 <h2>6.0.7. Прогноз для новых квартир</h2>
-<p>Новая квартира приходит без цены и без текста <code>price_note</code>. Столбцы и их порядок те же, что у <code>X</code>. Файл с прогнозом — две колонки: номер и цена. В курсе Kaggle такой файл отправляют в соревнование. Здесь его сохраняют локально.</p>
+<p>Новая квартира приходит без цены и без текста <code>price_note</code>. Столбцы и их порядок те же, что у <code>X</code>. Файл с прогнозом — две колонки: номер и цена. Его сохраняют локально.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">from pathlib import Path
 
