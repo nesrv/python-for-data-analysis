@@ -3,20 +3,350 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Модуль 5. Извлечение и манипулирование данными Pandas</title>
+  <title>5.1. Манипулирование данными в Pandas</title>
   <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
 </head>
 <body>
   <article class="doc">
     <a class="back" href="slide4.html">← Оглавление</a>
     <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-    <h1>Модуль 5. Извлечение и манипулирование данными Pandas</h1>
-    <p>Темы модуля по программе курса «Python для анализа данных».</p>
-    <ol class="topics">
-      <li>Манипулирование данными в Pandas</li>
-      <li>Статистический анализ</li>
-      <li>Анализ временных серий</li>
-    </ol>
+    <h1>5.1. Манипулирование данными в Pandas</h1>
+<p><strong>Цель:</strong> собрать таблицу руками, прочитать её из CSV и PostgreSQL, выбрать строки и столбцы, посчитать сводки, сгруппировать, закрыть пропуски и соединить две таблицы в одну.</p>
+<p>Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса. Данные лежат в <code>module-5/data/</code>.</p>
+<table><thead><tr><th>Раздел</th><th>Урок</th></tr></thead><tbody><tr><td>5.1.1</td><td>Создание, чтение и запись</td></tr><tr><td>5.1.2</td><td>Индексация, выборка и присваивание</td></tr><tr><td>5.1.3</td><td>Сводные функции и отображения</td></tr><tr><td>5.1.4</td><td>Группировка и сортировка</td></tr><tr><td>5.1.5</td><td>Типы данных и пропущенные значения</td></tr><tr><td>5.1.6</td><td>Переименование и объединение</td></tr></tbody></table>
+<p>В таблице 12 книг. Оценка — целое от 80 до 100, цена — рубли. Вопрос занятия: из этой таблицы достать нужные строки, посчитать сводку по городу и жанру и собрать каталог изданий со складским остатком.</p>
+<p><strong>Итоговые артефакты</strong> (в папке <code>module-5/</code>):</p>
+<table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>data/books.csv</code></td><td>12 книг: город, жанр, оценка, цена, рецензент</td></tr><tr><td><code>authors</code> в базе <code>course</code></td><td>три автора, чтение через SQL из контейнера <code>pg18-course</code></td></tr><tr><td><code>data/shop_center.csv</code>, <code>data/shop_station.csv</code></td><td>остатки двух магазинов для <code>concat</code></td></tr><tr><td><code>data/editions.csv</code>, <code>data/stock.csv</code></td><td>издания и склад для <code>join</code></td></tr><tr><td><code>data/cows_and_goats.csv</code></td><td>таблица, которую занятие записывает на диск</td></tr><tr><td><code>lab51-pandas.ipynb</code></td><td>все ячейки этого занятия</td></tr></tbody></table>
+<table><thead><tr><th>Столбец <code>books</code></th><th>Смысл</th></tr></thead><tbody><tr><td><code>title</code></td><td>название</td></tr><tr><td><code>city</code></td><td>город рецензента; у одной книги город пуст</td></tr><tr><td><code>description</code></td><td>короткая аннотация</td></tr><tr><td><code>genre</code></td><td><code>роман</code>, <code>рассказ</code> или <code>детектив</code></td></tr><tr><td><code>score</code></td><td>оценка</td></tr><tr><td><code>price</code></td><td>цена в рублях; у одной книги цены нет</td></tr><tr><td><code>reviewer</code></td><td>имя рецензента</td></tr><tr><td><code>handle</code></td><td>короткая отметка рецензента</td></tr></tbody></table>
+<p>Имена столбцов оставлены латиницей: так к столбцу можно обратиться и через <code>books[&quot;city&quot;]</code>, и через <code>books.city</code>. Текст в ячейках — русский.</p>
+<hr>
+<h2>Подготовка</h2>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+python -m pip install pandas sqlalchemy &quot;psycopg[binary]&quot;</code></pre>
+<p>Создайте ноутбук <code>module-5/lab51-pandas.ipynb</code> и выберите ядро <code>.venv</code>.</p>
+<p>Первая ячейка — markdown: ФИО, дата, заголовок «5.1 Манипулирование данными в Pandas».</p>
+<hr>
+<h2>5.1.1. Создание, чтение и запись</h2>
+<p>Pandas подключают строкой <code>import pandas as pd</code>. Дальше в этом уроке — как завести свои данные и как взять данные, которые уже лежат в файле.</p>
+<h3>Создание данных</h3>
+<p>В pandas два основных объекта: <strong>DataFrame</strong> и <strong>Series</strong>.</p>
+<p>DataFrame — это таблица. В ней массив отдельных записей, у каждой записи есть значение. Запись стоит на пересечении строки и столбца.</p>
+<p>Конструктор <code>pd.DataFrame</code> принимает словарь. Ключ словаря — имя столбца, значение — список записей этого столбца. Так собирают новую таблицу чаще всего.</p>
+<p>Без параметра <code>index</code> метки строк — это просто счётчик 0, 1, 2, … Иногда этого хватает. Часто метки нужны свои. Список меток строк называется <strong>Index</strong>, его передают параметром <code>index</code>.</p>
+<p>Series — последовательность значений. Если DataFrame — таблица, то Series — список, и его можно создать из обычного списка. По сути Series — один столбец DataFrame. Метки строк задают тем же параметром <code>index</code>. Имени столбца у Series нет: есть одно общее имя <code>name</code>. DataFrame удобно представлять как несколько Series, склеенных по общему индексу.</p>
+<p>Список под каждым столбцом читается сверху вниз: первый элемент — первая строка, второй — вторая. У «Яблок» и «Бананов» списки одной длины, иначе таблица не соберётся.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import pandas as pd
+
+# Одна строка и два столбца. Ключ словаря — имя столбца.
+fruits = pd.DataFrame({&quot;Яблоки&quot;: [30], &quot;Бананы&quot;: [21]})
+
+# Две строки. index подписывает строки: без него были бы метки 0 и 1.
+fruit_sales = pd.DataFrame(
+    {&quot;Яблоки&quot;: [35, 41], &quot;Бананы&quot;: [21, 34]},
+    index=[&quot;Продажи 2017&quot;, &quot;Продажи 2018&quot;],
+)
+
+# Series — один столбец. name подписывает всю серию, а не отдельный столбец.
+ingredients = pd.Series(
+    [&quot;4 стакана&quot;, &quot;1 стакан&quot;, &quot;2 крупных&quot;, &quot;1 банка&quot;],
+    index=[&quot;Мука&quot;, &quot;Молоко&quot;, &quot;Яйца&quot;, &quot;Тушёнка&quot;],
+    name=&quot;Ужин&quot;,
+)
+
+print(fruits.shape, fruit_sales.shape)  # (строки, столбцы)
+print(fruit_sales)
+print(ingredients)</code></pre>
+<p><code>fruits</code> — одна строка и два столбца. <code>fruit_sales</code> — две строки, и метки строк заданы явно. У <code>ingredients</code> имя серии — «Ужин».</p>
+<p><strong>Критерий 5.1.1а:</strong> формы <code>(1, 2)</code> и <code>(2, 2)</code>. В «Продажи 2018» яблок 41. Имя серии — <code>Ужин</code>, первая метка — <code>Мука</code>.</p>
+<h3>Чтение файла</h3>
+<p>Собрать DataFrame или Series руками удобно для примера. В работе почти всегда данные уже где-то лежат. Самый простой вид такого файла — CSV. Если открыть его как текст, видно таблицу, в которой значения разделены запятыми. Отсюда имя: comma-separated values, значения через запятую.</p>
+<p><code>pd.read_csv</code> читает такой файл в DataFrame. У функции больше тридцати необязательных параметров. В <code>books.csv</code> первый столбец — уже готовый номер строки, у него пустой заголовок. Сам по себе pandas этот столбец индексом не считает и заводит новый индекс с нуля, а номер остаётся обычным столбцом. Параметр <code>index_col=0</code> говорит взять готовый столбец в индекс.</p>
+<p>Размер получившейся таблицы смотрят атрибутом <code>shape</code>: число строк и число столбцов. Первые строки показывает <code>head</code>. По умолчанию <code>head</code> берёт пять строк, аргумент уменьшает или увеличивает это число.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python"># Первый столбец файла — готовые номера 0…11. Без index_col он остаётся обычным столбцом.
+plain = pd.read_csv(&quot;module-5/data/books.csv&quot;)
+# Тот же файл, но номер строки забираем в индекс. Столбцов становится на один меньше.
+books = pd.read_csv(&quot;module-5/data/books.csv&quot;, index_col=0)
+print(plain.shape, books.shape)
+print(books.head(3))  # три первые книги, не вся таблица</code></pre>
+<p><strong>Критерий 5.1.1б:</strong> <code>plain</code> имеет форму <code>(12, 9)</code>, <code>books</code> — <code>(12, 8)</code>. Индекс <code>books</code> начинается с 0, первая книга — «Тихий двор».</p>
+<h3>Запись и чтение из базы</h3>
+<p><code>to_csv</code> записывает DataFrame в CSV. По умолчанию в файл попадает и индекс. <code>index=False</code> индекс выбрасывает: при повторном чтении метки «Год 1» и «Год 2» уже не восстановить.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">animals = pd.DataFrame(
+    {&quot;Коровы&quot;: [12, 20], &quot;Козы&quot;: [22, 19]},
+    index=[&quot;Год 1&quot;, &quot;Год 2&quot;],
+)
+# Индекс пишется в файл вместе со столбцами. index=False стёр бы «Год 1» и «Год 2».
+animals.to_csv(&quot;module-5/data/cows_and_goats.csv&quot;)
+# При чтении тот же столбец снова ставим индексом, иначе метки лет станут обычным столбцом.
+loaded = pd.read_csv(&quot;module-5/data/cows_and_goats.csv&quot;, index_col=0)
+print(loaded)</code></pre>
+<p><strong>Критерий 5.1.1в:</strong> файл <code>module-5/data/cows_and_goats.csv</code> читается обратно. В «Год 1» коров 12 и коз 22.</p>
+<p>Ту же таблицу можно прочитать не из CSV, а запросом к PostgreSQL. Контейнер <code>pg18-course</code> уже запущен, база в нём называется <code>course</code>, пользователь — <code>student</code>. В терминале эта база открывается так:</p>
+<pre><code class="language-text">docker exec -it pg18-course psql -U student -d course</code></pre>
+<p>Из ноутбука ходят на тот же сервер снаружи контейнера: хост <code>localhost</code>, порт <code>5432</code>, пароль <code>student</code>. Строка подключения та же, что в модуле 3. <code>create_engine</code> открывает соединение, <code>pd.read_sql</code> выполняет запрос и возвращает DataFrame.</p>
+<p>В базе лежит таблица <code>authors</code>: Иванова, Петров, Смирнова.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import sqlalchemy as sa
+
+# Та же база, что открывает docker exec ... psql -U student -d course
+engine = sa.create_engine(
+    &quot;postgresql+psycopg://student:student@localhost:5432/course&quot;
+)
+# SELECT * — все столбцы таблицы authors. Результат сразу становится DataFrame.
+authors = pd.read_sql(sa.text(&quot;SELECT * FROM authors ORDER BY author_id&quot;), engine)
+print(authors)</code></pre>
+<p><strong>Критерий 5.1.1г:</strong> в <code>authors</code> 3 строки и 2 столбца. Имена — Иванова, Петров, Смирнова.</p>
+<hr>
+<h2>5.1.2. Индексация, выборка и присваивание</h2>
+<p>Почти любая операция с таблицей начинается с того, что из DataFrame или Series достают нужные значения. Этот урок — как делать это быстро.</p>
+<h3>Обычные способы обратиться к столбцу</h3>
+<p>В Python к полю объекта обращаются как к атрибуту: у книги могло бы быть поле <code>title</code>, и его читали бы как <code>book.title</code>. Столбец DataFrame устроен так же. Словарь читают квадратными скобками, и столбец тоже: <code>books[&quot;city&quot;]</code>. Оба способа дают одну и ту же Series. Скобки нужны, когда в имени есть пробел или другое имя, которое нельзя записать как атрибут: <code>books.city name</code> уже не сработает, а <code>books[&quot;city name&quot;]</code> сработает.</p>
+<p>Series похожа на словарь. Чтобы дойти до одного значения, скобки ставят ещё раз: <code>books[&quot;city&quot;][0]</code>. Для дальнейшей работы у pandas есть свои операторы, <code>loc</code> и <code>iloc</code>.</p>
+<h3>Выбор по позиции</h3>
+<p>Первый способ — выбор по числовой позиции в таблице. Его делает <code>iloc</code>.</p>
+<p>И <code>loc</code>, и <code>iloc</code> пишут сначала строку, потом столбец. В обычном Python чаще наоборот: сначала столбец, потом строка. Поэтому строку через <code>iloc</code> достать проще, чем столбец. Столбец берут так: <code>books.iloc[:, 0]</code>. Двоеточие само по себе значит «всё». Вместе с другими границами оно задаёт диапазон. <code>books.iloc[:3, 0]</code> — столбец <code>city</code> из первых трёх строк. <code>books.iloc[1:3, 0]</code> — вторая и третья записи. В <code>iloc</code> можно передать список позиций: <code>books.iloc[[0, 1, 2], 0]</code>. Отрицательное число считает с конца: <code>books.iloc[-5:]</code> — последние пять строк.</p>
+<h3>Выбор по метке</h3>
+<p>Второй способ — выбор по метке индекса. Его делает <code>loc</code>. Важна метка, а не место строки в таблице. Город первой книги читают так: <code>books.loc[0, &quot;city&quot;]</code>.</p>
+<p><code>iloc</code> проще устроен: он не смотрит на индекс и обращается с таблицей как с матрицей, список списков, в который входят по номеру позиции. <code>loc</code> пользуется метками. Когда метки что-то значат, с <code>loc</code> короче. Например, сразу несколько столбцов: <code>books.loc[:, [&quot;title&quot;, &quot;city&quot;, &quot;score&quot;]]</code>.</p>
+<p>Между <code>loc</code> и <code>iloc</code> есть расхождение в срезах. <code>iloc</code> следует обычному правилу Python: левый край входит, правый нет. <code>0:10</code> — это позиции 0…9, десять строк. <code>loc</code> включает оба края. <code>0:10</code> — это метки 0…10, одиннадцать строк. Так сделано потому, что меткой бывает и строка. Если индекс — «Яблоки» … «Картофель», срез «от яблок до картофеля» удобнее записать <code>df.loc[&quot;Яблоки&quot;:&quot;Картофель&quot;]</code>, чем придумывать метку сразу после последней нужной. Когда индекс — обычные числа 0, 1, 2, …, разница легко теряется: <code>iloc[0:10]</code> вернёт 10 строк, <code>loc[0:10]</code> — 11. Чтобы получить 10 строк через <code>loc</code>, правую метку уменьшают на единицу: <code>loc[0:9]</code>. В остальном правила <code>loc</code> и <code>iloc</code> совпадают.</p>
+<h3>Индекс можно сменить</h3>
+<p>Сила выбора по метке — в самих метках. Индекс не закреплён навсегда. <code>set_index(&quot;title&quot;)</code> ставит названием книги метку строки и возвращает новую таблицу. Исходный <code>books</code> при этом не меняется. Метод нужен, когда для таблицы находится индекс удачнее текущего.</p>
+<p>В ячейке шесть разных отборов. Их удобно читать по одной строке: столбец, одна ячейка, целая строка, срез, список меток, несколько столбцов.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">desc = books[&quot;description&quot;]             # столбец аннотаций, это Series
+first_description = desc.iloc[0]        # первая аннотация: позиция 0
+first_row = books.iloc[0]               # первая строка целиком, тоже Series
+first_descriptions = books[&quot;description&quot;].iloc[:10]  # позиции 0…9, десятая не входит
+sample_books = books.loc[[1, 2, 3, 5, 8]]  # ровно эти метки, не диапазон
+places = books.loc[[0, 1, 10], [&quot;city&quot;, &quot;genre&quot;, &quot;reviewer&quot;]]
+head_cols = books.loc[:7, [&quot;title&quot;, &quot;genre&quot;]]  # метки 0…7 включительно, восемь строк
+
+print(type(desc).__name__)
+print(first_description)
+print(len(first_descriptions), sample_books.shape, places.shape, head_cols.shape)
+# Один и тот же текст среза: iloc отбрасывает правый край, loc его оставляет.
+print(&quot;iloc&quot;, len(books.iloc[0:10]), &quot;loc&quot;, len(books.loc[0:10]))
+# Новая таблица с названием вместо номера. Исходный books остаётся с числовым индексом.
+print(books.set_index(&quot;title&quot;).index[0])</code></pre>
+<p><code>set_index(&quot;title&quot;)</code> возвращает новую таблицу, где метка строки — название. Исходный <code>books</code> от этого не меняется.</p>
+<p><strong>Критерий 5.1.2а:</strong> <code>desc</code> имеет тип <code>Series</code>. Первая аннотация — «Спокойный сюжет без спешки». Длины и формы: 10, <code>(5, 8)</code>, <code>(3, 3)</code>, <code>(8, 2)</code>. Срез <code>iloc[0:10]</code> содержит 10 строк, срез <code>loc[0:10]</code> — 11. После <code>set_index</code> первая метка — «Тихий двор».</p>
+<h3>Выбор по условию</h3>
+<p>До сих пор строки брали по устройству самой таблицы: по номеру или по метке. Чтобы задать вопрос к данным, нужно условие.</p>
+<p><code>books.city == &quot;Казань&quot;</code> даёт Series из <code>True</code> и <code>False</code> по каждой строке. Эту Series передают в <code>loc</code>, и остаются только истинные строки. Второе условие присоединяют амперсандом <code>&amp;</code>, если нужны оба, или вертикальной чертой <code>|</code>, если достаточно одного. Каждое сравнение берут в скобки: у <code>&amp;</code> приоритет выше, чем у <code>==</code>.</p>
+<p>Два готовых отбора стоит запомнить. <code>isin</code> оставляет значения из заданного списка: город «Москва» или «Казань». <code>notnull</code> (и парный <code>isnull</code>) отмечает ячейки, которые заполнены или пусты. <code>books.loc[books.price.notnull()]</code> убирает книгу без цены.</p>
+<h3>Присваивание</h3>
+<p>В обратную сторону, записать данные в таблицу, так же прямо. Константа заполняет весь новый столбец одним значением. Последовательность той же длины заполняет ячейки по порядку.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">kazan = books.loc[books.city == &quot;Казань&quot;]
+kazan_strong = books.loc[(books.city == &quot;Казань&quot;) &amp; (books.score &gt;= 90)]
+wide = books.loc[(books.city == &quot;Казань&quot;) | (books.score &gt;= 90)]
+two_cities = books.loc[books.city.isin([&quot;Москва&quot;, &quot;Казань&quot;])]
+priced = books.loc[books.price.notnull()]
+print(kazan.shape[0], kazan_strong.shape[0], wide.shape[0], two_cities.shape[0], priced.shape[0])
+
+marked = books.copy()
+marked[&quot;critic&quot;] = &quot;все&quot;
+marked[&quot;index_backwards&quot;] = range(len(marked), 0, -1)
+print(marked.loc[0, &quot;critic&quot;], int(marked.loc[0, &quot;index_backwards&quot;]), int(marked.loc[11, &quot;index_backwards&quot;]))</code></pre>
+<p><code>books.copy()</code> нужен, чтобы новые столбцы остались в <code>marked</code>. Дальнейшие разделы продолжают работать с исходными восемью столбцами <code>books</code>.</p>
+<p><strong>Практика 5.1.2.</strong> В markdown запишите пять чисел из <code>print</code> и объясните, почему <code>books[0]</code> не отдаёт первую строку, а <code>books.iloc[0]</code> отдаёт.</p>
+<p><strong>Критерий 5.1.2б:</strong> числа 3, 2, 7, 8, 11. В <code>marked</code> у строки 0 стоит «все» и 12, у строки 11 стоит 1.</p>
+<hr>
+<h2>5.1.3. Сводные функции и отображения</h2>
+<p>Выбрать нужные строки ещё не значит получить данные в том виде, в каком они нужны для ответа. Иногда столбец приходится пересчитать. Этот урок — сводки по столбцу и отображения, которые переводят значения в другой вид.</p>
+<h3>Сводные функции</h3>
+<p>У pandas много коротких сводок. Они заново укладывают данные так, чтобы по ним было видно главное. <code>describe</code> собирает такую сводку и смотрит на тип столбца. Для числа это количество, среднее, стандартное отклонение, минимум, квартили и максимум. Для текста вывод другой: сколько непустых значений, сколько разных, какое встречается чаще всех и сколько раз.</p>
+<p>Если нужна одна цифра, для неё обычно есть отдельная функция. <code>mean</code> — среднее. <code>median</code> — медиана. <code>unique</code> — список разных значений. <code>value_counts</code> — те же значения и сколько раз каждое встретилось. Пустые ячейки <code>value_counts</code> не считает.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">print(books.score.describe())
+print(books.reviewer.describe())
+print(books.city.value_counts())
+median_score = books.score.median()
+centered_price = books.price - books.price.mean()
+print(median_score, round(float(centered_price.iloc[0]), 2))
+print(round(float((books.score - books.score.mean()).iloc[0]), 2))
+print((books.city + &quot; - &quot; + books.genre).iloc[0])</code></pre>
+<h3>Отображения</h3>
+<p>Отображение — функция, которая берёт один набор значений и переводит его в другой. Так из имеющихся данных получают новый столбец или приводят столбец к нужному виду.</p>
+<p>Чаще всего используют два метода. <code>map</code> проще. Ему передают функцию одного значения Series, и он возвращает новую Series, где каждое значение уже пересчитано. Вычесть среднее из каждой оценки можно так: <code>books.score.map(lambda p: p - books.score.mean())</code>.</p>
+<p><code>apply</code> делает то же для целой строки DataFrame. Функция получает строку и возвращает строку. Если вызвать <code>apply</code> с <code>axis=&quot;index&quot;</code>, функция получит не строку, а столбец.</p>
+<p>И <code>map</code>, и <code>apply</code> возвращают новый объект. Таблицу, к которой их применили, они не меняют. Если после пересчёта оценок снова открыть первую строку <code>books</code>, в ней по-прежнему исходная оценка.</p>
+<p>Многие обычные отображения уже встроены и работают быстрее <code>map</code> и <code>apply</code>. Вычитание числа из столбца pandas понимает само: слева много значений, справа одно, значит это одно нужно вычесть из каждого. То же с двумя Series одинаковой длины. Город и жанр склеивают так: <code>books.city + &quot; - &quot; + books.genre</code>. Обычные операторы Python, включая <code>&gt;</code>, <code>&lt;</code> и <code>==</code>, устроены так же. Ветвление по условию сложением и вычитанием не выразить: для него остаются <code>map</code> и <code>apply</code>.</p>
+<p>Пустой город в склейке даёт пустой результат, поэтому для проверки взята первая строка, где город заполнен.</p>
+<p><strong>Критерий 5.1.3а:</strong> медиана оценки 89. Цена первой книги выше средней цены на 15.45. Оценка первой книги выше средней оценки на 1.17. Склейка первой строки — «Москва - роман». В <code>describe</code> по рецензентам 11 непустых значений, 3 разных имени, чаще всех Анна (4 раза). По городам: Москва 5, Казань 3, Новосибирск 3.</p>
+<p>Дальше два отображения на наших книгах. <code>map</code> считает, в скольких аннотациях есть слово. <code>apply</code> ставит книге число звёзд по правилу, в котором участвуют и город, и оценка. Поиск подстроки различает регистр: «Детектив» в «Старом мосте» не совпадает с «детектив».</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python"># Отношение «оценка / цена». idxmax возвращает метку строки-максимума, не само число.
+# Пустая цена даёт NaN, и такая строка в максимум не берётся.
+bargain_idx = (books.score / books.price).idxmax()
+bargain_title = books.loc[bargain_idx, &quot;title&quot;]
+
+# map вызывает функцию для каждой аннотации. True в sum считается как 1, False как 0.
+# Регистр важен: «Детектив» с большой буквы в «детектив» не входит.
+n_humor = books.description.map(lambda text: &quot;юмор&quot; in text).sum()
+n_detective = books.description.map(lambda text: &quot;детектив&quot; in text).sum()
+words = pd.Series([n_humor, n_detective], index=[&quot;юмор&quot;, &quot;детектив&quot;])
+
+def stars(row):
+    # Казань получает 3 звезды при любой оценке. Дальше смотрим только оценку.
+    if row.city == &quot;Казань&quot;:
+        return 3
+    if row.score &gt;= 95:
+        return 3
+    if row.score &gt;= 85:
+        return 2
+    return 1
+
+# axis=&quot;columns&quot;: в stars приходит строка таблицы. Сам books от этого не меняется.
+star_ratings = books.apply(stars, axis=&quot;columns&quot;)
+print(bargain_idx, bargain_title)
+print(words)
+print(star_ratings.value_counts().sort_index())</code></pre>
+<p><code>idxmax</code> возвращает метку строки, где отношение «оценка / цена» наибольшее. Деление на пустую цену даёт <code>NaN</code>, и <code>idxmax</code> такую строку пропускает.</p>
+<p>Правило звёзд: Казань — 3 звезды при любой оценке; иначе 3 при оценке от 95, 2 при оценке от 85, иначе 1.</p>
+<p><strong>Практика 5.1.3.</strong> В markdown запишите название книги с лучшим отношением оценки к цене и одно предложение, почему «Старый мост» не попал в подсчёт слова «детектив».</p>
+<p><strong>Критерий 5.1.3б:</strong> метка 9, название «Последний трамвай». Слово «юмор» встречается 4 раза, «детектив» — 3. Звёзды: единица у 2 книг, двойка у 6, тройка у 4.</p>
+<hr>
+<h2>5.1.4. Группировка и сортировка</h2>
+<p>Отображение пересчитывает столбец по одному значению. Часто нужно сначала собрать строки в группы и уже с группой что-то сделать. Для этого есть <code>groupby</code>. В том же уроке — индекс из нескольких уровней и сортировка.</p>
+<h3>Разбор по группам</h3>
+<p><code>value_counts</code> мы уже вызывали. То же самое записывается длиннее: <code>books.groupby(&quot;score&quot;).score.count()</code>. <code>groupby</code> собирает строки с одинаковой оценкой, затем по столбцу <code>score</code> считает, сколько раз значение встретилось. <code>value_counts</code> — короткая запись этой пары.</p>
+<p>К группе применяют те же сводки, что и к целому столбцу: <code>min</code>, <code>max</code>, <code>mean</code>, <code>size</code>. Группу можно мыслить как срез таблицы, в котором остались только строки с одним значением ключа. Этот срез доступен через <code>apply</code>: функция получает кусок таблицы и возвращает то, что нужно. Например, первое название в каждом жанре — <code>books.groupby(&quot;genre&quot;)[&quot;title&quot;].apply(lambda titles: titles.iloc[0])</code>. Это первая строка группы в порядке файла, не книга с максимальной оценкой.</p>
+<p>Группировать можно сразу по нескольким столбцам. Лучшее название внутри пары «город и жанр» выбирают так: внутри группы берут строку, где <code>score</code> максимален, и из неё читают <code>title</code>.</p>
+<p><code>agg</code> запускает несколько функций за один проход. Для цены по жанру это минимум и максимум сразу: <code>books.groupby(&quot;genre&quot;).price.agg([&quot;min&quot;, &quot;max&quot;])</code>.</p>
+<p>Пустая метка группы в сводку не входит. Книга без города отсутствует в <code>groupby([&quot;city&quot;, &quot;genre&quot;])</code>, книга без <code>handle</code> отсутствует в группировке по отметке.</p>
+<h3>Индекс из нескольких уровней</h3>
+<p>До сих пор у индекса был один уровень. <code>groupby</code> по двум столбцам часто возвращает <strong>MultiIndex</strong>: уровней несколько, и чтобы достать значение, нужны две метки. У такого индекса есть свои методы, которых нет у обычного. Чаще всего нужен один: <code>reset_index</code> возвращает уровни в обычные столбцы.</p>
+<h3>Сортировка</h3>
+<p>После группировки строки идут в порядке индекса, а не в порядке посчитанного значения. <code>sort_values</code> сортирует по значению столбца. По умолчанию порядок по возрастанию, меньшие числа сверху. <code>ascending=False</code> ставит большие числа первыми. <code>sort_index</code> сортирует по метке индекса и принимает те же аргументы. В <code>sort_values</code> можно передать список столбцов: сначала один, при равенстве — следующий.</p>
+<p>Ячейка отвечает на несколько вопросов подряд. Каждый вопрос — своя группировка, предыдущую она не портит.</p>
+<ol><li>Сколько книг получили одну и ту же оценку.</li><li>Какое название стоит первым в файле внутри жанра.</li><li>Какая книга лучшая по оценке в паре «город, жанр».</li><li>Сколько отзывов у каждой отметки и какая средняя оценка у рецензента.</li><li>Какой минимум и максимум цены у жанра, если поставить сверху самый дорогой минимум.</li><li>Сколько книг в паре «город, жанр», если пустой город не считать.</li></ol>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python"># Длинная запись value_counts: группы с одинаковой оценкой, затем число строк в группе.
+print(books.groupby(&quot;score&quot;).score.count())
+# iloc[0] — первая строка группы в порядке файла, не строка с максимальной оценкой.
+print(books.groupby(&quot;genre&quot;)[&quot;title&quot;].apply(lambda titles: titles.iloc[0]))
+
+# Группа — маленький DataFrame. idxmax ищет в нём метку максимальной оценки.
+best_name = books.groupby([&quot;city&quot;, &quot;genre&quot;]).apply(
+    lambda df: df.loc[df.score.idxmax(), &quot;title&quot;]
+)
+# Две метки сразу: уровень города и уровень жанра.
+print(best_name.loc[(&quot;Москва&quot;, &quot;роман&quot;)])
+
+written = books.groupby(&quot;handle&quot;).size()  # сколько строк у каждой отметки
+# Лучшая оценка при каждой цене, затем цены по возрастанию.
+best_score = books.groupby(&quot;price&quot;)[&quot;score&quot;].max().sort_index()
+# min и max за один проход, два столбца в ответе.
+extremes = books.groupby(&quot;genre&quot;).price.agg([&quot;min&quot;, &quot;max&quot;])
+# Сначала по минимуму цены, при равенстве — по максимуму. Оба по убыванию.
+sorted_genres = extremes.sort_values(by=[&quot;min&quot;, &quot;max&quot;], ascending=False)
+mean_score = books.groupby(&quot;reviewer&quot;).score.mean().round(2)
+# size считает и пустые ячейки внутри группы. sort_values ставит большие группы сверху.
+pair_counts = books.groupby([&quot;city&quot;, &quot;genre&quot;]).size().sort_values(ascending=False)
+
+print(written)
+print(sorted_genres)
+print(mean_score)
+print(int(pair_counts.sum()), int(pair_counts.max()))
+print(int(best_score.loc[150.0]))  # лучшая оценка среди книг ценой 150
+
+# agg по двум ключам даёт MultiIndex. reset_index возвращает город и жанр в столбцы.
+counted = books.groupby([&quot;city&quot;, &quot;genre&quot;]).description.agg([&quot;count&quot;])
+print(type(counted.index).__name__)
+flat = counted.reset_index().sort_values(by=&quot;count&quot;, ascending=False)
+print(flat.head(3))</code></pre>
+<p><strong>Критерий 5.1.4:</strong> первое название романа — «Тихий двор». Лучший роман Москвы по оценке — «Дом у парка». Отметки: <code>@anna</code> 4, <code>@boris</code> 4, <code>@vera</code> 3. После сортировки по минимуму цены сверху жанр <code>детектив</code> (минимум 280, максимум 900). Средние оценки: Анна 89.50, Борис 86.75, Вера 92.33. В парах «город, жанр» 11 книг, самая большая пара имеет размер 2. При цене 150 максимальная оценка 83. Индекс <code>counted</code> имеет тип <code>MultiIndex</code>.</p>
+<hr>
+<h2>5.1.5. Типы данных и пропущенные значения</h2>
+<p>Этот урок — как узнать, в каком типе pandas держит столбец, и как найти и заменить значения.</p>
+<h3>Типы</h3>
+<p>Тип столбца DataFrame или Series называется <strong>dtype</strong>. У одного столбца его читают свойством <code>dtype</code>, у всех столбцов сразу — свойством <code>dtypes</code>.</p>
+<p>Тип говорит, как значение хранится. <code>float64</code> — число с плавающей точкой на 64 бита. <code>int64</code> — целое того же размера. Текстовый столбец в этом окружении имеет dtype <code>str</code>: отдельного числового типа для строк нет.</p>
+<p>Где преобразование имеет смысл, столбец переводят в другой тип функцией <code>astype</code>. Она возвращает новый столбец и старый не переписывает. Свой <code>dtype</code> есть и у индекса.</p>
+<h3>Пропущенные значения</h3>
+<p>Пустая ячейка записывается как <code>NaN</code>, not a number. По технической причине такой <code>NaN</code> всегда имеет тип <code>float64</code>. Поэтому столбец <code>price</code> с одной пустой ценой целиком становится <code>float64</code>, хотя остальные цены целые.</p>
+<p>Пустые ячейки находит <code>pd.isnull</code> (и парный <code>pd.notnull</code>). То же самое делает метод столбца <code>isnull</code>. Замену пустоты делает <code>fillna</code>. Ей можно подставить одно и то же значение во все пустые ячейки, например «Неизвестно». Другая стратегия — взять ближайшее непустое значение ниже по таблице. Её выполняет <code>bfill</code>.</p>
+<p><code>replace</code> меняет одно конкретное непустое значение на другое и тоже возвращает новый столбец. Им же закрывают пропуски, которые в файле уже записаны словом-заглушкой: «Неизвестно», «не указано», «ошибка».</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">print(books.score.dtype)   # целое: пустых оценок нет
+print(books.price.dtype)   # дробное: одна пустая цена переводит весь столбец в float64
+print(books.title.dtype)   # текст
+print(books.index.dtype)   # метки строк тоже имеют тип
+# Новый столбец из текста. books.score остаётся числом, astype исходный столбец не переписывает.
+point_strings = books.score.astype(str)
+print(point_strings.iloc[0])</code></pre>
+<p><strong>Критерий 5.1.5а:</strong> <code>score</code> имеет тип <code>int64</code>, <code>price</code> — <code>float64</code>, <code>title</code> — <code>str</code>, индекс — <code>int64</code>. Первая оценка в текстовом виде — строка <code>90</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python"># isnull даёт True и False. В сумме True считается как 1, поэтому это число пустых цен.
+n_missing_prices = int(books.price.isnull().sum())
+# fillna подставляет слово только в пустые ячейки и возвращает новый столбец.
+per_city = books.city.fillna(&quot;Неизвестно&quot;).value_counts()
+print(n_missing_prices)
+print(per_city)
+# Строка 5 — «Речной свет», город пуст. bfill берёт ближайший непустой город ниже.
+print(books.city.bfill().iloc[5])
+# replace тоже возвращает новый столбец. В books отметка @anna остаётся прежней.
+fresh = books.handle.replace(&quot;@anna&quot;, &quot;@anna_books&quot;)
+print(int((fresh == &quot;@anna_books&quot;).sum()), books.loc[0, &quot;handle&quot;])</code></pre>
+<p>У «Речного света» город пуст. Следующая непустая ячейка города — «Москва» у «Красного шарфа», её и ставит <code>bfill</code>.</p>
+<p><strong>Практика 5.1.5.</strong> В markdown одной фразой запишите, почему тип <code>price</code> — <code>float64</code>, хотя в файле цены выглядят целыми.</p>
+<p><strong>Критерий 5.1.5б:</strong> пустая цена одна. После <code>fillna</code> город «Неизвестно» встречается 1 раз, Москва — 5. <code>bfill</code> в строке 5 даёт «Москва». <code>replace</code> ставит <code>@anna_books</code> в 4 строках, а в исходном <code>books</code> у строки 0 по-прежнему <code>@anna</code>.</p>
+<hr>
+<h2>5.1.6. Переименование и объединение</h2>
+<p>Столбцы, индекс и подписи часто приходят с именами, которые для ответа не годятся. Этот урок — как их переименовать и как собрать вместе несколько таблиц.</p>
+<h3>Переименование</h3>
+<p><code>rename</code> меняет метки индекса, имена столбцов или и то и другое. Столбец <code>score</code> можно назвать <code>оценка</code>: <code>books.rename(columns={&quot;score&quot;: &quot;оценка&quot;})</code>. Что именно менять, задают параметром <code>index</code> или <code>columns</code>. Удобнее всего передать словарь «старое имя — новое имя». Тем же словарём меняют отдельные метки строк: <code>books.rename(index={0: &quot;первая&quot;, 1: &quot;вторая&quot;})</code>.</p>
+<p>Столбцы переименовывают часто, отдельные метки строк — редко. Чтобы заменить индекс целиком, обычно удобнее <code>set_index</code> из раздела 5.1.2.</p>
+<p>И у индекса строк, и у индекса столбцов есть собственное имя. Его меняет <code>rename_axis</code>. Например, индекс строк можно назвать «книги», а индекс столбцов — «поля».</p>
+<h3>Объединение</h3>
+<p>Иногда строки и столбцы лежат в разных DataFrame или Series, и их нужно собрать. Три основных способа, от простого к сложному: <code>concat</code>, <code>join</code> и <code>merge</code>. Почти всё, что делает <code>merge</code>, короче записывается через <code>join</code>, поэтому ниже — первые два.</p>
+<p><code>concat</code> получает список таблиц и склеивает их вдоль оси. Он подходит, когда таблицы разные, а набор столбцов общий. Остатки двух магазинов ставят друг под другом: <code>pd.concat([center, station])</code>. Если указать другую ось, склейка пойдёт по столбцам, а не по строкам.</p>
+<p><code>join</code> соединяет таблицы с общим индексом и подтягивает столбцы правой таблицы к строкам левой. Перед вызовом общий ключ ставят в индекс через <code>set_index</code>. Если в обеих таблицах есть столбцы с одинаковыми именами, к ним добавляют суффиксы параметрами <code>lsuffix</code> и <code>rsuffix</code>. Если имена уже различаются, суффиксы не нужны. У изданий столбец называется <code>publisher</code>, у склада — <code>copies</code>, поэтому <code>editions.join(stock)</code> обходится без суффиксов. В результате остаются строки левой таблицы.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python"># Словарь «старое имя — новое». Остальные столбцы не трогаем. books остаётся прежним.
+renamed = books.rename(columns={&quot;genre&quot;: &quot;жанр&quot;, &quot;city&quot;: &quot;город&quot;})
+# Имя самого индекса строк и имя списка столбцов. Это не переименование столбцов.
+reindexed = books.rename_axis(&quot;книги&quot;, axis=&quot;rows&quot;).rename_axis(&quot;поля&quot;, axis=&quot;columns&quot;)
+print(&quot;жанр&quot; in renamed.columns, reindexed.index.name, reindexed.columns.name)
+
+center = pd.read_csv(&quot;module-5/data/shop_center.csv&quot;)
+station = pd.read_csv(&quot;module-5/data/shop_station.csv&quot;)
+# Столбцы называются одинаково, поэтому строки просто ставятся друг под другом.
+combined = pd.concat([center, station])
+print(combined.shape, int(combined.qty.sum()))
+
+# Общий ключ — book_id. Пока он столбец, join по нему не соединит таблицы.
+editions = pd.read_csv(&quot;module-5/data/editions.csv&quot;).set_index(&quot;book_id&quot;)
+stock = pd.read_csv(&quot;module-5/data/stock.csv&quot;).set_index(&quot;book_id&quot;)
+# Слева издания, справа остаток. Строки берутся из левой таблицы.
+catalog = editions.join(stock)
+print(catalog)
+print(int(catalog.copies.sum()))  # пустой остаток в сумму не входит
+
+# Если столбец qty есть в обеих таблицах, без суффикса имена столкнутся.
+# Здесь одна и та же книга в двух магазинах, столбцы различаем суффиксами.
+one_title = pd.DataFrame({&quot;qty&quot;: [4]}, index=pd.Index([&quot;Тихий двор&quot;], name=&quot;title&quot;))
+other_shop = pd.DataFrame({&quot;qty&quot;: [1]}, index=pd.Index([&quot;Тихий двор&quot;], name=&quot;title&quot;))
+print(one_title.join(other_shop, lsuffix=&quot;_центр&quot;, rsuffix=&quot;_вокзал&quot;))</code></pre>
+<p>В <code>editions</code> четыре издания. На складе есть книга 8, но издания с таким <code>book_id</code> нет, поэтому <code>join</code> её не показывает. У книги 4 издание есть, остатка нет: в <code>copies</code> остаётся пусто. <code>sum</code> пустую ячейку пропускает.</p>
+<p><strong>Практика 5.1.6.</strong> В markdown запишите <code>book_id</code>, у которого в каталоге пустой остаток, и сумму <code>copies</code>.</p>
+<p><strong>Критерий 5.1.6:</strong> столбец <code>жанр</code> есть в <code>renamed</code>. Имя индекса — <code>книги</code>, имя столбцов — <code>поля</code>. Склейка магазинов имеет форму <code>(4, 2)</code>, сумма <code>qty</code> равна 14. В каталоге 4 строки, пустой остаток у <code>book_id</code> 4, сумма <code>copies</code> равна 16.</p>
+<hr>
+<h2>5.1.7. Самопроверка</h2>
+<p>В конце ноутбука ответьте в markdown:</p>
+<ol><li>Сколько строк дают <code>books.iloc[0:10]</code> и <code>books.loc[0:10]</code> и из-за какого края среза числа расходятся.</li><li>Почему средняя цена считается по 11 книгам, а медиана оценки — по 12.</li><li>Куда делась книга без города в <code>groupby([&quot;city&quot;, &quot;genre&quot;])</code> и какая сумма размеров групп из-за этого получилась.</li></ol>
+<h3>Чеклист</h3>
+<table><thead><tr><th>№</th><th>Действие</th><th>Готово</th></tr></thead><tbody><tr><td>1</td><td><code>fruits</code> формы <code>(1, 2)</code>, серия «Ужин», продажи 2018 — 41 яблоко</td><td>☐</td></tr><tr><td>2</td><td>CSV: <code>(12, 9)</code> без <code>index_col</code> и <code>(12, 8)</code> с <code>index_col=0</code></td><td>☐</td></tr><tr><td>3</td><td><code>cows_and_goats.csv</code>: в «Год 1» коров 12</td><td>☐</td></tr><tr><td>4</td><td><code>authors</code>: Иванова, Петров, Смирнова</td><td>☐</td></tr><tr><td>5</td><td>Срезы 10 и 11; выборки 3, 2, 7, 8, 11</td><td>☐</td></tr><tr><td>6</td><td>Медиана 89, центрирование цены 15.45, «Последний трамвай»</td><td>☐</td></tr><tr><td>7</td><td>«юмор» 4, «детектив» 3; звёзды 2 / 6 / 4</td><td>☐</td></tr><tr><td>8</td><td>Жанры по убыванию минимума цены начинаются с <code>детектив</code>; пары дают 11 книг</td><td>☐</td></tr><tr><td>9</td><td>Пустая цена одна; «Неизвестно» один раз; <code>@anna</code> в исходной таблице на месте</td><td>☐</td></tr><tr><td>10</td><td>Магазины <code>(4, 2)</code> и сумма 14; каталог: пустой остаток у книги 4, сумма копий 16</td><td>☐</td></tr><tr><td>11</td><td>Три ответа самопроверки</td><td>☐</td></tr></tbody></table>
+<h3>Типовые ошибки</h3>
+<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td><code>books</code> имеет 9 столбцов</td><td>В <code>read_csv</code> передан <code>index_col=0</code></td></tr><tr><td><code>FileNotFoundError</code></td><td>Путь от корня курса: <code>module-5/data/books.csv</code></td></tr><tr><td><code>could not connect to server</code></td><td>Контейнер <code>pg18-course</code> запущен, строка подключения — <code>student</code> и база <code>course</code></td></tr><tr><td>В «Год 1» после чтения нет метки</td><td><code>to_csv</code> вызван без <code>index=False</code>; обратно читают с <code>index_col=0</code></td></tr><tr><td><code>books[0]</code> поднимает <code>KeyError</code></td><td>Строку по позиции берут через <code>iloc[0]</code></td></tr><tr><td><code>loc[0:10]</code> вернул 10 строк</td><td>Правый край <code>loc</code> входит в срез; 10 строк даёт <code>iloc[0:10]</code></td></tr><tr><td>Условие с <code>&amp;</code> падает с ошибкой приоритета</td><td>Каждое сравнение стоит в своих скобках</td></tr><tr><td>«детектив» посчитан 4 раза</td><td>В <code>map</code> строка <code>&quot;детектив&quot;</code> с маленькой буквы; «Детектив» в другой регистр не входит</td></tr><tr><td>В группах 12 книг</td><td><code>groupby</code> пропускает пустой город; сумма размеров 11</td></tr><tr><td><code>price</code> ожидали целым</td><td>Одна пустая цена переводит весь столбец в <code>float64</code></td></tr><tr><td>В каталоге 5 строк и книга 8</td><td><code>join</code> оставляет строки левой таблицы <code>editions</code></td></tr><tr><td>После <code>replace</code> в <code>books</code> уже <code>@anna_books</code></td><td><code>replace</code> вернул новый столбец; результат лежит в <code>fresh</code></td></tr></tbody></table>
+<p>После занятия слушатель собирает DataFrame и Series, читает CSV и SQL, отличает срез по позиции от среза по метке, считает сводку и группу, закрывает пропуск и соединяет две таблицы по общему индексу.</p>
   </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-sql, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
 </body>
 </html>
