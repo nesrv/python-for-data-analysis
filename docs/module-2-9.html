@@ -99,6 +99,68 @@ print(acc.balance)
 <p>Если оставить только <code>@property</code> и не писать <code>@balance.setter</code>, чтение работает, а присваивание даёт <code>AttributeError</code>.</p>
 <p><strong>Критерий:</strong> и функция, и свойство не принимают отрицательный баланс; после <code>set_balance(250)</code> и после <code>acc.balance = 250</code> чтение возвращает <code>250</code>.</p>
 <hr />
+<h2>Принципы ООП</h2>
+<p>Четыре принципа описывают, как устроен класс. Дальше по занятию каждый из них разбирается на своём примере.</p>
+<p><strong>Инкапсуляция.</strong> Данные и правила их изменения спрятаны внутри объекта. Снаружи работают методы или свойство, а не сырое поле.</p>
+<pre><code class="language-python">class Account:
+    def __init__(self, balance):
+        self._balance = balance
+
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, value):
+        if value &lt; 0:
+            raise ValueError("баланс не может быть отрицательным")
+        self._balance = value
+</code></pre>
+<p><strong>Наследование.</strong> Подкласс получает поведение базового класса и добавляет своё. <code>Point3D</code> ниже умеет <code>move</code>, хотя метод написан в <code>Point</code>.</p>
+<pre><code class="language-python">class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+class Point3D(Point):
+    def __init__(self, x, y, z):
+        super().__init__(x, y)
+        self.z = z
+
+p = Point3D(1, 2, 3)
+p.move(1, 1)
+print(p.x, p.y, p.z)
+</code></pre>
+<p><strong>Абстракция.</strong> Базовый класс задаёт операцию, но не её реализацию. Конкретный класс обязан сказать, что эта операция делает.</p>
+<pre><code class="language-python">class Marker:
+    def place(self):
+        raise NotImplementedError
+
+class Point(Marker):
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+
+    def place(self):
+        return f"точка ({self.x}, {self.y})"
+</code></pre>
+<p><code>Marker</code> не знает координат. Он только обещает метод <code>place</code>.</p>
+<p><strong>Полиморфизм.</strong> Один и тот же вызов работает с объектами разных классов. Цикл не спрашивает тип: у каждого объекта свой <code>place</code>.</p>
+<pre><code class="language-python">class Circle(Marker):
+    def __init__(self, x, y, radius):
+        self.x, self.y, self.radius = x, y, radius
+
+    def place(self):
+        return f"круг r={self.radius}"
+
+for item in (Point(1, 2), Circle(0, 0, 5)):
+    print(item.place())
+</code></pre>
+<p><strong>Критерий:</strong> отрицательный баланс через свойство отклоняется; <code>Point3D</code> сдвигается методом базового класса; цикл печатает и точку, и круг одним вызовом <code>place</code>.</p>
+<hr />
 <h2>2.9.3. Инициализатор <strong>init</strong></h2>
 <p><code>__init__</code> вызывается сразу после создания экземпляра. В нём задают начальные поля, чтобы не вызывать отдельный <code>set_coords</code>.</p>
 <p><strong>Ячейка:</strong></p>

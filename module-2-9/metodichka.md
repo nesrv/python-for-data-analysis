@@ -126,6 +126,85 @@ print(acc.balance)
 
 ---
 
+## Принципы ООП
+
+Четыре принципа описывают, как устроен класс. Дальше по занятию каждый из них разбирается на своём примере.
+
+**Инкапсуляция.** Данные и правила их изменения спрятаны внутри объекта. Снаружи работают методы или свойство, а не сырое поле.
+
+```python
+class Account:
+    def __init__(self, balance):
+        self._balance = balance
+
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, value):
+        if value < 0:
+            raise ValueError("баланс не может быть отрицательным")
+        self._balance = value
+```
+
+**Наследование.** Подкласс получает поведение базового класса и добавляет своё. `Point3D` ниже умеет `move`, хотя метод написан в `Point`.
+
+```python
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+class Point3D(Point):
+    def __init__(self, x, y, z):
+        super().__init__(x, y)
+        self.z = z
+
+p = Point3D(1, 2, 3)
+p.move(1, 1)
+print(p.x, p.y, p.z)
+```
+
+**Абстракция.** Базовый класс задаёт операцию, но не её реализацию. Конкретный класс обязан сказать, что эта операция делает.
+
+```python
+class Marker:
+    def place(self):
+        raise NotImplementedError
+
+class Point(Marker):
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+
+    def place(self):
+        return f"точка ({self.x}, {self.y})"
+```
+
+`Marker` не знает координат. Он только обещает метод `place`.
+
+**Полиморфизм.** Один и тот же вызов работает с объектами разных классов. Цикл не спрашивает тип: у каждого объекта свой `place`.
+
+```python
+class Circle(Marker):
+    def __init__(self, x, y, radius):
+        self.x, self.y, self.radius = x, y, radius
+
+    def place(self):
+        return f"круг r={self.radius}"
+
+for item in (Point(1, 2), Circle(0, 0, 5)):
+    print(item.place())
+```
+
+**Критерий:** отрицательный баланс через свойство отклоняется; `Point3D` сдвигается методом базового класса; цикл печатает и точку, и круг одним вызовом `place`.
+
+---
+
 ## 2.9.3. Инициализатор __init__
 
 `__init__` вызывается сразу после создания экземпляра. В нём задают начальные поля, чтобы не вызывать отдельный `set_coords`.
