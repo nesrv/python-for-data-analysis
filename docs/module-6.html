@@ -15,146 +15,164 @@
 <p><strong>Цель:</strong> на таблице квартир увидеть, как дерево решений получает цену из признаков, измерить ошибку на отложенных строках, подобрать число листьев и сравнить одно дерево со случайным лесом.</p>
 <p><strong>Опора:</strong> ход занятия — как устроена модель, разведка таблицы, первая модель, проверка, недообучение и переобучение, случайный лес, прогноз для новых строк. Берут файл цен квартир города М. Здесь тот же ход работы на локальном файле <code>module-6-0/data/flats.csv</code>. Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка VS Code — корень курса.</p>
 <p>Цена в таблице — тысячи рублей. Вопрос занятия: по площади, году постройки и числу комнат оценить цену квартиры, которой не было в обучении.</p>
+<p>Слова, которые дальше встречаются в коде:</p>
+<table><thead><tr><th>Слово</th><th>Что это в этом занятии</th></tr></thead><tbody><tr><td>Признак</td><td>Число, по которому судят о квартире: площадь, год, комнаты</td></tr><tr><td>Цель</td><td>То, что надо предсказать: <code>price</code></td></tr><tr><td>Обучение</td><td>Подбор правила по квартирам, у которых цена уже известна</td></tr><tr><td>Прогноз</td><td>Число, которое модель выдаёт для строки</td></tr><tr><td>MAE</td><td>Средняя абсолютная ошибка: на сколько тысяч рублей прогноз в среднем промахнулся</td></tr></tbody></table>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-6-0/</code>):</p>
 <table><thead><tr><th>Файл</th><th>Назначение</th></tr></thead><tbody><tr><td><code>data/flats.csv</code></td><td>12 квартир с ценой</td></tr><tr><td><code>lab60-intro.ipynb</code></td><td>Разведка, дерево, проверка, лес</td></tr><tr><td><code>data/new_prices.csv</code></td><td>Прогноз для двух новых квартир</td></tr></tbody></table>
 <hr>
 <h2>Подготовка</h2>
+<p>Пакеты ставят в окружение курса, не в системный Python. <code>pandas</code> читает таблицу, <code>scikit-learn</code> строит дерево и лес и считает ошибку.</p>
 <pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
 python -m pip install pandas scikit-learn</code></pre>
-<p>Создайте ноутбук <code>module-6-0/lab60-intro.ipynb</code> и выберите ядро <code>.venv</code>.</p>
+<p>Создайте ноутбук <code>module-6-0/lab60-intro.ipynb</code> и выберите ядро <code>.venv</code>. Если в статусной строке другой интерпретатор, пакеты «есть», а ячейка пишет <code>No module named sklearn</code>.</p>
 <p>Первая ячейка — markdown: ФИО, дата, заголовок «6.0 Введение в машинное обучение».</p>
 <hr>
 <h2>6.0.1. Как модель получает ответ</h2>
-<p>Модель учится на уже известных парах «признаки — цена». Дерево решений делит квартиры по порогу одного признака. В каждом листе прогноз — среднее цен квартир, которые в этот лист попали.</p>
-<p>В этой таблице порог по площади виден без библиотеки. Квартиры до 60 м² включительно — одна группа, квартиры просторнее — другая.</p>
+<p>Модель учится на уже известных парах «признаки — цена». Дерево решений задаёт вопрос к одному признаку и делит строки на две кучки. В листе — квартирах, которые дошли до конца ветки, — прогноз равен средней их цене.</p>
+<p>Пока библиотека не нужна: порог по площади виден руками. Квартиры до 60 м² включительно — одна группа, квартиры просторнее — другая. Если правило осмысленно, средние двух групп разойдутся, а средняя ошибка будет меньше, чем если всем предсказывать одно и то же число.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">import pandas as pd
 
+# Таблица из файла. encoding нужен, чтобы русские буквы в районе не превратились в кракозябры.
 raw = pd.read_csv(&quot;module-6-0/data/flats.csv&quot;, encoding=&quot;utf-8&quot;)
-print(raw.shape)
-print(raw.head(3))
+print(raw.shape)   # (число строк, число столбцов)
+print(raw.head(3)) # три первые квартиры, чтобы увидеть имена столбцов
 
+# Две группы по одному порогу. loc оставляет только нужные строки, &quot;price&quot; — только столбец цели.
 left = raw.loc[raw[&quot;area&quot;] &lt;= 60, &quot;price&quot;]
 right = raw.loc[raw[&quot;area&quot;] &gt; 60, &quot;price&quot;]
 print(&quot;среднее до 60 м2&quot;, left.mean())
 print(&quot;среднее больше 60 м2&quot;, right.mean())
 
+# Для каждой квартиры подставляем среднее её группы. Это и есть прогноз правила.
 pred_rule = raw[&quot;area&quot;].apply(lambda area: left.mean() if area &lt;= 60 else right.mean())
+# Модуль разности — промах в тысячах рублей. mean усредняет промахи по всем 12 строкам.
 mae_rule = (raw[&quot;price&quot;] - pred_rule).abs().mean()
 print(&quot;ошибка правила&quot;, round(mae_rule))</code></pre>
-<p>Шесть небольших квартир дают среднее <strong>5000</strong>. Шесть больших — <strong>9000</strong>. Правило «маленькая → 5000, большая → 9000» ошибается в среднем на <strong>533</strong> тысячи рублей. Это ручная проверка порога. В разделе 6.0.3 дерево само выбирает пороги и может делить лист повторно.</p>
+<p>Шесть небольших квартир дают среднее <strong>5000</strong>. Шесть больших — <strong>9000</strong>. Правило «маленькая → 5000, большая → 9000» ошибается в среднем на <strong>533</strong> тысячи рублей. Порог 60 выбран глазами. В разделе 6.0.3 дерево само перебирает пороги и может разрезать группу ещё раз.</p>
 <p><strong>Критерий 6.0.1:</strong> в файле 12 строк и 7 столбцов. Средние групп — 5000 и 9000. Округлённая ошибка правила — 533.</p>
 <hr>
 <h2>6.0.2. Разведка таблицы</h2>
-<p>Перед обучением смотрят размер, типы, пропуски и сводку по числам. Так видно, какой столбец является целью и какие столбцы нельзя отдавать модели.</p>
-<table><thead><tr><th>Столбец</th><th>Роль</th></tr></thead><tbody><tr><td><code>area</code>, <code>year</code>, <code>rooms</code></td><td>Признаки</td></tr><tr><td><code>price</code></td><td>Цель, тысячи рублей</td></tr><tr><td><code>flat_id</code></td><td>Номер квартиры</td></tr><tr><td><code>district</code></td><td>Район текстом. В первой модели его нет: кодирование категорий — отдельная тема</td></tr><tr><td><code>price_note</code></td><td>Текст, в котором уже записана цена</td></tr></tbody></table>
+<p>Перед обучением смотрят размер, типы, пропуски и сводку по числам. Иначе легко отдать модели столбец, в котором цена уже написана словами, или строку без цены: такую строку не на чем учить и не с чем сравнивать прогноз.</p>
+<table><thead><tr><th>Столбец</th><th>Роль</th></tr></thead><tbody><tr><td><code>area</code>, <code>year</code>, <code>rooms</code></td><td>Признаки: их модель имеет право видеть</td></tr><tr><td><code>price</code></td><td>Цель, тысячи рублей. В признаки её не кладут</td></tr><tr><td><code>flat_id</code></td><td>Номер квартиры. На цену сам по себе не влияет</td></tr><tr><td><code>district</code></td><td>Район текстом. В первой модели его нет: текст надо сначала превратить в числа</td></tr><tr><td><code>price_note</code></td><td>Текст, в котором уже записана цена. Если отдать его модели, она прочитает ответ</td></tr></tbody></table>
 <p><strong>Ячейка:</strong></p>
-<pre><code class="language-python">print(raw.dtypes)
+<pre><code class="language-python">print(raw.dtypes)  # int, float или текст. Модель из этого занятия ест только числа
+# isna помечает пустые ячейки. Сумма по всей таблице — сколько пустых ячеек всего.
 print(&quot;пропуски&quot;, int(raw.isna().sum().sum()))
+# describe: количество, среднее, минимум, максимум. Так видно размах площади и цены.
 print(raw[[&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;price&quot;]].describe())
 print(&quot;средняя цена&quot;, raw[&quot;price&quot;].mean())
 print(&quot;сумма цен&quot;, int(raw[&quot;price&quot;].sum()))
 print(&quot;сумма площадей&quot;, int(raw[&quot;area&quot;].sum()))</code></pre>
-<p>У части квартир нет цены продажи, и такие строки убирают: без цели строку не на чем учить. В <code>flats.csv</code> пустых ячеек нет, сумма пропусков равна 0. Средняя цена по всем 12 квартирам — <strong>7000</strong>.</p>
+<p>У части квартир в реальной выгрузке нет цены продажи. Такие строки убирают: без цели строку не на чем учить. В <code>flats.csv</code> пустых ячеек нет, сумма пропусков равна 0. Средняя цена по всем 12 квартирам — <strong>7000</strong>.</p>
 <p><strong>Практика 6.0.2.</strong> В markdown напишите, какую цену модель увидит заранее, если в признаки попадёт <code>price_note</code>.</p>
 <p><strong>Критерий 6.0.2:</strong> пропусков 0, средняя цена 7000, сумма цен <strong>84000</strong>, сумма площадей <strong>761</strong>.</p>
 <hr>
 <h2>6.0.3. Первая модель</h2>
-<p>Признаки собирают в <code>X</code>, цель — в <code>y</code>. <code>DecisionTreeRegressor</code> строит дерево: <code>fit</code> подбирает разбиения по известным ценам, <code>predict</code> выдаёт цену для переданных строк.</p>
+<p>Признаки собирают в таблицу <code>X</code>, цель — в столбец <code>y</code>. Строка <code>X</code> и число <code>y</code> с тем же номером — одна квартира. <code>DecisionTreeRegressor</code> строит дерево: <code>fit</code> подбирает вопросы по известным ценам, <code>predict</code> отвечает ценой для переданных строк.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_absolute_error
 
-features = [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]
-X = raw[features].copy()
-y = raw[&quot;price&quot;].copy()
+features = [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]  # только эти три столбца увидит дерево
+X = raw[features].copy()  # копия, чтобы случайная правка X не меняла исходный raw
+y = raw[&quot;price&quot;].copy()   # известные цены, по ним дерево учится
 
+# random_state фиксирует выбор, если два признака дают одинаково хорошее разбиение.
 model = DecisionTreeRegressor(random_state=1)
-model.fit(X, y)
-pred_train = model.predict(X)
+model.fit(X, y)             # обучение: подобрать пороги
+pred_train = model.predict(X)  # прогноз для тех же 12 квартир
 
 print(X.shape, y.shape, pred_train.shape)
-print(pred_train[:3])
+print(pred_train[:3])  # три первых прогноза, чтобы увидеть числа, а не только ошибку
 print(&quot;ошибка на тех же строках&quot;, mean_absolute_error(y, pred_train))</code></pre>
-<p><code>random_state=1</code> фиксирует выбор, если алгоритму всё равно, какой признак взять. Ошибка на тех же строках, на которых дерево училось, равна <strong>0</strong>: у каждой квартиры свой набор <code>area</code>, <code>year</code>, <code>rooms</code>, и дерево доводит лист до одной квартиры. Такая ошибка показывает, что дерево запомнило таблицу. Про новые квартиры она ничего не говорит.</p>
+<p>Ошибка на тех же строках, на которых дерево училось, равна <strong>0</strong>. У каждой квартиры свой набор <code>area</code>, <code>year</code>, <code>rooms</code>, и без ограничения на число листьев дерево доводит ветку до одной квартиры: в листе среднее из одного числа совпадает с фактом. Ноль здесь значит «таблица запомнена», а не «новые квартиры будут угаданы».</p>
 <p><strong>Критерий 6.0.3:</strong> <code>X</code> имеет форму <code>(12, 3)</code>, прогноз — длину 12, средняя абсолютная ошибка на этих 12 строках равна 0.</p>
 <hr>
 <h2>6.0.4. Проверка на отложенных строках</h2>
-<p>Часть квартир откладывают до <code>fit</code>. Дерево их не видит, и ошибка на них ближе к ошибке на новой квартире. Деление делает <code>train_test_split</code>. Метрика занятия — средняя абсолютная ошибка, MAE: среднее модуля «прогноз минус факт».</p>
+<p>Часть квартир откладывают и не показывают методу <code>fit</code>. Дерево подбирает пороги только по остальным. Ошибка на спрятанных строках ближе к ошибке на квартире, которой в файле не было. Деление делает <code>train_test_split</code>. Метрика занятия — MAE: среднее модуля «прогноз минус факт». Меньше — ближе к настоящей цене.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">from sklearn.model_selection import train_test_split
 
+# Четыре части: признаки и цены для обучения, признаки и цены для проверки.
+# Порядок один и тот же: строка train_X[i] относится к цене train_y[i].
 train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=1)
 print(train_X.shape, val_X.shape)
 
 val_model = DecisionTreeRegressor(random_state=1)
-val_model.fit(train_X, train_y)
-val_pred = val_model.predict(val_X)
+val_model.fit(train_X, train_y)      # цены val_y сюда не передают
+val_pred = val_model.predict(val_X)  # прогноз для спрятанных квартир
 
 mae_train = mean_absolute_error(train_y, val_model.predict(train_X))
 mae_val = mean_absolute_error(val_y, val_pred)
 print(&quot;MAE обучение&quot;, mae_train)
 print(&quot;MAE проверка&quot;, mae_val)</code></pre>
-<p>При 12 строках и доле проверки по умолчанию 0,25 в обучении 9 квартир, в проверке 3. <code>random_state=1</code> оставляет тот же состав групп при повторном запуске.</p>
-<p><strong>Практика 6.0.4.</strong> В markdown запишите оба числа MAE и ответьте, какое из них вы покажете заказчику как оценку качества.</p>
+<p>При 12 строках и доле проверки по умолчанию 0,25 в обучении 9 квартир, в проверке 3. <code>random_state=1</code> каждый раз оставляет тот же состав групп, иначе повторный запуск ячейки даст другие три квартиры и другое число.</p>
+<p>Заказчику показывают MAE проверки. MAE обучения при неограниченном дереве снова 0 и про новую квартиру молчит.</p>
+<p><strong>Практика 6.0.4.</strong> В markdown запишите оба числа MAE и одной фразой объясните, почему заказчику нельзя показывать нулевую ошибку обучения.</p>
 <p><strong>Критерий 6.0.4:</strong> формы <code>(9, 3)</code> и <code>(3, 3)</code>. MAE на обучении равна 0. MAE на проверке больше 0.</p>
 <hr>
 <h2>6.0.5. Число листьев</h2>
-<p>Мало листьев — дерево делит квартиры слишком грубо, прогнозы в листе усредняют непохожие цены. Много листьев — дерево подстраивается под каждую учебную квартиру, и на отложенных строках ошибка снова растёт. Размер ограничивают параметром <code>max_leaf_nodes</code>.</p>
-<p>Сравнивают несколько значений на одной и той же проверке.</p>
+<p>Лист — конец ветки, там живёт один прогноз. Мало листьев — в одном листе сидят непохожие квартиры, и среднее смазывает цену. Много листьев — дерево выделяет лист почти каждой учебной квартире и на спрятанных строках снова промахивается. Это и есть грубое дерево против запомненной таблицы.</p>
+<p>Размер ограничивают параметром <code>max_leaf_nodes</code>. Сравнивают несколько значений на одной и той же проверке: состав <code>train</code> и <code>val</code> не меняют, меняется только потолок листьев.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">def mae_for_leaves(max_leaf_nodes):
+    # Каждое дерево учится на тех же 9 квартирах и проверяется на тех же 3.
     tree = DecisionTreeRegressor(max_leaf_nodes=max_leaf_nodes, random_state=1)
     tree.fit(train_X, train_y)
     return mean_absolute_error(val_y, tree.predict(val_X))
 
 candidates = [2, 4, 6, 8]
+# Словарь: ключ — сколько листьев разрешили, значение — MAE на проверке.
 scores = {leaves: mae_for_leaves(leaves) for leaves in candidates}
 for leaves, score in scores.items():
     print(leaves, round(score, 1))
 
+# min с key выбирает ключ с наименьшим значением, а не само значение.
 best_leaves = min(scores, key=scores.get)
 print(&quot;листьев&quot;, best_leaves, &quot;MAE&quot;, round(scores[best_leaves], 1))</code></pre>
+<p>Дерево из двух листьев делает по сути один разрез и два средних — как ручное правило из раздела 6.0.1, только порог выбирает само.</p>
 <p><strong>Практика 6.0.5.</strong> В markdown выпишите четыре MAE и число листьев с наименьшей ошибкой на проверке. Рядом одной фразой опишите, что делает с прогнозом дерево из двух листьев.</p>
 <p><strong>Критерий 6.0.5:</strong> для каждого значения из списка <code>2, 4, 6, 8</code> напечатана ошибка на <code>val_y</code>. Выбранное число листьев — то, у которого эта ошибка минимальна.</p>
 <hr>
 <h2>6.0.6. Случайный лес</h2>
-<p>Случайный лес строит много деревьев. Каждое видит свою выборку строк и свой набор признаков в разбиениях. Прогноз леса — среднее прогнозов деревьев. Одно неудачное дерево меньше сдвигает ответ.</p>
+<p>Одно дерево на трёх проверочных квартирах легко попадает в неудачный порог. Случайный лес строит много деревьев. Каждое видит не все учебные строки и не все признаки в каждом вопросе. Итоговая цена — среднее ответов деревьев: один странный прогноз разбавляется остальными.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">from sklearn.ensemble import RandomForestRegressor
 
 forest = RandomForestRegressor(random_state=1)
-forest.fit(train_X, train_y)
+forest.fit(train_X, train_y)  # снова только учебные 9 квартир
 forest_mae = mean_absolute_error(val_y, forest.predict(val_X))
 print(&quot;MAE лес&quot;, round(forest_mae, 1))
 print(&quot;MAE лучшее дерево&quot;, round(scores[best_leaves], 1))
-print(&quot;число деревьев&quot;, forest.n_estimators)</code></pre>
-<p>Лес учат на <code>train_X</code> и <code>train_y</code>. Проверочные три квартиры в <code>fit</code> не передают.</p>
+print(&quot;число деревьев&quot;, forest.n_estimators)  # сколько деревьев усредняется</code></pre>
+<p>Лес и лучшее дерево сравнивают на одних и тех же трёх квартирах. Меньшая MAE — более устойчивый прогноз на этой проверке, не гарантия на любую новую квартиру города М.</p>
 <p><strong>Практика 6.0.6.</strong> В markdown запишите, какая MAE меньше: у леса или у дерева с <code>best_leaves</code>.</p>
 <p><strong>Критерий 6.0.6:</strong> напечатаны обе ошибки на <code>val_y</code>. <code>forest.n_estimators</code> больше 1.</p>
 <hr>
 <h2>6.0.7. Прогноз для новых квартир</h2>
-<p>Новая квартира приходит без цены и без текста <code>price_note</code>. Столбцы и их порядок те же, что у <code>X</code>. Файл с прогнозом — две колонки: номер и цена. Его сохраняют локально.</p>
+<p>Новая квартира приходит без цены и без текста <code>price_note</code>. Столбцы и их порядок те же, что у <code>X</code>: модель помнит, что первый столбец — площадь, второй — год, третий — комнаты. Файл с прогнозом — две колонки: номер и цена. Его сохраняют локально.</p>
 <p><strong>Ячейка:</strong></p>
 <pre><code class="language-python">from pathlib import Path
 
+# Две квартиры, которых не было в flats.csv. Цены у них нет — её как раз и просим.
 new_flats = pd.DataFrame(
     [
         {&quot;flat_id&quot;: 101, &quot;area&quot;: 45, &quot;year&quot;: 1988, &quot;rooms&quot;: 2},
         {&quot;flat_id&quot;: 102, &quot;area&quot;: 88, &quot;year&quot;: 2015, &quot;rooms&quot;: 3},
     ]
 )
-new_X = new_flats[features]
-new_price = forest.predict(new_X)
+new_X = new_flats[features]          # тот же список столбцов, что при обучении
+new_price = forest.predict(new_X)    # лес, уже обученный на train_X
 
 submission = pd.DataFrame(
     {&quot;flat_id&quot;: new_flats[&quot;flat_id&quot;], &quot;price&quot;: new_price.round(1)}
 )
 out = Path(&quot;module-6-0/data/new_prices.csv&quot;)
-submission.to_csv(out, index=False, encoding=&quot;utf-8&quot;)
+submission.to_csv(out, index=False, encoding=&quot;utf-8&quot;)  # index=False не пишет 0 и 1 в файл
 print(submission)
 print(&quot;столбцы как у X&quot;, list(new_X.columns) == features)</code></pre>
-<p>Квартира 101 ближе к группе до 60 м², квартира 102 — к группе просторных. Прогноз леса складывается из площади, года и числа комнат.</p>
+<p>Квартира 101 ближе к группе до 60 м², квартира 102 — к группе просторных. Прогноз леса складывается из площади, года и числа комнат, а не из одного порога 60.</p>
 <p><strong>Критерий 6.0.7:</strong> в <code>new_prices.csv</code> две строки, столбцы <code>flat_id</code> и <code>price</code>, номера 101 и 102. В <code>new_X</code> нет <code>price</code> и <code>price_note</code>.</p>
 <hr>
 <h2>6.0.8. Самопроверка</h2>
@@ -163,7 +181,7 @@ print(&quot;столбцы как у X&quot;, list(new_X.columns) == features)</
 <h3>Чеклист</h3>
 <table><thead><tr><th>№</th><th>Действие</th><th>Готово</th></tr></thead><tbody><tr><td>1</td><td>Правило по площади: средние 5000 и 9000, ошибка правила 533</td><td>☐</td></tr><tr><td>2</td><td>Пропусков 0, сумма цен 84000, сумма площадей 761</td><td>☐</td></tr><tr><td>3</td><td><code>X</code> формы <code>(12, 3)</code>, ошибка дерева на всех 12 строках равна 0</td><td>☐</td></tr><tr><td>4</td><td>Обучение <code>(9, 3)</code>, проверка <code>(3, 3)</code>, MAE проверки больше 0</td><td>☐</td></tr><tr><td>5</td><td>Сравнены листья 2, 4, 6 и 8, выбран минимум по проверке</td><td>☐</td></tr><tr><td>6</td><td>Лес обучен на <code>train_X</code>, его MAE сравнена с лучшим деревом</td><td>☐</td></tr><tr><td>7</td><td><code>data/new_prices.csv</code>: квартиры 101 и 102</td><td>☐</td></tr><tr><td>8</td><td>Три ответа самопроверки</td><td>☐</td></tr></tbody></table>
 <h3>Типовые ошибки</h3>
-<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td>Ошибка на всех 12 строках больше 0</td><td>В <code>X</code> попали одинаковые комбинации признаков или стоит <code>max_leaf_nodes</code></td></tr><tr><td>В проверке не 3 строки</td><td><code>train_test_split(X, y, random_state=1)</code> без другого <code>test_size</code></td></tr><tr><td>MAE проверки равна 0</td><td>В <code>fit</code> ушли все 12 строк, а не <code>train_X</code></td></tr><tr><td>У всех чисел листьев одна и та же ошибка</td><td>В <code>DecisionTreeRegressor</code> не передан <code>max_leaf_nodes</code></td></tr><tr><td>Лес видел проверочные цены</td><td><code>fit</code> вызывают от <code>train_X, train_y</code></td></tr><tr><td>В прогнозе для 101 и 102 есть столбец <code>price_note</code></td><td>В <code>new_X</code> список <code>features</code></td></tr><tr><td><code>FileNotFoundError</code></td><td>Путь <code>module-6-0/data/flats.csv</code> от корня курса</td></tr></tbody></table>
+<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody><tr><td>Ошибка на всех 12 строках больше 0</td><td>В <code>X</code> попали одинаковые комбинации признаков или стоит <code>max_leaf_nodes</code></td></tr><tr><td>В проверке не 3 строки</td><td><code>train_test_split(X, y, random_state=1)</code> без другого <code>test_size</code></td></tr><tr><td>MAE проверки равна 0</td><td>В <code>fit</code> ушли все 12 строк, а не <code>train_X</code></td></tr><tr><td>У всех чисел листьев одна и та же ошибка</td><td>В <code>DecisionTreeRegressor</code> не передан <code>max_leaf_nodes</code></td></tr><tr><td>Лес видел проверочные цены</td><td><code>fit</code> вызывают от <code>train_X, train_y</code></td></tr><tr><td>В прогнозе для 101 и 102 есть столбец <code>price_note</code></td><td>В <code>new_X</code> список <code>features</code></td></tr><tr><td><code>FileNotFoundError</code></td><td>Путь <code>module-6-0/data/flats.csv</code> от корня курса</td></tr><tr><td><code>No module named sklearn</code></td><td>Ядро ноутбука — <code>.venv</code>, пакет ставили при активном <code>(.venv)</code></td></tr></tbody></table>
 <p>После занятия слушатель отделяет разведку от обучения, считает MAE на отложенных строках, выбирает число листьев по этой ошибке и получает прогноз леса для квартиры, которой в таблице не было.</p>
   </article>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
