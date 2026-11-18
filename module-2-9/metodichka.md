@@ -68,6 +68,64 @@ print(a.get_coords())
 
 ---
 
+## Геттер и сеттер
+
+Геттер читает поле, сеттер записывает его и может проверить значение до записи. Снаружи это либо явный вызов функции, либо обращение к атрибуту, за которым прячется декоратор `property`.
+
+**Ячейка — через функции:**
+
+```python
+class Account:
+    def __init__(self, balance):
+        self._balance = balance
+
+    def get_balance(self):
+        return self._balance
+
+    def set_balance(self, value):
+        if value < 0:
+            raise ValueError("баланс не может быть отрицательным")
+        self._balance = value
+
+acc = Account(100)
+print(acc.get_balance())
+acc.set_balance(250)
+print(acc.get_balance())
+```
+
+`get_balance` и `set_balance` — обычные методы. Чтение и запись видны в вызове: скобки и аргумент. Поле `_balance` с подчёркивания — договорённость «не трогать напрямую».
+
+**Ячейка — через декоратор:**
+
+```python
+class Account:
+    def __init__(self, balance):
+        self._balance = balance
+
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, value):
+        if value < 0:
+            raise ValueError("баланс не может быть отрицательным")
+        self._balance = value
+
+acc = Account(100)
+print(acc.balance)
+acc.balance = 250
+print(acc.balance)
+```
+
+`@property` делает метод геттером: `acc.balance` вызывает `balance(self)` без скобок. `@balance.setter` вешает сеттер на то же имя: присваивание `acc.balance = 250` вызывает второй метод. Проверка та же, что в `set_balance`, но снаружи это выглядит как поле.
+
+Если оставить только `@property` и не писать `@balance.setter`, чтение работает, а присваивание даёт `AttributeError`.
+
+**Критерий:** и функция, и свойство не принимают отрицательный баланс; после `set_balance(250)` и после `acc.balance = 250` чтение возвращает `250`.
+
+---
+
 ## 2.9.3. Инициализатор __init__
 
 `__init__` вызывается сразу после создания экземпляра. В нём задают начальные поля, чтобы не вызывать отдельный `set_coords`.

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>2.9 Классы, магические методы и основы ООП</title>
   <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
 </head>
 <body>
   <article class="doc">
@@ -52,6 +53,51 @@ print(a.get_coords())
 </code></pre>
 <p><code>Point.set_coords(a, 3, 4)</code> — тот же вызов, первый аргумент указан явно. Если убрать <code>self</code> из определения, вызов через экземпляр даст <code>TypeError</code>: интерпретатор всё равно подставит объект.</p>
 <p><strong>Критерий 2.9.2:</strong> <code>get_coords</code> возвращает <code>(3, 4)</code>.</p>
+<hr />
+<h2>Геттер и сеттер</h2>
+<p>Геттер читает поле, сеттер записывает его и может проверить значение до записи. Снаружи это либо явный вызов функции, либо обращение к атрибуту, за которым прячется декоратор <code>property</code>.</p>
+<p><strong>Ячейка — через функции:</strong></p>
+<pre><code class="language-python">class Account:
+    def __init__(self, balance):
+        self._balance = balance
+
+    def get_balance(self):
+        return self._balance
+
+    def set_balance(self, value):
+        if value &lt; 0:
+            raise ValueError("баланс не может быть отрицательным")
+        self._balance = value
+
+acc = Account(100)
+print(acc.get_balance())
+acc.set_balance(250)
+print(acc.get_balance())
+</code></pre>
+<p><code>get_balance</code> и <code>set_balance</code> — обычные методы. Чтение и запись видны в вызове: скобки и аргумент. Поле <code>_balance</code> с подчёркивания — договорённость «не трогать напрямую».</p>
+<p><strong>Ячейка — через декоратор:</strong></p>
+<pre><code class="language-python">class Account:
+    def __init__(self, balance):
+        self._balance = balance
+
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, value):
+        if value &lt; 0:
+            raise ValueError("баланс не может быть отрицательным")
+        self._balance = value
+
+acc = Account(100)
+print(acc.balance)
+acc.balance = 250
+print(acc.balance)
+</code></pre>
+<p><code>@property</code> делает метод геттером: <code>acc.balance</code> вызывает <code>balance(self)</code> без скобок. <code>@balance.setter</code> вешает сеттер на то же имя: присваивание <code>acc.balance = 250</code> вызывает второй метод. Проверка та же, что в <code>set_balance</code>, но снаружи это выглядит как поле.</p>
+<p>Если оставить только <code>@property</code> и не писать <code>@balance.setter</code>, чтение работает, а присваивание даёт <code>AttributeError</code>.</p>
+<p><strong>Критерий:</strong> и функция, и свойство не принимают отрицательный баланс; после <code>set_balance(250)</code> и после <code>acc.balance = 250</code> чтение возвращает <code>250</code>.</p>
 <hr />
 <h2>2.9.3. Инициализатор <strong>init</strong></h2>
 <p><code>__init__</code> вызывается сразу после создания экземпляра. В нём задают начальные поля, чтобы не вызывать отдельный <code>set_coords</code>.</p>
@@ -476,5 +522,7 @@ print(item.tagged())
 </table>
 <p>После занятия слушатель описывает свой тип, подключает проверки, равенство, сложение и перебор, ограничивает набор полей и переиспользует поведение через базовый класс и миксин.</p>
   </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python").forEach(function (el) { hljs.highlightElement(el); });</script>
 </body>
 </html>
