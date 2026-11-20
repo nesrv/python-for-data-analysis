@@ -37,3 +37,5 @@
   - [5.1 Манипулирование данными в Pandas](https://nesrv.github.io/python-for-data-analysis/module-5-1.html)
 - [Модуль 6. Машинное обучение](https://nesrv.github.io/python-for-data-analysis/module-6.html)
   - [6.0 Введение в машинное обучение](https://nesrv.github.io/python-for-data-analysis/module-6-0.html)
+  - [7. Пропуски, категории, проверка и бустинг](https://nesrv.github.io/python-for-data-analysis/module-7.html)
+  - [Практическое занятие. Честная цена](https://nesrv.github.io/python-for-data-analysis/module-7-8.html)

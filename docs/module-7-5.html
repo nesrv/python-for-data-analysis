@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5. Кросс-валидация</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-7.html">← Блок 7. Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+<h1>5. Кросс-валидация (Cross-Validation)</h1>
+<p>Более устойчивый способ проверить качество модели, чем один жребий 8000/2000.</p>
+<p><img src="assets/m7/m7-cv.jpg" alt="Пять складок: в каждом опыте проверка — одна часть, остальные четыре — обучение" style="max-width:100%;height:auto"></p>
+<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает таблицу и делит её так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>.</p>
+<pre><code class="language-python">import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.impute import SimpleImputer
+
+flats = pd.read_csv(&quot;module-7-0/data/flats_gaps.csv&quot;)
+y = flats.price
+X = flats.drop(columns=[&quot;price&quot;, &quot;price_note&quot;, &quot;flat_id&quot;])
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, train_size=0.8, test_size=0.2, random_state=0
+)
+num_cols = list(X_train.select_dtypes(include=&quot;number&quot;).columns)
+X_train_num = X_train[num_cols].copy()
+cols_with_missing = [col for col in num_cols if X_train_num[col].isna().any()]
+</code></pre>
+<p>До сих пор проверка была одним жребием: 2000 строк при <code>random_state=0</code>. Другой жребий дал бы другую MAE. Если разница двух моделей маленькая, можно выбрать ту, которой просто повезло с этими двумя тысячами.</p>
+<p>Перекрёстная проверка делит все 10000 строк на 5 равных частей, их называют складками. Опыт повторяют пять раз. Каждый раз одна складка — проверка, остальные четыре — обучение. Каждая квартира ровно один раз попадает в проверку. Итог — пять MAE и их среднее.</p>
+<p>Схема для пяти складок:</p>
+<table>
+<thead>
+<tr>
+<th>Опыт</th>
+<th>Обучение</th>
+<th>Проверка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>складки 2–5</td>
+<td>складка 1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>складки 1, 3–5</td>
+<td>складка 2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>складки 1, 2, 4, 5</td>
+<td>складка 3</td>
+</tr>
+<tr>
+<td>4</td>
+<td>складки 1–3 и 5</td>
+<td>складка 4</td>
+</tr>
+<tr>
+<td>5</td>
+<td>складки 1–4</td>
+<td>складка 5</td>
+</tr>
+</tbody>
+</table>
+<p>Цена точности — пять обучений вместо одного. На 10000 строк это ещё секунды. Когда одно обучение идёт десятки минут, оставляют одно отложенное разбиение, как в занятии 6.0.</p>
+<p>Здесь признаки только <code>area</code>, <code>year</code>, <code>rooms</code>. Тогда среднее по складкам можно сравнивать с импутацией из 7.0.1, а не с моделью, которая дополнительно видит район. Конвейер с <code>SimpleImputer</code> нужен обязательно: внутри каждой складки среднее должно считаться заново, только по её четырём обучающим частям. Если заполнить пропуски один раз до цикла, в среднее попадёт и та складка, которая сейчас считается проверкой.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
+
+cols_to_use = [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]
+X_cv = flats[cols_to_use]
+y_cv = flats.price
+
+cv_pipeline = Pipeline(
+    steps=[
+        # Пустые года и комнаты. Среднее этот шаг пересчитает на каждой складке отдельно.
+        (&quot;preprocessor&quot;, SimpleImputer()),
+        (&quot;model&quot;, RandomForestRegressor(n_estimators=20, random_state=0)),
+    ]
+)
+# cv=5 — пять складок.
+# scoring=&quot;neg_mean_absolute_error&quot;: в sklearn все меры устроены так, что большее число лучше.
+# Обычная MAE устроена наоборот, поэтому библиотека отдаёт её со знаком минус.
+# Умножение на -1 возвращает привычную ошибку «на сколько промахнулись».
+scores = -1 * cross_val_score(
+    cv_pipeline, X_cv, y_cv, cv=5, scoring=&quot;neg_mean_absolute_error&quot;
+)
+print(&quot;MAE по складкам:&quot;, [f&quot;{float(s):.2f}&quot; for s in scores])
+print(f&quot;Средняя MAE: {float(scores.mean()):.2f}&quot;)
+</code></pre>
+<p><strong>Критерий 7.0.4.</strong> Пять чисел: <strong>339.98, 341.94, 344.85, 346.53, 330.90</strong>. Среднее — <strong>340.84</strong>. Самая удачная складка и самая неудачная отличаются примерно на 16. Это меньше, чем выигрыш от района в разделе 7.0.2 (около 110) и меньше, чем выигрыш конвейера, который оставил и год, и район. Вывод «район полезен» от одного жребия не зависит.</p>
+<p>Отдельные <code>X_train</code> и <code>X_valid</code> в этой ячейке не создают. <code>cross_val_score</code> делит таблицу сам.</p>
+<hr />
+    <p><a href="module-7-4.html">← 4. Конвейеры обработки данных</a> · <a href="module-7-6.html">6. XGBoost →</a></p>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>

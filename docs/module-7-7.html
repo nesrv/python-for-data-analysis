@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>7. Утечка данных</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-7.html">← Блок 7. Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+<h1>7. Утечка данных (Data Leakage)</h1>
+<p>Утечка — это когда в обучение попадает подсказка, которой в момент настоящего прогноза ещё нет. На проверке модель выглядит почти идеальной, а на новых заявках разваливается. Ошибку не видно по коду: цифры как раз слишком хорошие.</p>
+<p><img src="assets/m7/m7-leak.jpg" alt="До момента прогноза можно брать возраст и доход, расходы по карте брать нельзя" style="max-width:100%;height:auto"></p>
+<p>Граница на рисунке — момент, когда нужно выдать ответ. Слева то, что уже известно (возраст, доход, число плохих отчётов). Справа то, что появится только вместе с ответом или после него. Такой столбец в признаки не берут.</p>
+<p>Два вида утечки:</p>
+<ol>
+<li><strong>Утечка цели.</strong> Признак рассказывает сам ответ. Пример: предсказать, заболеет ли человек, и дать модели столбец «уже принимает антибиотики». Антибиотик назначают после диагноза, до прогноза его нет.</li>
+<li><strong>Загрязнение обучения и проверки.</strong> Среднее, масштаб или список категорий посчитали по всей таблице, и только потом отложили проверку. Проверка косвенно поучаствовала в обучении. От этого защищает конвейер со страницы 4: <code>fit</code> считает правила только по обучению, <code>transform</code> применяет их к проверке.</li>
+</ol>
+<h2>Заявки на карту</h2>
+<p>Файл <code>module-7-0/data/AER_credit_card_data.csv</code>. Цель <code>card</code>: заявку одобрили или нет. Столбцы <code>expenditure</code> (расходы по карте) и <code>share</code> (доля этих расходов в доходе) подозрительны: у человека без карты расходов по ней быть не может. <code>active</code> и <code>majorcards</code> тоже описывают уже выданные карты, а не заявку.</p>
+<p><strong>Ячейка. Модель со всеми столбцами.</strong></p>
+<pre><code class="language-python">import pandas as pd
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+
+# yes/no в файле сразу становятся True/False, а не текстом.
+data = pd.read_csv(
+    &quot;module-7-0/data/AER_credit_card_data.csv&quot;,
+    true_values=[&quot;yes&quot;],
+    false_values=[&quot;no&quot;],
+)
+print(&quot;Строк:&quot;, data.shape[0])
+print(data.head())
+
+y = data.card
+# card — это ответ. Если оставить его среди признаков, модель увидит решение банка напрямую.
+X = data.drop(columns=[&quot;card&quot;])
+
+# make_pipeline здесь из одного шага: готовить таблицу не нужно, все столбцы уже числа и логические значения.
+model = make_pipeline(RandomForestClassifier(n_estimators=100, random_state=0))
+scores = cross_val_score(model, X, y, cv=5, scoring=&quot;accuracy&quot;)
+print(f&quot;Точность со всеми столбцами: {scores.mean():.6f}&quot;)
+</code></pre>
+<p><strong>Критерий 7а.</strong> Строк 1319. Точность около <strong>0.980292</strong>. Для одобрения карты 98% на пяти складках — редкость. Такое число само по себе повод искать утечку, а не радоваться.</p>
+<p><strong>Ячейка. Кто вообще тратил.</strong></p>
+<pre><code class="language-python"># y True — карту выдали. ~y — не выдали.
+spent_if_refused = X.expenditure[~y]
+spent_if_approved = X.expenditure[y]
+# Доля нулевых расходов. 1.00 значит: ни у одного отказа нет трат.
+print(f&quot;Отказ и ноль расходов: {(spent_if_refused == 0).mean():.2f}&quot;)
+print(f&quot;Одобрение и ноль расходов: {(spent_if_approved == 0).mean():.2f}&quot;)
+</code></pre>
+<p><strong>Критерий 7б.</strong> У отказов ноль расходов в <strong>1.00</strong> случаев. У одобренных ноль расходов только в <strong>0.02</strong>. Модель может почти не смотреть на доход и возраст: «расходы равны нулю → отказ».</p>
+<p><strong>Ячейка. Те же заявки без подсказок.</strong></p>
+<pre><code class="language-python"># Эти четыре столбца описывают жизнь уже выданной карты, а не момент заявки.
+leaks = [&quot;expenditure&quot;, &quot;share&quot;, &quot;active&quot;, &quot;majorcards&quot;]
+X_safe = X.drop(columns=leaks)
+scores_safe = cross_val_score(model, X_safe, y, cv=5, scoring=&quot;accuracy&quot;)
+print(f&quot;Точность без утечки: {scores_safe.mean():.6f}&quot;)
+print(&quot;Остались столбцы:&quot;, list(X_safe.columns))
+</code></pre>
+<p><strong>Критерий 7в.</strong> Точность около <strong>0.829410</strong>. Она ниже 0.98, и это честная оценка: на новой заявке расходов по ещё не выданной карте нет, модель с утечкой там примениться не сможет. Оставшиеся столбцы: <code>reports</code>, <code>age</code>, <code>income</code>, <code>owner</code>, <code>selfemp</code>, <code>dependents</code>, <code>months</code>.</p>
+<p>Правило на любую таблицу: перед <code>fit</code> спросить про каждый столбец, известен ли он в момент прогноза. Если нет — столбец убирают, даже если точность на истории от этого падает.</p>
+    <p><a href="module-7-6.html">← 6. XGBoost</a></p>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>

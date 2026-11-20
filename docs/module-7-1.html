@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1. Введение</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-7.html">← Блок 7. Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+<h1>1. Введение (Introduction)</h1>
+<p>Повторите всё необходимое, чтобы пройти семь страниц этого блока. Они продолжают <a href="module-6.html">занятие 6.0</a>: там лес уже предсказывает цену квартиры по полной таблице. Здесь таблица с дырами, текстовый район, конвейер, перекрёстная проверка, бустинг и утечка.</p>
+<p><img src="assets/m7/m7-intro.jpg" alt="Таблица квартир переходит в модель и прогноз цены" style="max-width:100%;height:auto"></p>
+<h2>Что уже должно быть под рукой</h2>
+<p>Из занятия 6.0 достаточно помнить пять слов:</p>
+<table>
+<thead>
+<tr>
+<th>Слово</th>
+<th>Зачем оно здесь</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Признак</td>
+<td>Столбец, по которому модель судит. Площадь, год, комнаты, район</td>
+</tr>
+<tr>
+<td>Цель</td>
+<td>Столбец, который надо угадать. В квартирах это <code>price</code></td>
+</tr>
+<tr>
+<td><code>fit</code></td>
+<td>Обучение на строках, где ответ уже известен</td>
+</tr>
+<tr>
+<td><code>predict</code></td>
+<td>Прогноз для строк, чьи ответы модель не должна подсматривать</td>
+</tr>
+<tr>
+<td>MAE</td>
+<td>Средний модуль промаха. Меньше — лучше</td>
+</tr>
+</tbody>
+</table>
+<p>Ноутбук запускают из корня курса, ядро — <code>.venv</code>. Иначе путь к файлу не найдётся или появится <code>No module named sklearn</code>.</p>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+python -m pip install pandas scikit-learn xgboost
+</code></pre>
+<p>Ноутбук один на весь блок: <code>module-7-0/lab70-prep.ipynb</code>. Первая ячейка — markdown: ФИО, дата, заголовок «7. Пропуски, категории, конвейер, проверка, бустинг, утечка».</p>
+<h2>Два файла</h2>
+<p>Квартиры, на которых идут страницы 2–6:</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Что внутри</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>module-7-0/data/flats_gaps.csv</code></td>
+<td>10000 квартир города М. Цена в тысячах рублей. Год пуст, если <code>flat_id</code> делится на 17 (588 строк). Комнаты пусты, если делится на 23 (434). Район пуст, если делится на 41 (243). Площадь и цена заполнены у всех</td>
+</tr>
+</tbody>
+</table>
+<p>Заявки на карту, страница 7. Это открытый учебный файл <code>AER_credit_card_data.csv</code>: 1319 строк, ответ <code>card</code> — одобрили заявку или нет.</p>
+<pre><code class="language-python">import pandas as pd
+
+flats = pd.read_csv(&quot;module-7-0/data/flats_gaps.csv&quot;)
+# shape — (строки, столбцы). isna().sum() считает пустые ячейки по каждому столбцу.
+print(flats.shape)
+print(flats.isna().sum())
+
+cards = pd.read_csv(
+    &quot;module-7-0/data/AER_credit_card_data.csv&quot;,
+    true_values=[&quot;yes&quot;],
+    false_values=[&quot;no&quot;],
+)
+print(cards.shape)
+print(cards.head(3))
+</code></pre>
+<p><strong>Критерий.</strong> Квартиры: <code>(10000, 7)</code>, пустых цен 0, пустых районов 243, лет 588, комнат 434. Заявки: <code>(1319, 12)</code>, в <code>head</code> видны <code>card</code>, <code>expenditure</code>, <code>share</code>.</p>
+<p>Дальше по страницам, по порядку. Каждая страница начинается с чтения файла, так что её можно открыть отдельно. Числа MAE сходятся, только если <code>random_state</code> и число деревьев те же, что в ячейке.</p>
+    <p><a href="module-7-2.html">2. Пропущенные значения →</a></p>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>

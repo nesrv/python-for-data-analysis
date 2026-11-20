@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4. Конвейеры обработки данных</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-7.html">← Блок 7. Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+<h1>4. Конвейеры обработки данных (Pipelines)</h1>
+<p>Важный навык для развёртывания и тестирования сложных моделей с предварительной обработкой данных.</p>
+<p><img src="assets/m7/m7-pipeline.jpg" alt="Конвейер: заполнить пропуски, закодировать район, обучить лес" style="max-width:100%;height:auto"></p>
+<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает таблицу и делит её так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>.</p>
+<pre><code class="language-python">import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.impute import SimpleImputer
+
+flats = pd.read_csv(&quot;module-7-0/data/flats_gaps.csv&quot;)
+y = flats.price
+X = flats.drop(columns=[&quot;price&quot;, &quot;price_note&quot;, &quot;flat_id&quot;])
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, train_size=0.8, test_size=0.2, random_state=0
+)
+num_cols = list(X_train.select_dtypes(include=&quot;number&quot;).columns)
+X_train_num = X_train[num_cols].copy()
+cols_with_missing = [col for col in num_cols if X_train_num[col].isna().any()]
+</code></pre>
+<p>В прошлых ячейках легко ошибиться руками:</p>
+<ul>
+<li>посчитать среднее по проверке, а не по обучению;</li>
+<li>заполнить пропуски уже после того, как построили флаг;</li>
+<li>забыть закодировать район перед <code>predict</code>;</li>
+<li>выбросить год, хотя его можно было заполнить.</li>
+</ul>
+<p>Конвейер собирает подготовку и лес в один объект. <code>ColumnTransformer</code> ведёт числа и текст разными ветками, потому что среднее по слову «центр» бессмысленно, а столбец из нулей и единиц для площади не нужен.</p>
+<p>Что делает каждая ветка:</p>
+<ul>
+<li>числа <code>area</code>, <code>year</code>, <code>rooms</code> — <code>SimpleImputer(strategy="constant")</code>. Пустую ячейку заменяют константой. Без <code>fill_value</code> константа равна 0;</li>
+<li>район — сначала самый частый район вместо пустого текста (<code>most_frequent</code>), затем прямое кодирование.</li>
+</ul>
+<p>В <code>predict</code> передают сырую проверку, с пустыми ячейками и словами. Конвейер сам повторяет шаги, которые запомнил на <code>fit</code>. Отдельный <code>imputer.transform</code> здесь писать не нужно.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+numerical_cols = [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]
+categorical_cols = [&quot;district&quot;]
+
+# strategy=&quot;constant&quot; пишет в пустую ячейку одно и то же число, по умолчанию 0.
+# Это другой способ, не среднее из раздела 7.0.1. Его и сравниваем отдельной MAE.
+numerical_transformer = SimpleImputer(strategy=&quot;constant&quot;)
+# Внутренний Pipeline: сначала закрыть пустой район, потом превратить слово в столбцы 0/1.
+# OneHotEncoder не принимает NaN, поэтому imputer стоит раньше onehot.
+categorical_transformer = Pipeline(
+    steps=[
+        (&quot;imputer&quot;, SimpleImputer(strategy=&quot;most_frequent&quot;)),
+        (&quot;onehot&quot;, OneHotEncoder(handle_unknown=&quot;ignore&quot;)),
+    ]
+)
+# ColumnTransformer применяет num только к трём числам, cat только к district.
+# Остальные столбцы X_train (их нет в этих списках) в модель не попадут.
+preprocessor = ColumnTransformer(
+    transformers=[
+        (&quot;num&quot;, numerical_transformer, numerical_cols),
+        (&quot;cat&quot;, categorical_transformer, categorical_cols),
+    ]
+)
+model = RandomForestRegressor(n_estimators=30, random_state=0)
+# Порядок в steps важен: сначала preprocessor, потом model.
+# Наоборот нельзя: лес не умеет читать пустые ячейки и слово «центр».
+my_pipeline = Pipeline(steps=[(&quot;preprocessor&quot;, preprocessor), (&quot;model&quot;, model)])
+
+# fit на сыром X_train: внутри и заполнение, и кодирование, и обучение леса.
+my_pipeline.fit(X_train, y_train)
+# predict тоже на сыром X_valid. Подготовка проверки идёт теми правилами, что выучены на обучении.
+preds = my_pipeline.predict(X_valid)
+mae_pipeline = mean_absolute_error(y_valid, preds)
+print(f&quot;MAE конвейера: {mae_pipeline:.2f}&quot;)
+</code></pre>
+<p><strong>Критерий 7.0.3.</strong> MAE конвейера — <strong>129.81</strong>. Она заметно ниже 278 из прошлого раздела. Причина не в «магии конвейера», а в составе признаков: год и комнаты больше не выбрасываются, район тоже остаётся. Конвейер только не даёт перепутать порядок шагов.</p>
+<hr />
+    <p><a href="module-7-3.html">← 3. Категориальные переменные</a> · <a href="module-7-5.html">5. Кросс-валидация →</a></p>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Практическое занятие. Честная цена</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="module-7.html">← Блок 7. Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+<h1>Практическое занятие. Честная цена</h1>
+<p><strong>Цель:</strong> за 4 академических часа на таблице квартир поймать модель, которая «угадывает» цену из подписи, сравнить её с двумя простыми правилами и с лесом, проверить победителя по складкам и выдать прогноз для трёх новых квартир.</p>
+<p><strong>Опора:</strong> страницы блока 7, файл <code>module-7-0/data/flats_gaps.csv</code>. Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка — корень курса. Цена в тысячах рублей. Один академический час — 45 минут.</p>
+<p>К концу занятия у пары на руках три числа MAE (подпись, среднее, лес), таблица ошибки по районам и три прогноза. Новых алгоритмов нет: те же <code>Pipeline</code>, лес и пять складок.</p>
+<table>
+<thead>
+<tr>
+<th>Час</th>
+<th>Что происходит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Находят утечку в подписи цены</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Считают среднее и среднее района, сравнивают с лесом</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Проверяют лес пятью складками и смотрят, где он врёт</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Считают цену трёх новых квартир и коротко докладывают</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Подготовка</h2>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+python -m pip install pandas scikit-learn
+</code></pre>
+<p>Ноутбук <code>module-7-0/lab-chestnaya-cena.ipynb</code>, ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «Честная цена».</p>
+<hr />
+<h2>Час 1. Слишком хороший прогноз</h2>
+<p>В файле рядом с ценой лежит столбец <code>price_note</code>. В нём текст вида <code>цена 6230</code>. Если вытащить из текста число и отдать его модели, она не предсказывает цену, а читает ответ. На проверке ошибка почти нулевая. В жизни у новой квартиры такой подписи ещё нет.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+flats = pd.read_csv(&quot;module-7-0/data/flats_gaps.csv&quot;)
+print(flats[[&quot;price&quot;, &quot;price_note&quot;]].head(3))
+
+# Из текста «цена 6230» достаём 6230. Это и есть утечка: число уже равно цели.
+flats[&quot;note_price&quot;] = flats[&quot;price_note&quot;].str.extract(r&quot;(\d+)&quot;).astype(float)
+print((flats[&quot;note_price&quot;] == flats[&quot;price&quot;]).all())
+
+y = flats.price
+X_leak = flats[[&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;district&quot;, &quot;note_price&quot;]]
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X_leak, y, train_size=0.8, test_size=0.2, random_state=0
+)
+
+leak_prep = ColumnTransformer(
+    transformers=[
+        (&quot;num&quot;, SimpleImputer(strategy=&quot;constant&quot;), [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;note_price&quot;]),
+        (&quot;cat&quot;, Pipeline(steps=[
+            (&quot;imputer&quot;, SimpleImputer(strategy=&quot;most_frequent&quot;)),
+            (&quot;onehot&quot;, OneHotEncoder(handle_unknown=&quot;ignore&quot;)),
+        ]), [&quot;district&quot;]),
+    ]
+)
+leak_model = Pipeline(steps=[
+    (&quot;preprocessor&quot;, leak_prep),
+    (&quot;model&quot;, RandomForestRegressor(n_estimators=30, random_state=0)),
+])
+leak_model.fit(X_train, y_train)
+mae_leak = mean_absolute_error(y_valid, leak_model.predict(X_valid))
+print(f&quot;MAE с подписью цены: {mae_leak:.2f}&quot;)
+</code></pre>
+<p><strong>Критерий часа 1.</strong> Сравнение <code>note_price</code> и <code>price</code> печатает <code>True</code>: подпись повторяет ответ во всех 10000 строках. MAE с подписью — <strong>0.76</strong>. Это не качество модели. Дальше столбец <code>note_price</code> не используют.</p>
+<hr />
+<h2>Час 2. Простое правило и лес</h2>
+<p>Честная модель видит только площадь, год, комнаты и район. Прежде чем радоваться лесу, ставят две планки, которые считаются без деревьев.</p>
+<ol>
+<li>Всем квартирам проверки записать среднюю цену обучения.</li>
+<li>Записать среднюю цену своего района на обучении. Если район пустой, остаётся общая средняя: для слова «нет» отдельного среднего на обучении не было.</li>
+</ol>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">X = flats[[&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;district&quot;]]
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, train_size=0.8, test_size=0.2, random_state=0
+)
+
+# Одна и та же цена для всех 2000 строк проверки. Это пол, ниже которого лес обязан быть.
+mean_price = float(y_train.mean())
+pred_mean = np.full(shape=len(y_valid), fill_value=mean_price)
+mae_mean = mean_absolute_error(y_valid, pred_mean)
+print(f&quot;Средняя цена обучения: {mean_price:.2f}&quot;)
+print(f&quot;MAE общей средней: {mae_mean:.2f}&quot;)
+
+# groupby считает среднее только по обучению. map переносит его на проверку по названию района.
+district_mean = y_train.groupby(X_train[&quot;district&quot;]).mean()
+print(district_mean.round(2))
+pred_district = X_valid[&quot;district&quot;].map(district_mean).fillna(mean_price)
+mae_district = mean_absolute_error(y_valid, pred_district)
+print(f&quot;MAE средней по району: {mae_district:.2f}&quot;)
+</code></pre>
+<p><strong>Ячейка. Лес в конвейере.</strong></p>
+<pre><code class="language-python">prep = ColumnTransformer(
+    transformers=[
+        (&quot;num&quot;, SimpleImputer(strategy=&quot;constant&quot;), [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]),
+        (&quot;cat&quot;, Pipeline(steps=[
+            (&quot;imputer&quot;, SimpleImputer(strategy=&quot;most_frequent&quot;)),
+            (&quot;onehot&quot;, OneHotEncoder(handle_unknown=&quot;ignore&quot;)),
+        ]), [&quot;district&quot;]),
+    ]
+)
+forest = Pipeline(steps=[
+    (&quot;preprocessor&quot;, prep),
+    (&quot;model&quot;, RandomForestRegressor(n_estimators=30, random_state=0)),
+])
+# fit на сырой таблице: пустые годы и слова районов конвейер закрывает сам.
+forest.fit(X_train, y_train)
+pred_forest = forest.predict(X_valid)
+mae_forest = mean_absolute_error(y_valid, pred_forest)
+print(f&quot;MAE леса: {mae_forest:.2f}&quot;)
+</code></pre>
+<p><strong>Критерий часа 2.</strong> Средняя цена обучения — <strong>6724.52</strong>. MAE общей средней — <strong>1798.36</strong>. Средние районов: восток 6354.96, запад 6663.40, север 6568.65, центр 7322.50, юг 6717.01. MAE средней по району — <strong>1784.91</strong>: район почти ничего не добавляет, если внутри него не смотреть на площадь и год. MAE леса — <strong>129.81</strong>.</p>
+<hr />
+<h2>Час 3. Складки и слабое место</h2>
+<p>Одна проверка из 2000 строк могла оказаться удачной. Пять складок учат лес заново на каждой четвёрке частей. Отдельно смотрят средний промах по районам на той же проверке, что в часе 2. Пустой район подписан словом <code>нет</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">scores = -1 * cross_val_score(
+    forest, X, y, cv=5, scoring=&quot;neg_mean_absolute_error&quot;
+)
+print(&quot;MAE по складкам:&quot;, [f&quot;{float(s):.2f}&quot; for s in scores])
+print(f&quot;Средняя MAE складок: {float(scores.mean()):.2f}&quot;)
+
+report = X_valid.copy()
+report[&quot;miss&quot;] = (pred_forest - y_valid.to_numpy()).abs()
+# fillna только для подписи группы. В модель это слово уже не отправляется.
+by_district = report.groupby(report[&quot;district&quot;].fillna(&quot;нет&quot;))[&quot;miss&quot;].mean()
+print(by_district.round(2))
+</code></pre>
+<p><strong>Критерий часа 3.</strong> Складки: <strong>128.21, 129.47, 128.42, 130.08, 128.96</strong>. Среднее — <strong>129.03</strong>. Победа леса над средней 1798 не зависит от одного жребия. Промах по районам на проверке: восток 122.01, запад 123.74, север 119.54, центр 132.51, юг 124.45, пустой район <strong>352.26</strong>. Слабое место — квартиры без района: их 47 на проверке, и конвейер подставляет им самый частый район, которого у квартиры не было.</p>
+<hr />
+<h2>Час 4. Три новые квартиры</h2>
+<p>Новых строк нет в файле, цены у них нет и подписи <code>price_note</code> нет. Конвейер уже обучен на честных столбцах. У третьей квартиры год неизвестен: так же, как у части старых строк, его закроет <code>SimpleImputer</code> внутри <code>predict</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">new_flats = pd.DataFrame([
+    {&quot;area&quot;: 45, &quot;year&quot;: 1988, &quot;rooms&quot;: 2, &quot;district&quot;: &quot;север&quot;},
+    {&quot;area&quot;: 88, &quot;year&quot;: 2015, &quot;rooms&quot;: 3, &quot;district&quot;: &quot;юг&quot;},
+    {&quot;area&quot;: 70, &quot;year&quot;: np.nan, &quot;rooms&quot;: 3, &quot;district&quot;: &quot;центр&quot;},
+])
+forecast = forest.predict(new_flats)
+for row, price in zip(new_flats.to_dict(orient=&quot;records&quot;), forecast):
+    print(row, f&quot;прогноз {price:.2f}&quot;)
+new_flats[&quot;forecast&quot;] = forecast.round(2)
+new_flats.to_csv(&quot;module-7-0/data/new_forecast.csv&quot;, index=False)
+</code></pre>
+<p><strong>Критерий часа 4.</strong> Прогнозы: север 45 м² — <strong>4096.43</strong>, юг 88 м² — <strong>8104.47</strong>, центр без года — <strong>6997.34</strong>. Файл <code>module-7-0/data/new_forecast.csv</code> содержит эти три строки и ни одной настоящей цены.</p>
+<p>Доклад пары, полстраницы:</p>
+<ol>
+<li>MAE с подписью 0.76 — почему это не победа.</li>
+<li>Три честные MAE: 1798.36, 1784.91, 129.81.</li>
+<li>Где лес слабее всего (пустой район, 352.26) и три прогноза.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MAE с подписью около 129, а не 0.76</td>
+<td>В конвейер не попал столбец <code>note_price</code></td>
+</tr>
+<tr>
+<td>MAE леса не 129.81</td>
+<td>Другое <code>n_estimators</code>, другой <code>random_state</code> или в признаки снова попала подпись</td>
+</tr>
+<tr>
+<td>У пустого района нет отдельной строки</td>
+<td>Перед <code>groupby</code> район заполняют словом <code>нет</code> только в отчёте</td>
+</tr>
+<tr>
+<td>Прогноз центра около 4000</td>
+<td>В третьей строке район <code>центр</code>, год пустой, площадь 70, а не 45</td>
+</tr>
+<tr>
+<td><code>FileNotFoundError</code></td>
+<td>Путь <code>module-7-0/data/flats_gaps.csv</code> от корня курса</td>
+</tr>
+</tbody>
+</table>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>
