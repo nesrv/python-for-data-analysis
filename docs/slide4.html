@@ -5,34 +5,217 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Оглавление — Python для анализа данных</title>
   <link rel="stylesheet" href="course.css">
+  <style>
+    body.toc-page {
+      background: #eceae4;
+      color: #1c1b19;
+    }
+
+    .toc-page .stage {
+      padding: 28px 24px 64px;
+      box-sizing: border-box;
+    }
+
+    .toc-page .sheet {
+      width: min(1080px, 100%);
+      background: #faf9f6;
+      border: 1px solid #d9d4c8;
+      box-shadow: 0 18px 50px rgba(28, 27, 25, 0.08);
+      padding: 36px 44px 32px;
+      box-sizing: border-box;
+    }
+
+    .toc-page .mast {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #1c1b19;
+    }
+
+    .toc-page .kicker {
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #6d675c;
+    }
+
+    .toc-page h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 400;
+      font-size: clamp(36px, 4vw, 52px);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .toc-page .course {
+      margin: 10px 0 0;
+      font-size: 16px;
+      color: #3d3a34;
+    }
+
+    .toc-page .logo-top {
+      position: static;
+      width: 148px;
+      height: auto;
+    }
+
+    .toc-page .columns {
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 48px;
+      margin-top: 28px;
+    }
+
+    .toc-page h2 {
+      margin: 0 0 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #6d675c;
+    }
+
+    .toc-page ol.toc {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: mod;
+    }
+
+    .toc-page ol.toc li {
+      counter-increment: mod;
+      border-top: 1px solid #e4dfd4;
+    }
+
+    .toc-page ol.toc li:last-child {
+      border-bottom: 1px solid #e4dfd4;
+    }
+
+    .toc-page ol.toc a {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 8px;
+      margin: 0;
+      padding: 11px 0;
+      color: #1c1b19;
+      font-size: 16px;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+
+    .toc-page ol.toc a::before {
+      content: counter(mod, decimal-leading-zero);
+      color: #8a7340;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em;
+    }
+
+    .toc-page ol.toc a:hover,
+    .toc-page ol.toc a:focus {
+      color: #8a7340;
+    }
+
+    .toc-page .files {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .toc-page .files li {
+      border-top: 1px solid #e4dfd4;
+    }
+
+    .toc-page .files li:last-child {
+      border-bottom: 1px solid #e4dfd4;
+    }
+
+    .toc-page .files a {
+      display: block;
+      padding: 9px 0;
+      color: #1c1b19;
+      font-size: 14px;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+
+    .toc-page .files a span {
+      display: block;
+      color: #6d675c;
+      font-size: 12px;
+    }
+
+    .toc-page .files a:hover,
+    .toc-page .files a:focus {
+      color: #8a7340;
+    }
+
+    .toc-page .pager a {
+      border-radius: 0;
+      width: 32px;
+      height: 32px;
+      font-weight: 500;
+      box-shadow: none;
+      border-color: #1c1b19;
+      color: #1c1b19;
+      background: #faf9f6;
+    }
+
+    .toc-page .pager a[aria-current="page"] {
+      background: #1c1b19;
+      color: #faf9f6;
+      border-color: #1c1b19;
+    }
+
+    @media (max-width: 800px) {
+      .toc-page .sheet { padding: 24px 20px 20px; }
+      .toc-page .columns { grid-template-columns: 1fr; gap: 28px; }
+      .toc-page .logo-top { width: 110px; }
+    }
+  </style>
 </head>
-<body>
+<body class="toc-page">
   <div class="stage">
-    <article class="slide">
-      <img class="logo-top" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
-      <img class="art" src="assets/illustration.png" alt="">
-      <div class="copy">
-        <h1>Оглавление</h1>
-        <p class="lead">Python для анализа данных</p>
-        <nav>
-          <ol class="toc">
-            <li><a href="module-1.html">Модуль 1. Введение и настройка рабочей среды</a></li>
-            <li><a href="module-2.html">Модуль 2. Основы Python</a></li>
-            <li><a href="module-3.html">Модуль 3. Подготовка и доступ к данным</a></li>
-            <li><a href="module-4.html">Модуль 4. Анализ, исследование и визуализация данных</a></li>
-            <li><a href="module-5.html">Модуль 5. Извлечение и манипулирование данными Pandas</a></li>
-            <li><a href="module-6.html">Модуль 6. Машинное обучение</a></li>
-            <li><a href="module-7.html">Модуль 7. Пропуски, категории, проверка и бустинг</a></li>
-          </ol>
-        </nav>
-        <p class="lead"><a href="data/books.csv">books.csv — таблица книг</a></p>
-        <p class="lead"><a href="data/flats.csv">flats.csv — таблица квартир</a></p>
-        <p class="lead"><a href="data/authors.sql">authors.sql — таблица авторов</a></p>
-        <p class="lead"><a href="data/shop_center.csv">shop_center.csv — остатки центра</a></p>
-        <p class="lead"><a href="data/shop_station.csv">shop_station.csv — остатки вокзала</a></p>
-        <p class="lead"><a href="data/stock.csv">stock.csv — склад</a></p>
-        <p class="lead"><a href="data/editions.csv">editions.csv — издания</a></p>
-        <p class="lead"><a href="data/fall-flats.csv">fall-flats.csv — квартиры, осенняя выборка</a></p>
+    <article class="sheet">
+      <header class="mast">
+        <div>
+          <p class="kicker">Учебный центр</p>
+          <h1>Оглавление</h1>
+          <p class="course">Python для анализа данных</p>
+        </div>
+        <img class="logo-top" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+      </header>
+      <div class="columns">
+        <section>
+          <h2>Программа</h2>
+          <nav>
+            <ol class="toc">
+              <li><a href="module-1.html">Введение и настройка рабочей среды</a></li>
+              <li><a href="module-2.html">Основы Python</a></li>
+              <li><a href="module-3.html">Подготовка и доступ к данным</a></li>
+              <li><a href="module-4.html">Анализ, исследование и визуализация данных</a></li>
+              <li><a href="module-5.html">Извлечение и манипулирование данными Pandas</a></li>
+              <li><a href="module-6.html">Машинное обучение</a></li>
+              <li><a href="module-7.html">Пропуски, категории, проверка и бустинг</a></li>
+            </ol>
+          </nav>
+        </section>
+        <section>
+          <h2>Данные</h2>
+          <ul class="files">
+            <li><a href="data/books.csv">books.csv <span>таблица книг</span></a></li>
+            <li><a href="data/flats.csv">flats.csv <span>таблица квартир</span></a></li>
+            <li><a href="data/authors.sql">authors.sql <span>таблица авторов</span></a></li>
+            <li><a href="data/shop_center.csv">shop_center.csv <span>остатки центра</span></a></li>
+            <li><a href="data/shop_station.csv">shop_station.csv <span>остатки вокзала</span></a></li>
+            <li><a href="data/stock.csv">stock.csv <span>склад</span></a></li>
+            <li><a href="data/editions.csv">editions.csv <span>издания</span></a></li>
+            <li><a href="data/fall-flats.csv">fall-flats.csv <span>квартиры, осенняя выборка</span></a></li>
+          </ul>
+        </section>
       </div>
     </article>
   </div>
