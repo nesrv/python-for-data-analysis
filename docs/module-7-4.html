@@ -14,7 +14,7 @@
 <h1>4. Конвейеры обработки данных (Pipelines)</h1>
 <p>Важный навык для развёртывания и тестирования сложных моделей с предварительной обработкой данных.</p>
 <p><img src="assets/m7/m7-pipeline.jpg" alt="Конвейер: заполнить пропуски, закодировать район, обучить лес" style="max-width:100%;height:auto"></p>
-<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает таблицу и делит её так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>.</p>
+<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает <a href="data/flats_gaps.csv">flats_gaps.csv</a> и делит таблицу так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>. В ноутбуке путь <code>module-7-0/data/flats_gaps.csv</code>.</p>
 <pre><code class="language-python">import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor

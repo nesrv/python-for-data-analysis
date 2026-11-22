@@ -14,7 +14,7 @@
 <h1>5. Кросс-валидация (Cross-Validation)</h1>
 <p>Более устойчивый способ проверить качество модели, чем один жребий 8000/2000.</p>
 <p><img src="assets/m7/m7-cv.jpg" alt="Пять складок: в каждом опыте проверка — одна часть, остальные четыре — обучение" style="max-width:100%;height:auto"></p>
-<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает таблицу и делит её так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>.</p>
+<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает <a href="data/flats_gaps.csv">flats_gaps.csv</a> и делит таблицу так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>. В ноутбуке путь <code>module-7-0/data/flats_gaps.csv</code>.</p>
 <pre><code class="language-python">import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor

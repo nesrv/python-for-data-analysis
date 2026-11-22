@@ -14,7 +14,7 @@
 <h1>3. Категориальные переменные (Categorical Variables)</h1>
 <p>В данных много нечисловой информации. На этой странице район квартиры становится числами, которые лес умеет читать.</p>
 <p><img src="assets/m7/m7-category.jpg" alt="Район заменяется столбцами Центра, Севера и Юга из нулей и единиц" style="max-width:100%;height:auto"></p>
-<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает таблицу и делит её так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>.</p>
+<p>Если открыли эту страницу отдельно от предыдущих, сначала выполните ячейку. Она заново читает <a href="data/flats_gaps.csv">flats_gaps.csv</a> и делит таблицу так же, как на странице про пропуски: 8000 строк обучение, 2000 проверка, <code>random_state=0</code>. В ноутбуке путь <code>module-7-0/data/flats_gaps.csv</code>.</p>
 <pre><code class="language-python">import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor

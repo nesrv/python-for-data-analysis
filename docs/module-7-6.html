@@ -25,6 +25,7 @@
 <p>Слово «градиентный» про способ выбрать поправку: шаг берут туда, где ошибка убывает быстрее всего. Цикл останавливают, когда заданное число деревьев кончилось или когда проверка перестала улучшаться.</p>
 <p>Библиотека этого раздела — XGBoost, extreme gradient boosting. Это быстрая реализация той же идеи. У неё три удобства, которые здесь как раз нужны: она сама принимает пустые <code>year</code> и <code>rooms</code> (отдельный <code>SimpleImputer</code> не обязателен), умеет остановиться раньше времени и считает деревья параллельно. Класс <code>XGBRegressor</code> вызывают так же, как лес: <code>fit</code>, затем <code>predict</code>.</p>
 <p>В этом разделе признаки снова только <code>area</code>, <code>year</code>, <code>rooms</code>, то же разбиение 8000/2000 с <code>random_state=0</code>. Район не добавляем, чтобы сравнивать бустинг с лесом из 7.0.1, а не с моделью, у которой больше столбцов.</p>
+<p>Таблица: <a href="data/flats_gaps.csv">flats_gaps.csv</a>. В ноутбуке путь <code>module-7-0/data/flats_gaps.csv</code>.</p>
 <p><strong>Ячейка. Модель с параметрами по умолчанию.</strong></p>
 <pre><code class="language-python">import pandas as pd
 from sklearn.model_selection import train_test_split

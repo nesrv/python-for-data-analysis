@@ -21,7 +21,7 @@
 <li><strong>Загрязнение обучения и проверки.</strong> Среднее, масштаб или список категорий посчитали по всей таблице, и только потом отложили проверку. Проверка косвенно поучаствовала в обучении. От этого защищает конвейер со страницы 4: <code>fit</code> считает правила только по обучению, <code>transform</code> применяет их к проверке.</li>
 </ol>
 <h2>Заявки на карту</h2>
-<p>Файл <code>module-7-0/data/AER_credit_card_data.csv</code>. Цель <code>card</code>: заявку одобрили или нет. Столбцы <code>expenditure</code> (расходы по карте) и <code>share</code> (доля этих расходов в доходе) подозрительны: у человека без карты расходов по ней быть не может. <code>active</code> и <code>majorcards</code> тоже описывают уже выданные карты, а не заявку.</p>
+<p>Файл <a href="data/AER_credit_card_data.csv">AER_credit_card_data.csv</a>. В ноутбуке путь <code>module-7-0/data/AER_credit_card_data.csv</code>. Цель <code>card</code>: заявку одобрили или нет. Столбцы <code>expenditure</code> (расходы по карте) и <code>share</code> (доля этих расходов в доходе) подозрительны: у человека без карты расходов по ней быть не может. <code>active</code> и <code>majorcards</code> тоже описывают уже выданные карты, а не заявку.</p>
 <p><strong>Ячейка. Модель со всеми столбцами.</strong></p>
 <pre><code class="language-python">import pandas as pd
 from sklearn.pipeline import make_pipeline

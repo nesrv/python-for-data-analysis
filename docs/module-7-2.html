@@ -22,6 +22,7 @@
 <li><strong>Среднее плюс флаг.</strong> То же среднее и ещё один столбец, например <code>year_was_missing</code>. В нём <code>True</code>, если год изначально был пуст. Иногда сам факт пропуска связан с ценой: анкета заполнена не до конца. Флаг даёт модели этот факт отдельно от подставленного числа.</li>
 </ol>
 <p>На этом шаге район не берём. Район — текст, лес его тоже не примет, и ошибка смешалась бы с темой следующего раздела. Сравниваем только <code>area</code>, <code>year</code>, <code>rooms</code>.</p>
+<p>Таблица: <a href="data/flats_gaps.csv">flats_gaps.csv</a>. В ноутбуке путь <code>module-7-0/data/flats_gaps.csv</code>.</p>
 <p><strong>Ячейка. Чтение таблицы и разбиение.</strong></p>
 <pre><code class="language-python">import pandas as pd
 from sklearn.model_selection import train_test_split
