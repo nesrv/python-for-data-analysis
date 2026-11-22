@@ -31,6 +31,7 @@
   - [3.3 Типы, JSON, иерархии и материализованные представления](https://nesrv.github.io/python-for-data-analysis/module-3-3.html)
   - [3.4 Устранение излишней и избыточной информации](https://nesrv.github.io/python-for-data-analysis/module-3-4.html)
   - [3.5 Нормализация данных. Форматирование данных](https://nesrv.github.io/python-for-data-analysis/module-3-5.html)
+  - [3.6 PostgreSQL как база для аналитики](https://nesrv.github.io/python-for-data-analysis/module-3-6.html)
 - [Модуль 4. Анализ, исследование и визуализация данных](https://nesrv.github.io/python-for-data-analysis/module-4.html)
 - [Презентация. От таблицы к прогнозу](https://nesrv.github.io/python-for-data-analysis/analysis-deck.html)
 - [Модуль 5. Извлечение и манипулирование данными Pandas](https://nesrv.github.io/python-for-data-analysis/module-5.html)
@@ -39,3 +40,4 @@
   - [6.0 Введение в машинное обучение](https://nesrv.github.io/python-for-data-analysis/module-6-0.html)
   - [7. Пропуски, категории, проверка и бустинг](https://nesrv.github.io/python-for-data-analysis/module-7.html)
   - [Практическое занятие. Честная цена](https://nesrv.github.io/python-for-data-analysis/module-7-8.html)
+- [9. Интерфейсы, препроцессинг и три задачи](https://nesrv.github.io/python-for-data-analysis/module-9.html)

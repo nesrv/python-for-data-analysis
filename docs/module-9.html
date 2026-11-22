@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>9. Интерфейсы, препроцессинг и три задачи</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="slide4.html">← Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+<h1>9. Интерфейсы, препроцессинг и три задачи</h1>
+<p><strong>Цель:</strong> закрыть пункты программы 6.2–6.6, которых нет в занятиях 6.0 и в блоке 7. Увидеть разницу между <code>transform</code> и <code>predict</code>, масштабировать числа, сравнить линейную регрессию с лесом, классифицировать заявку на карту и разложить квартиры на кластеры без цены.</p>
+<p><strong>Опора:</strong> файл квартир <code>module-7-0/data/flats_gaps.csv</code> и заявки <code>module-7-0/data/AER_credit_card_data.csv</code>. Окружение <code>.venv</code>, ядро Jupyter — <code>./.venv/Scripts/python.exe</code>. Рабочая папка — корень курса. Цена квартиры в тысячах рублей.</p>
+<p>В блоке 7 модель почти всегда случайный лес. Здесь к лесу добавляются три других инструмента sklearn: линейная регрессия, логистическая регрессия и <code>KMeans</code>. Общий для них приём — подготовка таблицы отдельным объектом, а не руками перед <code>fit</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Пункт программы</th>
+<th>Раздел здесь</th>
+<th>Что появляется впервые</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6.2 Интерфейсы</td>
+<td>9.1</td>
+<td><code>fit</code>, <code>transform</code>, <code>predict</code>, <code>score</code></td>
+</tr>
+<tr>
+<td>6.3 Препроцессинг</td>
+<td>9.2</td>
+<td><code>StandardScaler</code>, матрица после <code>transform</code></td>
+</tr>
+<tr>
+<td>6.4 Регрессия</td>
+<td>9.3</td>
+<td><code>LinearRegression</code> рядом с лесом</td>
+</tr>
+<tr>
+<td>6.5 Классификация</td>
+<td>9.4</td>
+<td><code>LogisticRegression</code> и матрица ошибок</td>
+</tr>
+<tr>
+<td>6.6 Кластеризация</td>
+<td>9.5</td>
+<td><code>KMeans</code> без столбца цены</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Подготовка</h2>
+<pre><code class="language-powershell">.\.venv\Scripts\Activate.ps1
+python -m pip install pandas scikit-learn
+</code></pre>
+<p>Ноутбук <code>module-9/lab9-tri-zadachi.ipynb</code>, ядро <code>.venv</code>. Первая ячейка — markdown: ФИО, дата, заголовок «9. Интерфейсы, препроцессинг и три задачи».</p>
+<hr />
+<h2>9.1. Интерфейсы fit, transform, predict, score</h2>
+<p>У объектов sklearn два разных контракта, и их легко перепутать.</p>
+<p>Преобразователь готовит таблицу. У него есть <code>fit</code> и <code>transform</code>. <code>fit</code> запоминает правило по обучению: среднее для пропуска, среднее и разброс для масштаба, список районов для кодирования. <code>transform</code> применяет уже запомненное правило и к обучению, и к проверке. <code>predict</code> у преобразователя нет: он не выдаёт цену.</p>
+<p>Оценщик отвечает на вопрос. У него есть <code>fit</code> и <code>predict</code>. <code>fit</code> подбирает модель по строкам, где ответ известен. <code>predict</code> выдаёт ответ для новых строк. <code>score</code> — одна сводная цифра качества. Для регрессии это не MAE, а доля объяснённого разброса, её называют R². Ближе к 1 — модель повторяет колебания цены. Ноль — она не лучше, чем просто назвать среднюю.</p>
+<p><code>fit_transform</code> — это <code>fit</code> и сразу <code>transform</code> на той же таблице. Его вызывают на обучении. На проверке только <code>transform</code>: иначе правило пересчитается по проверке, и это уже утечка из блока 7.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import mean_absolute_error, accuracy_score, confusion_matrix
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.cluster import KMeans
+
+flats = pd.read_csv(&quot;module-7-0/data/flats_gaps.csv&quot;)
+y = flats.price
+# Подпись цены и номер квартиры в признаки не входят: это не свойства квартиры на момент прогноза.
+X = flats[[&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;, &quot;district&quot;]]
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, train_size=0.8, test_size=0.2, random_state=0
+)
+
+num_cols = [&quot;area&quot;, &quot;year&quot;, &quot;rooms&quot;]
+# SimpleImputer — преобразователь. fit запоминает среднее по каждому столбцу обучения.
+imputer = SimpleImputer()
+imputer.fit(X_train[num_cols])
+print(&quot;Средние, которые запомнил imputer:&quot;, np.round(imputer.statistics_, 2))
+# transform заполняет проверку этими средними. Своё среднее проверки здесь не считается.
+filled_valid = imputer.transform(X_valid[num_cols])
+print(&quot;Пустых ячеек после transform:&quot;, int(np.isnan(filled_valid).sum()))
+# predict у преобразователя нет. hasattr проверяет это, не вызывая ошибку.
+print(&quot;Есть predict у imputer:&quot;, hasattr(imputer, &quot;predict&quot;))
+print(&quot;Есть transform у imputer:&quot;, hasattr(imputer, &quot;transform&quot;))
+</code></pre>
+<p><strong>Критерий 9.1.</strong> После <code>transform</code> пустых ячеек 0. У <code>SimpleImputer</code> нет метода <code>predict</code>, метод <code>transform</code> есть. Печать <code>hasattr</code> даёт <code>False</code>, затем <code>True</code>. Средние imputer — три числа, по одному на площадь, год и комнаты. Их не сверяют поцифренно: дальше важно не само среднее, а то, что оно посчитано только по обучению.</p>
+<hr />
+<h2>9.2. Препроцессинг: масштаб и район в одной матрице</h2>
+<p>Линейная модель и кластеры смотрят на расстояния между числами. Площадь живёт в диапазоне десятков, год — около 2000. Без масштаба год перетянет расстояние на себя. <code>StandardScaler</code> вычитает среднее столбца и делит на его разброс. После этого у столбца на обучении среднее 0 и разброс 1.</p>
+<p>Район по-прежнему текст. Его нельзя вычесть и поделить. Ветка для района другая: самый частый район вместо пустой ячейки, затем столбец из 0 и 1 на каждый район. <code>ColumnTransformer</code> склеивает обе ветки в одну матрицу. Модель дальше видит только числа.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">prep = ColumnTransformer(
+    transformers=[
+        (&quot;num&quot;, Pipeline(steps=[
+            (&quot;imputer&quot;, SimpleImputer()),
+            # Масштаб после заполнения: иначе среднее и разброс считались бы по столбцу с пропусками.
+            (&quot;scale&quot;, StandardScaler()),
+        ]), num_cols),
+        (&quot;cat&quot;, Pipeline(steps=[
+            (&quot;imputer&quot;, SimpleImputer(strategy=&quot;most_frequent&quot;)),
+            (&quot;onehot&quot;, OneHotEncoder(handle_unknown=&quot;ignore&quot;)),
+        ]), [&quot;district&quot;]),
+    ]
+)
+# fit запоминает средние, разброс и список районов. transform уже ничего не подбирает.
+prep.fit(X_train)
+X_train_ready = prep.transform(X_train)
+print(&quot;Форма матрицы обучения:&quot;, X_train_ready.shape)
+print(&quot;Имена столбцов:&quot;, list(prep.get_feature_names_out()))
+# Первые три столбца — масштабированные площадь, год и комнаты.
+print(&quot;Средние трёх чисел:&quot;, np.round(X_train_ready[:, :3].mean(axis=0), 4))
+print(&quot;Разброс трёх чисел:&quot;, np.round(X_train_ready[:, :3].std(axis=0), 4))
+</code></pre>
+<p><strong>Критерий 9.2.</strong> Форма <code>(8000, 8)</code>: три числа и пять районов. Пустой район не получил свой столбец: <code>most_frequent</code> подставил вместо него самый частый район обучения. Имена начинаются с <code>num__area</code> и заканчиваются районами <code>cat__district_восток</code> … <code>cat__district_юг</code>. Средние трёх чисел — нули, разброс — единицы. Печать может показать <code>-0.</code> вместо <code>0.</code>: это тот же ноль.</p>
+<hr />
+<h2>9.3. Регрессия: прямая и лес</h2>
+<p>Регрессия предсказывает число. Здесь это цена. <code>LinearRegression</code> ищет одну прямую: цена как сумма «площадь × вес + год × вес + комнаты × вес + вес района». Лес из занятия 6.0 режет таблицу на прямоугольники и в каждом называет свою среднюю. На этих квартирах цена как раз собрана суммой площади, года, комнат и надбавки района, поэтому прямая здесь уместна.</p>
+<p><code>score</code> у регрессии — R². Рядом всё равно печатают MAE: её уже умеют читать по блоку 7, и она в тех же тысячах рублей.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python"># Тот же prep, что в 9.2. Линейной модели нужен масштаб, лесу из второй модели — нет.
+linear = Pipeline(steps=[
+    (&quot;preprocessor&quot;, prep),
+    (&quot;model&quot;, LinearRegression()),
+])
+linear.fit(X_train, y_train)
+pred_linear = linear.predict(X_valid)
+mae_linear = mean_absolute_error(y_valid, pred_linear)
+# score вызывает predict сам и сравнивает с y_valid. Для регрессии это R², не MAE.
+print(f&quot;MAE прямой: {mae_linear:.2f}&quot;)
+print(f&quot;R² прямой: {linear.score(X_valid, y_valid):.4f}&quot;)
+
+forest_prep = ColumnTransformer(
+    transformers=[
+        (&quot;num&quot;, SimpleImputer(strategy=&quot;constant&quot;), num_cols),
+        (&quot;cat&quot;, Pipeline(steps=[
+            (&quot;imputer&quot;, SimpleImputer(strategy=&quot;most_frequent&quot;)),
+            (&quot;onehot&quot;, OneHotEncoder(handle_unknown=&quot;ignore&quot;)),
+        ]), [&quot;district&quot;]),
+    ]
+)
+forest = Pipeline(steps=[
+    (&quot;preprocessor&quot;, forest_prep),
+    (&quot;model&quot;, RandomForestRegressor(n_estimators=30, random_state=0)),
+])
+forest.fit(X_train, y_train)
+mae_forest = mean_absolute_error(y_valid, forest.predict(X_valid))
+print(f&quot;MAE леса: {mae_forest:.2f}&quot;)
+</code></pre>
+<p><strong>Критерий 9.3.</strong> MAE прямой — <strong>114.19</strong>. R² — <strong>0.9945</strong>: прямая повторяет устройство цены в этом файле. MAE леса — <strong>129.81</strong>, та же, что у конвейера в блоке 7. На этих квартирах прямая точнее леса. Это не общий закон. Если бы цена зависела от площади «ступеньками», лес обогнал бы прямую. Вывод занятия записывают по этим двум числам, а не по привычке «лес всегда лучше».</p>
+<hr />
+<h2>9.4. Классификация: одобрят ли карту</h2>
+<p>Классификация предсказывает метку, а не число. В файле заявок метка <code>card</code>: карту выдали или нет. <code>LogisticRegression</code> выдаёт вероятность метки «да» и порогом 0.5 превращает её в <code>True</code> или <code>False</code>.</p>
+<p>Столбцы <code>expenditure</code>, <code>share</code>, <code>active</code> и <code>majorcards</code> не берут. На странице про утечку они поднимали точность леса к 0.98, потому что описывают уже выданную карту. Здесь остаются <code>reports</code>, <code>age</code>, <code>income</code>, <code>owner</code>, <code>selfemp</code>, <code>dependents</code>, <code>months</code>.</p>
+<p>Точность — доля верных меток. Она одна на обе ошибки: и «отказали по ошибке», и «одобрили по ошибке». Матрица ошибок их разделяет. Строка — что было на самом деле, столбец — что сказала модель. Порядок меток у sklearn: сначала <code>False</code>, потом <code>True</code>.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">cards = pd.read_csv(
+    &quot;module-7-0/data/AER_credit_card_data.csv&quot;,
+    true_values=[&quot;yes&quot;],
+    false_values=[&quot;no&quot;],
+)
+safe_cols = [&quot;reports&quot;, &quot;age&quot;, &quot;income&quot;, &quot;owner&quot;, &quot;selfemp&quot;, &quot;dependents&quot;, &quot;months&quot;]
+X_cards = cards[safe_cols]
+y_cards = cards.card
+X_card_train, X_card_valid, y_card_train, y_card_valid = train_test_split(
+    X_cards, y_cards, test_size=0.25, random_state=0
+)
+
+# Масштаб нужен: возраст измеряется десятками, доход — единицами «доход / 10 000».
+logit = Pipeline(steps=[
+    (&quot;scale&quot;, StandardScaler()),
+    (&quot;model&quot;, LogisticRegression(max_iter=500, random_state=0)),
+])
+logit.fit(X_card_train, y_card_train)
+pred_card = logit.predict(X_card_valid)
+print(f&quot;Точность на проверке: {accuracy_score(y_card_valid, pred_card):.6f}&quot;)
+print(confusion_matrix(y_card_valid, pred_card))
+
+card_scores = cross_val_score(logit, X_cards, y_cards, cv=5, scoring=&quot;accuracy&quot;)
+print(&quot;Точность по складкам:&quot;, [f&quot;{float(s):.4f}&quot; for s in card_scores])
+print(f&quot;Средняя точность: {float(card_scores.mean()):.6f}&quot;)
+</code></pre>
+<p><strong>Критерий 9.4.</strong> Точность на проверке — <strong>0.854545</strong>. Матрица:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Модель сказала «нет»</th>
+<th>Модель сказала «да»</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>На самом деле нет</td>
+<td>23</td>
+<td>44</td>
+</tr>
+<tr>
+<td>На самом деле да</td>
+<td>4</td>
+<td>259</td>
+</tr>
+</tbody>
+</table>
+<p>Ошибок «одобрили отказ» 44, ошибок «отказали одобренной заявке» только 4. Модель щедра на «да». Пять складок: <strong>0.8447, 0.8561, 0.8598, 0.8447, 0.8327</strong>, среднее <strong>0.847601</strong>. Это рядом с лесом без утечки из блока 7 (около 0.83) и далеко от 0.98 модели, которая видела расходы по карте.</p>
+<hr />
+<h2>9.5. Кластеризация: группы без цены</h2>
+<p>Кластеризация не предсказывает столбец. Ей не передают <code>y</code>. <code>KMeans</code> раскладывает строки на группы так, чтобы квартиры внутри группы были ближе друг к другу, чем к чужим. Близость считают по масштабированным площади, году и комнатам. Район и цену в <code>fit</code> не кладут: район — текст, цена — то, чем группу потом проверяют.</p>
+<p>Число групп задают заранее. Здесь четыре: этого хватает, чтобы разделить «маленькая / большая» и «старше / новее». После <code>fit_predict</code> цену только усредняют внутри группы. Если средние цен разъехались, группы совпали с устройством цены, хотя модель цену не видела.</p>
+<p><strong>Ячейка:</strong></p>
+<pre><code class="language-python">cluster_prep = Pipeline(steps=[
+    (&quot;imputer&quot;, SimpleImputer()),
+    (&quot;scale&quot;, StandardScaler()),
+])
+# fit_transform на всех 10000: отдельной проверки у кластеров нет, цену не угадывают.
+Z = cluster_prep.fit_transform(flats[num_cols])
+# n_init=10 — десять разных стартов. KMeans зависит от начальных центров, берут удачный.
+groups = KMeans(n_clusters=4, n_init=10, random_state=0)
+flats = flats.copy()
+flats[&quot;cluster&quot;] = groups.fit_predict(Z)
+print(flats.groupby(&quot;cluster&quot;).size())
+print(flats.groupby(&quot;cluster&quot;)[[&quot;area&quot;, &quot;year&quot;, &quot;price&quot;]].mean().round(2))
+</code></pre>
+<p><strong>Критерий 9.5.</strong> Четыре группы. Номера групп задаёт алгоритм, сверяют не номер, а размер и средние:</p>
+<table>
+<thead>
+<tr>
+<th>Группа по смыслу</th>
+<th>Строк</th>
+<th>Средняя площадь</th>
+<th>Средний год</th>
+<th>Средняя цена</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Меньше и новее</td>
+<td>2285</td>
+<td>51.9</td>
+<td>2008.9</td>
+<td>5158.19</td>
+</tr>
+<tr>
+<td>Меньше и старше</td>
+<td>2175</td>
+<td>48.3</td>
+<td>1977.9</td>
+<td>4465.02</td>
+</tr>
+<tr>
+<td>Больше и новее</td>
+<td>2977</td>
+<td>93.9</td>
+<td>2007.4</td>
+<td>8576.77</td>
+</tr>
+<tr>
+<td>Больше и старше</td>
+<td>2563</td>
+<td>90.4</td>
+<td>1976.0</td>
+<td>7952.12</td>
+</tr>
+</tbody>
+</table>
+<p>Большая квартира в таблице дороже маленькой, новая при той же площади дороже старой. Кластеры это повторили, не видя <code>price</code>.</p>
+<hr />
+<h2>9.6. Самопроверка</h2>
+<ol>
+<li>У <code>SimpleImputer</code> есть <code>transform</code> и нет <code>predict</code>.</li>
+<li>Матрица после препроцессинга имеет форму <code>(8000, 8)</code>, три первых столбца со средним 0 и разбросом 1.</li>
+<li>MAE прямой 114.19, R² 0.9945, MAE леса 129.81.</li>
+<li>Точность логистической регрессии на проверке 0.854545, в матрице 23, 44, 4, 259.</li>
+<li>Средняя точность пяти складок 0.847601.</li>
+<li>Четыре кластера размеров 2285, 2175, 2977, 2563. Самая дорогая группа — большие квартиры около 2007 года, средняя цена 8576.77.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Симптом</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>predict</code> вызвался у <code>SimpleImputer</code></td>
+<td>Цену выдаёт модель в конце <code>Pipeline</code>, не преобразователь</td>
+</tr>
+<tr>
+<td>Средние после масштаба далеко от нуля</td>
+<td><code>StandardScaler</code> стоит после <code>SimpleImputer</code> и <code>fit</code> вызван на обучении</td>
+</tr>
+<tr>
+<td>MAE прямой близка к 1798</td>
+<td>В <code>Pipeline</code> не попал <code>prep</code> с районом, осталась одна площадь</td>
+</tr>
+<tr>
+<td>Точность классификации около 0.98</td>
+<td>В <code>safe_cols</code> попали <code>expenditure</code> или <code>share</code></td>
+</tr>
+<tr>
+<td>Кластеры почти одной цены</td>
+<td>В <code>KMeans</code> передали <code>price</code> или забыли <code>StandardScaler</code></td>
+</tr>
+<tr>
+<td><code>FileNotFoundError</code></td>
+<td>Пути <code>module-7-0/data/flats_gaps.csv</code> и <code>module-7-0/data/AER_credit_card_data.csv</code> от корня курса</td>
+</tr>
+</tbody>
+</table>
+<p>После занятия слушатель различает подготовку таблицы и ответ модели, масштабирует числа перед прямой и перед кластерами, сравнивает регрессоры по MAE, классификатор читает по матрице ошибок и не кладёт цену в кластеризацию, которой потом эту цену проверяет.</p>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>
