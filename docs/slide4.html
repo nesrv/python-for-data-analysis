@@ -119,6 +119,22 @@
       color: #8a7340;
     }
 
+    .toc-page ol.toc li.sub {
+      counter-increment: none;
+      border-top: none;
+    }
+
+    .toc-page ol.toc li.sub a {
+      grid-template-columns: 36px 1fr;
+      padding: 0 0 12px;
+      font-size: 14px;
+      color: #3d3a34;
+    }
+
+    .toc-page ol.toc li.sub a::before {
+      content: "";
+    }
+
     .toc-page .files {
       margin: 0;
       padding: 0;
@@ -196,6 +212,7 @@
               <li><a href="module-1.html">Введение и настройка рабочей среды</a></li>
               <li><a href="module-2.html">Основы Python</a></li>
               <li><a href="module-3.html">Подготовка и доступ к данным</a></li>
+              <li class="sub"><a href="module-3-6.html">3.6 PostgreSQL как база для аналитики</a></li>
               <li><a href="module-4.html">Анализ, исследование и визуализация данных</a></li>
               <li><a href="module-5.html">Извлечение и манипулирование данными Pandas</a></li>
               <li><a href="module-6.html">Машинное обучение</a></li>

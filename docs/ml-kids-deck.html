@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Где нужен компьютер, который учится</title>
+  <link rel="stylesheet" href="course.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #e7e9f4; overflow: hidden; }
+    .deck { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .slide {
+      display: none; width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: #fff; color: #09135a; position: relative; overflow: hidden;
+      font-size: clamp(15px, 1.45vw, 24px);
+      box-shadow: 0 12px 40px rgba(9, 19, 90, 0.18);
+    }
+    .slide.active { display: block; }
+    .slide .notes { display: none; }
+    .logo { position: absolute; top: 3%; right: 3%; width: 14%; }
+    .pad { position: absolute; inset: 9% 5% 12% 5%; }
+    .kicker { margin: 0 0 0.3em; color: #c23b78; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72em; }
+    h1 { margin: 0 0 0.25em; font-size: 2.2em; line-height: 1.1; }
+    h2 { margin: 0 0 0.4em; font-size: 1.7em; line-height: 1.15; }
+    p { margin: 0.3em 0; line-height: 1.35; }
+    .lead { font-size: 1.2em; max-width: 18em; }
+    .num { position: absolute; left: 5%; bottom: 4%; font-size: 0.75em; color: #293699; font-weight: 800; }
+    .bar { position: fixed; top: 0; left: 0; height: 5px; background: #c23b78; z-index: 6; width: 0; }
+    .chrome { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px; }
+    .chrome button, .overview button {
+      border: 2px solid #09135a; background: #fff; color: #09135a;
+      border-radius: 999px; padding: 0.3em 0.85em; font-weight: 800; cursor: pointer;
+    }
+    .chrome button[aria-pressed="true"] { background: #c23b78; color: #fff; border-color: #c23b78; }
+    .notes-panel {
+      display: none; position: fixed; left: 2%; right: 2%; bottom: 54px; z-index: 6;
+      background: #09135a; color: #fff; border-radius: 12px; padding: 0.8em 1em;
+      font-size: 16px; line-height: 1.45; max-height: 34vh; overflow: auto;
+    }
+    .notes-panel.open { display: block; }
+    .overview { display: none; position: fixed; inset: 0; z-index: 8; background: rgba(9,19,90,.92); overflow: auto; padding: 24px; }
+    .overview.open { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .overview button.tile { border-radius: 10px; text-align: left; padding: 0.7em; min-height: 84px; }
+    .overview button.tile.here { background: #c23b78; color: #fff; border-color: #c23b78; }
+
+    .row { display: flex; gap: 0.7em; flex-wrap: wrap; margin-top: 0.8em; }
+    .flow { display: flex; align-items: center; gap: 0.45em; margin-top: 1em; flex-wrap: wrap; }
+    .flow .step {
+      background: #f3f5fb; border: 3px solid #09135a; border-radius: 14px;
+      padding: 0.55em 0.75em; font-weight: 800;
+    }
+    .slide.active .flow .step { animation: pop 0.5s ease both; }
+    .slide.active .flow .step:nth-child(2) { animation-delay: 0.2s; }
+    .slide.active .flow .step:nth-child(3) { animation-delay: 0.4s; }
+    .slide.active .flow .step:nth-child(4) { animation-delay: 0.6s; }
+    .flow .step.hot { background: #fff5f8; border-color: #c23b78; }
+    .pop {
+      background: #f3f5fb; border: 3px solid #09135a; border-radius: 16px;
+      padding: 0.7em 0.9em; font-weight: 800; min-width: 7em;
+    }
+    .slide.active .pop { animation: pop 0.55s ease both; }
+    .slide.active .pop:nth-child(2) { animation-delay: 0.25s; }
+    .slide.active .pop:nth-child(3) { animation-delay: 0.5s; }
+    @keyframes pop { from { transform: translateY(18px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    .houses { display: flex; gap: 0.8em; align-items: flex-end; margin-top: 1em; }
+    .house { text-align: center; font-weight: 800; }
+    .roof {
+      width: 0; height: 0; margin: 0 auto;
+      border-left: 42px solid transparent; border-right: 42px solid transparent;
+      border-bottom: 28px solid #c23b78;
+    }
+    .bodyh { width: 84px; height: 64px; background: #d9e4ff; border: 3px solid #09135a; border-radius: 8px; margin: 0 auto; }
+    .tag { margin-top: 0.35em; }
+    .slide.active .house { animation: rise 0.7s ease both; }
+    .slide.active .house:nth-child(2) { animation-delay: 0.2s; }
+    .slide.active .house:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes rise { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    table.kids { border-collapse: collapse; margin-top: 0.6em; font-weight: 800; }
+    table.kids th, table.kids td { border: 2px solid #09135a; padding: 0.35em 0.7em; text-align: center; }
+    table.kids th { background: #09135a; color: #fff; }
+    .hole { background: #fde8ee; color: #c23b78; animation: blink 1.1s steps(2) infinite; }
+    @keyframes blink { 50% { background: #fff; } }
+    .zero { background: #e7f6ec; }
+
+    .lamps { display: flex; gap: 0.8em; margin-top: 1em; }
+    .lamp { width: 92px; text-align: center; font-weight: 800; }
+    .bulb {
+      width: 54px; height: 54px; border-radius: 50%; margin: 0 auto 0.3em;
+      border: 3px solid #09135a; background: #e7e9f4;
+    }
+    .slide.active .lamp.on .bulb { animation: glow 1.6s ease infinite; background: #ffe56a; }
+    @keyframes glow { 50% { box-shadow: 0 0 0 10px rgba(255, 229, 106, 0.45); } }
+
+    .cheat { font-size: 2em; font-weight: 900; margin-top: 0.4em; }
+    .slide.active .cheat span { display: inline-block; animation: shake 0.8s ease 0.4s both; }
+    @keyframes shake { 20% { transform: rotate(-6deg); } 40% { transform: rotate(6deg); } 100% { transform: none; } }
+
+    .folds { margin-top: 0.7em; display: grid; gap: 0.35em; }
+    .fold { display: grid; grid-template-columns: 6.2em repeat(5, 1fr); gap: 0.3em; align-items: center; font-weight: 800; font-size: 0.82em; }
+    .cell { height: 1.7em; border-radius: 8px; background: #d9e4ff; display: grid; place-items: center; }
+    .cell.check { background: #f7b4c8; }
+    .slide.active .fold .cell.check { animation: hop 0.5s ease both; }
+    .slide.active .fold:nth-child(2) .cell.check { animation-delay: 0.15s; }
+    .slide.active .fold:nth-child(3) .cell.check { animation-delay: 0.3s; }
+    .slide.active .fold:nth-child(4) .cell.check { animation-delay: 0.45s; }
+    .slide.active .fold:nth-child(5) .cell.check { animation-delay: 0.6s; }
+    @keyframes hop { from { transform: scale(0.6); } to { transform: none; } }
+
+    .race { display: flex; gap: 1.2em; margin-top: 0.8em; align-items: flex-end; }
+    .lane { flex: 1; }
+    .barv { height: 18px; border-radius: 999px; background: #e7e9f4; overflow: hidden; border: 2px solid #09135a; }
+    .fill { height: 100%; width: 0; background: #09135a; }
+    .slide.active .fill.a { animation: grow 1s ease 0.2s forwards; }
+    .slide.active .fill.b { animation: growb 1s ease 0.45s forwards; }
+    @keyframes grow { to { width: 78%; } }
+    @keyframes growb { to { width: 88%; } }
+    .lane strong { display: block; margin-bottom: 0.25em; }
+
+    .trees { display: flex; gap: 0.5em; align-items: flex-end; height: 140px; margin-top: 0.4em; }
+    .tree { width: 28px; background: #1d7a3a; border-radius: 8px 8px 0 0; transform-origin: bottom; }
+    .slide.active .tree { animation: sprout 0.6s ease both; }
+    .slide.active .tree:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .tree:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .tree:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .tree:nth-child(5) { animation-delay: 0.6s; }
+    @keyframes sprout { from { transform: scaleY(0.1); } to { transform: none; } }
+
+    .choice { display: flex; gap: 0.6em; flex-wrap: wrap; margin-top: 0.8em; }
+    .choice button {
+      border: 3px solid #09135a; background: #fff; color: #09135a;
+      border-radius: 14px; padding: 0.55em 0.8em; font-weight: 800; cursor: pointer; font-size: 0.95em;
+    }
+    .choice button.good { background: #e7f6ec; border-color: #1d7a3a; }
+    .choice button.bad { background: #fde8ee; border-color: #c23b78; }
+    .feedback { min-height: 1.4em; font-weight: 800; margin-top: 0.5em; }
+
+    .dots { display: flex; gap: 1.4em; margin-top: 1em; }
+    .cloud { min-width: 8em; }
+    .dot { width: 22px; height: 22px; border-radius: 50%; display: inline-block; margin: 3px; }
+    .slide.active .dot { animation: gather 0.8s ease both; }
+    @keyframes gather { from { transform: translate(20px, -16px); opacity: 0; } to { transform: none; opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div class="bar" id="bar"></div>
+  <div class="deck">
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Для тех, кто только начинает</p>
+        <h1>Компьютер, который учится на примерах</h1>
+        <p class="lead">Он не знает ответ заранее. Он смотрит много готовых историй и пробует угадать новую.</p>
+        <div class="row">
+          <div class="pop">Сколько это стоит?</div>
+          <div class="pop">Да или нет?</div>
+          <div class="pop">Кто на кого похож?</div>
+        </div>
+      </div>
+      <p class="notes">Начните с тишины на три секунды и спросите: «Компьютер умеет думать?» Дождитесь ответов. Потом скажите: сегодня он не думает, он подглядывает в много готовых примеров и пробует угадать новый. Покажите три карточки по очереди, как они выезжают. Первая — магазин и ценник, которого ещё нет. Вторая — дверь, которую открывают или не открывают. Третья — компания на перемене: кто с кем стоит, хотя им не сказали «вы одна группа». Пообещайте, что к концу эти три вопроса вернутся, и ни одного ответа компьютер не списывает с листочка. Формул не будет. Если кто-то спросит про код, ответьте: код мы уже писали на практике, сейчас смотрим, зачем он вообще нужен.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Откуда берутся примеры</p>
+        <h2>Три занятия, одна история</h2>
+        <div class="row">
+          <div class="pop">Квартиры и цена<br><span style="font-weight:600">занятие про лес</span></div>
+          <div class="pop">Пустые клетки и шпаргалка<br><span style="font-weight:600">пропуски и проверка</span></div>
+          <div class="pop">Прямая, «да/нет», кучки<br><span style="font-weight:600">три разные задачи</span></div>
+        </div>
+        <p>Дальше те же числа, что получались в практике. Их можно проверить.</p>
+      </div>
+      <p class="notes">Скажите, что история одна, а тетради три. Первая тетрадь — десять тысяч квартир города М: площадь, год, комнаты, район и цена в тысячах рублей. Вторая — те же квартиры, только у части строк кто-то стёр год, комнаты или район. Третья — заявки на карту: не «сколько», а «выдать или отказать». Спросите: «Если я сотру цену у новой квартиры, по чему ещё можно догадаться?» Соберите ответы: больше комнат, новее дом, центр города. Добавьте секрет файла, но без формулы: цену здесь когда-то собрали как сумму площади, года, комнат и надбавки за район. Поэтому простая прямая линия сегодня обойдёт даже лес из деревьев. Это сюрприз ближе к концу, пока не раскрывайте числа.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Регрессия · вопрос «сколько стоит?»</p>
+        <h2>Новая квартира без ценника</h2>
+        <div class="houses">
+          <div class="house"><div class="roof"></div><div class="bodyh"></div><div class="tag">маленькая<br>4096</div></div>
+          <div class="house"><div class="roof"></div><div class="bodyh"></div><div class="tag">большая<br>8104</div></div>
+          <div class="house"><div class="roof"></div><div class="bodyh"></div><div class="tag">в центре<br>6997</div></div>
+        </div>
+        <p>Компьютер смотрит площадь, год, комнаты и район. Цену он называет сам. Это тысячи рублей.</p>
+      </div>
+      <p class="notes">Покажите дома по мере появления. Маленький на севере, 45 метров, 1988 год, две комнаты: компьютер назвал 4096 тысяч рублей. Большой на юге, 88 метров, 2015 год, три комнаты: 8104. Третий в центре, 70 метров, три комнаты, а год стёрт: 6997. Спросите, почему большой дороже маленького, и дайте детям сказать это сами. Потом задержитесь на третьем доме: года нет, а цена всё равно есть. Скажите, что пустую клетку нельзя выбросить вместе с квартирой, её закрывают отдельно, и это следующий слайд. Подчеркните: этих трёх квартир не было в учебной тетради, и подписи «цена такая-то» у них тоже нет. Компьютер назвал число, которого в строке не стояло.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Пропуски · импутация</p>
+        <h2>Пусто — это не ноль</h2>
+        <table class="kids">
+          <tr><th>Квартира</th><th>Комнаты</th><th>Что это значит</th></tr>
+          <tr><td>1</td><td class="zero">0</td><td>комнат правда нет</td></tr>
+          <tr><td>2</td><td class="hole">пусто</td><td>нам не сказали</td></tr>
+        </table>
+        <p>Три способа закрыть пропуск: удалить столбец, импутация средним или импутация плюс флаг «здесь было пусто».</p>
+      </div>
+      <p class="notes">Дайте детям выбрать. «В анкете в графе „комнаты“ написан ноль. Что это?» Ответ: студия или ошибка анкеты, но ноль — это число, его так и читают. Потом мигающая клетка: там ничего не написано. Если поставить ноль, компьютер решит, что квартира без комнат, и собьёт цену. В нашем файле так стёрто 588 годов, 434 числа комнат и 243 района. Цены не стёрты ни у одной из десяти тысяч. Три выхода проговорите руками. Выбросить столбец — выбросить подсказку у всех, даже у тех, у кого год был написан. Ошибка тогда 389. Вписать среднее — оставить подсказку, ошибка 354. Третий выход: вписать среднее и рядом поставить флажок «здесь было пусто», вдруг сама дырка о чём-то говорит. На этих квартирах флажок почти ничего не изменил, 353 вместо 354. Честно скажите: иногда дырка молчит.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Категориальная переменная</p>
+        <h2>Район кодируют лампочками</h2>
+        <p>Прямое кодирование, one-hot: на каждый район своя лампа. Порядковое кодирование вместо этого ставит номера 0, 1, 2.</p>
+        <div class="lamps">
+          <div class="lamp on"><div class="bulb"></div>центр<br>1 0 0</div>
+          <div class="lamp"><div class="bulb"></div>север<br>0 1 0</div>
+          <div class="lamp"><div class="bulb"></div>юг<br>0 0 1</div>
+        </div>
+      </div>
+      <p class="notes">Спросите: «Центр больше севера?» Дети обычно говорят «дороже», не «больше». Поймайте это слово. Дороже — про цену, а не про порядок букв. Если просто пронумеровать районы 0, 1, 2, прямая линия решит, что разница между нулём и единицей такая же, как между единицей и двойкой. Для деревьев это почти не страшно: они умеют спрашивать «это центр?» отдельно. На практике без района ошибка была около 389, с номерами района — 278, с лампочками — 278,10. Лесу оба способа подошли. Лампочка на слайде горит только у центра: в строке единицы ровно одна. Пустой район мы не выбрасываем молча, его можно подписать словом «не сказали» и дать ему свою лампу. Иначе кодировщик споткнётся о пустую клетку. Назовите оба термина вслух: порядковое кодирование и прямое кодирование.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Препроцессинг · конвейер</p>
+        <h2>Сначала готовят стол, потом зовут модель</h2>
+        <div class="flow">
+          <div class="step">пропуски</div>
+          <div class="step">масштаб</div>
+          <div class="step">район</div>
+          <div class="step hot">модель</div>
+        </div>
+        <p>Конвейер, pipeline, делает эти шаги сам и в одном порядке. На проверке он не придумывает новые правила, а повторяет те, что запомнил на обучении.</p>
+      </div>
+      <p class="notes">Препроцессинг — это подготовка, не угадывание. Пропуски закрывают, числа вроде года и площади приводят к одному росту, район включают лампочками. Год около 2000, площадь около 70: без масштаба год перекричит площадь, и линейной регрессии с кластерами будет плохо. Конвейер нужен, чтобы никто не забыл повторить те же шаги на новых квартирах. Скажите детям: это лента на заводе. Квартира заезжает сырой таблицей, выезжает уже числом. Отдельно правило не считают по спрятанным строкам — иначе это утечка, следующий сюжет.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Утечка данных</p>
+        <h2>Ответ уже написан на листочке</h2>
+        <p class="cheat">подпись: <span>цена 6230</span></p>
+        <p>Компьютер вытаскивает 6230 и «угадывает» почти без ошибки: промах 0.76. Новой квартиры с такой подписью ещё нет. Этому угадыванию верить нельзя.</p>
+      </div>
+      <p class="notes">Разыграйте шпаргалку. «Учитель написал на полях „ответ: 6230“. Ученик смотрит на поля и получает пятёрку. Он выучил тему?» Пауза. В файле рядом с ценой лежит текст «цена 6230», и число внутри него совпало с ценой у всех десяти тысяч квартир. Модель, которой отдали эту подпись, ошиблась в среднем на 0,76. Это не победа, это списывание. Честный лес, который видит только площадь, год, комнаты и район, ошибается на 130. Для сравнения: если всем новым квартирам сказать одну и ту же среднюю цену обучения, 6725, промах будет 1798. Средняя цена своего района почти не лучше, 1785. Район без площади и года мало что объясняет. Спросите, взяли бы они модель с ошибкой 0,76 в настоящее агентство. Правильный ответ — нет, потому что у новой квартиры такой подписи ещё нет.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Кросс-валидация · 5 складок</p>
+        <h2>Пять раз прячем разные квартиры</h2>
+        <div class="folds">
+          <div class="fold"><span>раз 1</span><div class="cell check">прячем</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="fold"><span>раз 2</span><div class="cell"></div><div class="cell check">прячем</div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="fold"><span>раз 3</span><div class="cell"></div><div class="cell"></div><div class="cell check">прячем</div><div class="cell"></div><div class="cell"></div></div>
+          <div class="fold"><span>раз 4</span><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell check">прячем</div><div class="cell"></div></div>
+          <div class="fold"><span>раз 5</span><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell check">прячем</div></div>
+        </div>
+        <p>Розовая клетка каждый раз другая. Смотрят среднее, а не один удачный раз.</p>
+      </div>
+      <p class="notes">Назовите термин сразу: это кросс-валидация, пять складок. Предложите игру. Класс делим на пять групп. В первый раз контрольную пишут только первые, остальные учатся. Потом прячется вторая группа, и так до пятой. Розовая клетка на слайде как раз переезжает. Один удачный жребий мог бы польстить модели. Пять раз подряд лес ошибся на 128, 129, 128, 130 и 129. Среднее 129. Победа над «просто средней ценой» не случайность. Дальше покажите слабое место, его на рисунке нет, его надо сказать: 47 квартир на проверке были без района. Им подставили самый частый район, которого у них не было, и промах вырос до 352. Спросите: где модель врёт сильнее, в центре или там, где район стёрт? Ответ — там, где стёрт. Хорошая проверка говорит не только «в среднем 129», но и «вот здесь не верьте».</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Интерфейсы fit, transform, predict</p>
+        <h2>Три разные кнопки</h2>
+        <div class="row">
+          <div class="pop">fit<br><span style="font-weight:600">запомнить правило на примерах</span></div>
+          <div class="pop">transform<br><span style="font-weight:600">применить правило к таблице</span></div>
+          <div class="pop">predict<br><span style="font-weight:600">назвать цену или «да/нет»</span></div>
+        </div>
+        <p>У заполнителя пропусков есть fit и transform, но нет predict: он не выдаёт цену. У модели есть fit и predict. score — одна цифра качества. Для регрессии это не MAE.</p>
+      </div>
+      <p class="notes">Это слайд про интерфейсы. Не просите детей писать код, попросите выбрать кнопку. «Хочу, чтобы он выучил среднее по обучению» — fit. «Хочу закрыть дырки в новых строках тем же средним» — transform. «Хочу цену» — predict. Ошибка, которую они уже видели на практике: вызвать predict у SimpleImputer. Его нет. И вторая ошибка: заново сделать fit на спрятанных квартирах. Тогда среднее подсмотрит проверку. fit_transform — это fit и сразу transform, его место только на обучении. score у регрессии — R², у нас у прямой он 0,9945. MAE считают отдельно, она в тысячах рублей.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Случайный лес и бустинг</p>
+        <h2>Лес советуется. Бустинг чинит ошибки</h2>
+        <div class="trees" aria-hidden="true">
+          <div class="tree" style="height:46px"></div>
+          <div class="tree" style="height:78px"></div>
+          <div class="tree" style="height:62px"></div>
+          <div class="tree" style="height:110px"></div>
+          <div class="tree" style="height:90px"></div>
+        </div>
+        <div class="row">
+          <div class="pop">Случайный лес: деревья друг друга не слышат, потом берут среднее</div>
+          <div class="pop">Бустинг: следующее дерево учится на ошибке предыдущих</div>
+        </div>
+      </div>
+      <p class="notes">Деревья на слайде вырастают по очереди, этим и пользуйтесь. Лес — это компания, где каждый придумал свой ответ и не слышал соседа. В конце берут среднее. Очередь устроена иначе: первое дерево говорит грубо, второе смотрит, где первое промахнулось, и чинит именно промах, третье чинит то, что осталось. Это бустинг. На площади, годе и комнатах, без района, сто деревьев ошиблись на 323. Пятьсот деревьев с большим шагом стали хуже, 360: они уже запомнили шум, а не правило. Если остановиться, едва проверка перестала улучшаться, хватило десятого круга и ошибки 305. Спросите: «Больше деревьев всегда умнее?» Ответ с этого слайда — нет. Как с повторением стиха: двадцать раз полезно, двести раз уже бормочешь не то.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Регрессия · MAE</p>
+        <h2>Линейная регрессия против леса</h2>
+        <div class="race">
+          <div class="lane"><strong>Линейная регрессия — MAE 114</strong><div class="barv"><div class="fill a"></div></div></div>
+          <div class="lane"><strong>Случайный лес — MAE 130</strong><div class="barv"><div class="fill b"></div></div></div>
+        </div>
+        <p>Полоска короче — ошибка меньше. В этом файле цена собрана как сумма: площадь, год, комнаты и добавка за район. Прямая как раз такое и ищет.</p>
+      </div>
+      <p class="notes">Сначала пусть дети проголосуют, кто победит: прямая или лес. Обычно голосуют за лес, он звучит серьёзнее. Потом полоски доезжают, и короче оказывается прямая: промах 114 против 130. Не извиняйтесь за лес. Цена в этом файле и есть почти прямая: прибавили за метры, прибавили за год, прибавили за комнату, прибавили за район. Прямая такое ищет. Лес ищет ступеньки и здесь немного промахивается. Рядом назовите R² 0,9945 одной фразой: прямая объяснила почти все качели цены. Перед прямой числа надо выровнять. Год около 2000, площадь около 70. Если их не привести к одному росту, год перекричит площадь. Это и есть подготовка, препроцессинг: не новая модель, а честный вход для неё. Вывод слайда: способ выбирают по задаче, а не по моде.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Классификация</p>
+        <h2>Одобрят ли карту: да или нет</h2>
+        <div class="row">
+          <div class="pop" style="background:#e7f6ec">Честно: около 85 из 100</div>
+          <div class="pop" style="background:#fde8ee">Со шпаргалкой: около 98 из 100</div>
+        </div>
+        <p>Шпаргалка — траты по карте, которой ещё нет. На 330 спрятанных заявках модель зря сказала «да» 44 раза и зря сказала «нет» только 4 раза. Она слишком добрая.</p>
+      </div>
+      <p class="notes">Смените задачу вслух: «Больше не цена. Банк должен сказать да или нет». Спросите, что можно знать в момент заявления: возраст, доход, были ли плохие отчёты. Чего знать нельзя: сколько человек уже потратил по карте, которую ему ещё не выдали. Если эти траты оставить, точность взлетает к 98 из 100. Это снова шпаргалка, как подпись «цена 6230». Без неё логистическая модель угадывает около 85 из 100 на спрятанных заявках и около 85 в среднем по пяти попыткам. Разверните матрицу на 330 заявках: 259 раз верно сказала «да», 23 раза верно сказала «нет», 44 раза зря одобрила и только 4 раза зря отказала. Модель добрая. Спросите, что опаснее для банка. Дети обычно выбирают лишние «да». Точность этого не показывает: 85 из 100 звучит ровно, а характер ошибки виден только в таблице.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Кластеризация · KMeans</p>
+        <h2>Кучки без ценника</h2>
+        <div class="dots">
+          <div class="cloud"><div class="dot" style="background:#7eb6ff"></div><div class="dot" style="background:#7eb6ff"></div><div class="dot" style="background:#7eb6ff"></div><div>маленькие старые<br><b>4465</b></div></div>
+          <div class="cloud"><div class="dot" style="background:#09135a"></div><div class="dot" style="background:#09135a"></div><div class="dot" style="background:#09135a"></div><div>маленькие новые<br><b>5158</b></div></div>
+          <div class="cloud"><div class="dot" style="background:#f7b4c8"></div><div class="dot" style="background:#f7b4c8"></div><div class="dot" style="background:#f7b4c8"></div><div>большие старые<br><b>7952</b></div></div>
+          <div class="cloud"><div class="dot" style="background:#c23b78"></div><div class="dot" style="background:#c23b78"></div><div class="dot" style="background:#c23b78"></div><div>большие новые<br><b>8577</b></div></div>
+        </div>
+        <p>Цену в кучки не клали. Потом посмотрели — и большие квартиры всё равно оказались дороже.</p>
+      </div>
+      <p class="notes">Попросите представить перемену: никто не назначал компании, люди сами встали рядом с похожими. Компьютеру не сказали ни «вы группа номер два», ни цену. Он смотрел только площадь, год и комнаты, предварительно приведённые к одному масштабу, и собрал четыре кучки. Маленькие старые: 2175 квартир, средняя цена потом оказалась 4465. Маленькие новые: 2285 квартир и 5158. Большие старые: 2563 и 7952. Большие новые: 2977 и 8577. Цену посчитали уже после, как проверку. Спросите, что удивительнее: что большие дороже или что компьютер это повторил, не видя ценника. Второе. Если бы цену положили внутрь кучек, фокус был бы испорчен: он просто сортировал бы дорогие к дорогим. Здесь цена — экзамен, а не учебник.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Проверьте себя</p>
+        <h2>Какой вопрос задают компьютеру?</h2>
+        <p>Нужно разложить квартиры по похожести и не говорить ему цену.</p>
+        <div class="choice" id="quiz">
+          <button type="button" data-ok="no">Сколько стоит?</button>
+          <button type="button" data-ok="no">Да или нет?</button>
+          <button type="button" data-ok="yes">Кто на кого похож?</button>
+        </div>
+        <p class="feedback" id="quiz-msg"></p>
+      </div>
+      <p class="notes">Прочитайте задание вслух и дайте классу поспорить до нажатия кнопки. Верная кнопка — «кто на кого похож». Если нажали «сколько стоит», не говорите «неправильно» первым словом. Скажите: цену как раз спрятали, иначе кучки стали бы сортировкой по деньгам. Если нажали «да или нет», напомните про банк и карту: там была метка, здесь меток не было. После верного ответа повторите три вопроса с начала урока и спросите, какой из них был самым неожиданным. Часто называют прямую, которая обошла лес, или 98 процентов, которым нельзя верить.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Что унести с собой</p>
+        <h1>Три случая, и ни одной шпаргалки</h1>
+        <div class="row">
+          <div class="pop">Регрессия<br><span style="font-weight:600">цена, которой ещё нет</span></div>
+          <div class="pop">Классификация<br><span style="font-weight:600">да или нет</span></div>
+          <div class="pop">Кластеризация<br><span style="font-weight:600">кучки без ответа</span></div>
+        </div>
+        <p>Пустую клетку не называют нулём. Ответ, который уже написан в таблице, модели не отдают.</p>
+      </div>
+      <p class="notes">Закройте урок на трёх карточках, по одной фразе. Цена — число, которого в новой строке ещё нет. Карта — да или нет, и чужие траты по ещё не выданной карте подсказывать нельзя. Кучки — похожие квартиры без ответа, а ценник смотрят потом, чтобы проверить, не зря ли встали рядом. Два запрета, которые стоит повторить медленно: пустую клетку не называют нулём, готовый ответ из таблицы модели не отдают. Если останется минута, вернитесь к голосованию «лес или прямая». Лес не чемпион на каждой таблице. Чемпион — тот способ, который честно ошибается меньше на спрятанных примерах.</p>
+    </section>
+
+  </div>
+
+  <div class="notes-panel" id="notes"></div>
+  <div class="chrome">
+    <button type="button" id="prev">←</button>
+    <button type="button" id="next">→</button>
+    <button type="button" id="notes-btn" aria-pressed="false">Текст</button>
+    <button type="button" id="over-btn">Все слайды</button>
+  </div>
+  <div class="overview" id="overview"><div class="grid" id="grid"></div></div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".deck .slide"));
+    const notes = document.getElementById("notes");
+    const notesBtn = document.getElementById("notes-btn");
+    const overview = document.getElementById("overview");
+    const grid = document.getElementById("grid");
+    const bar = document.getElementById("bar");
+    let index = 0;
+
+    slides.forEach((slide, i) => {
+      const mark = document.createElement("div");
+      mark.className = "num";
+      mark.textContent = (i + 1) + " / " + slides.length;
+      slide.appendChild(mark);
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "tile";
+      const title = slide.querySelector("h1, h2");
+      tile.textContent = (i + 1) + ". " + (title ? title.textContent : "");
+      tile.addEventListener("click", () => { show(i); overview.classList.remove("open"); });
+      grid.appendChild(tile);
+    });
+
+    function show(i) {
+      index = (i + slides.length) % slides.length;
+      slides.forEach((slide) => slide.classList.remove("active"));
+      void slides[index].offsetWidth;
+      slides[index].classList.add("active");
+      const aside = slides[index].querySelector(".notes");
+      notes.textContent = aside ? aside.textContent.trim() : "";
+      bar.style.width = ((index + 1) / slides.length * 100) + "%";
+      grid.querySelectorAll(".tile").forEach((tile, n) => tile.classList.toggle("here", n === index));
+    }
+
+    document.getElementById("prev").addEventListener("click", () => show(index - 1));
+    document.getElementById("next").addEventListener("click", () => show(index + 1));
+    notesBtn.addEventListener("click", () => {
+      const open = notes.classList.toggle("open");
+      notesBtn.setAttribute("aria-pressed", open ? "true" : "false");
+    });
+    document.getElementById("over-btn").addEventListener("click", () => overview.classList.toggle("open"));
+    document.addEventListener("keydown", (event) => {
+      if (event.target.closest("button") && event.key === " ") return;
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        show(index + 1);
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        show(index - 1);
+      } else if (event.key === "Home") show(0);
+      else if (event.key === "End") show(slides.length - 1);
+      else if (event.key === "n" || event.key === "N" || event.key === "т" || event.key === "Т") notesBtn.click();
+      else if (event.key === "Escape" || event.key === "o" || event.key === "O" || event.key === "щ" || event.key === "Щ") overview.classList.toggle("open");
+    });
+
+    document.querySelectorAll("#quiz button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#quiz button").forEach((item) => item.classList.remove("good", "bad"));
+        const msg = document.getElementById("quiz-msg");
+        if (button.dataset.ok === "yes") {
+          button.classList.add("good");
+          msg.textContent = "Да. Цену ему как раз не показывают. Кучки собирают по площади и году.";
+        } else {
+          button.classList.add("bad");
+          msg.textContent = "Это другой вопрос. Здесь компьютер не называет цену и не говорит «да».";
+        }
+      });
+    });
+
+    show(0);
+  </script>
+</body>
+</html>
