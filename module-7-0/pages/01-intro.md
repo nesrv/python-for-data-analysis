@@ -33,7 +33,7 @@ python -m pip install pandas scikit-learn xgboost
 |------|------------|
 | `module-7-0/data/flats_gaps.csv` | 10000 квартир города М. Цена в тысячах рублей. Год пуст, если `flat_id` делится на 17 (588 строк). Комнаты пусты, если делится на 23 (434). Район пуст, если делится на 41 (243). Площадь и цена заполнены у всех |
 
-Заявки на карту, страница 7. Это открытый учебный файл `AER_credit_card_data.csv`: 1319 строк, ответ `card` — одобрили заявку или нет.
+Заявки на карту, страница 7. Это открытый учебный файл [AER_credit_card_data.csv](data/AER_credit_card_data.csv): 1319 строк, ответ `card` — одобрили заявку или нет. В ноутбуке его читают из `module-7-0/data/AER_credit_card_data.csv`.
 
 ```python
 import pandas as pd
