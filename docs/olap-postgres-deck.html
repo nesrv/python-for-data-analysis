@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PostgreSQL для OLAP как альтернатива ClickHouse</title>
+  <link rel="stylesheet" href="course.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #e4efe8; overflow: hidden; }
+    .deck { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .slide {
+      display: none; width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: #f7fbf8; color: #123028; position: relative; overflow: hidden;
+      font-size: clamp(14px, 1.28vw, 21px);
+      box-shadow: 0 16px 48px rgba(18, 48, 40, 0.16);
+    }
+    .slide.active { display: block; }
+    .slide .notes { display: none; }
+    .logo { position: absolute; top: 2.5%; right: 2.5%; width: 12%; }
+    .pad { position: absolute; inset: 8% 4.5% 11% 4.5%; }
+    .kicker { margin: 0 0 0.2em; color: #0e7c66; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.66em; }
+    h1 { margin: 0 0 0.2em; font-size: 1.9em; line-height: 1.08; }
+    h2 { margin: 0 0 0.3em; font-size: 1.42em; line-height: 1.15; }
+    p { margin: 0.2em 0; line-height: 1.32; }
+    .num { position: absolute; left: 4.5%; bottom: 3.5%; font-size: 0.7em; color: #3d6b5a; font-weight: 800; }
+    .bar { position: fixed; top: 0; left: 0; height: 5px; background: #0e7c66; z-index: 6; width: 0; }
+    .chrome { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px; }
+    .chrome button, .overview button {
+      border: 2px solid #123028; background: #fff; color: #123028;
+      border-radius: 999px; padding: 0.3em 0.85em; font-weight: 800; cursor: pointer;
+    }
+    .chrome button[aria-pressed="true"] { background: #0e7c66; color: #fff; border-color: #0e7c66; }
+    .notes-panel {
+      display: none; position: fixed; left: 2%; right: 2%; bottom: 54px; z-index: 6;
+      background: #123028; color: #fff; border-radius: 12px; padding: 0.8em 1em;
+      font-size: 16px; line-height: 1.45; max-height: 32vh; overflow: auto;
+    }
+    .notes-panel.open { display: block; }
+    .overview { display: none; position: fixed; inset: 0; z-index: 8; background: rgba(18,48,40,.94); overflow: auto; padding: 24px; }
+    .overview.open { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .overview button.tile { border-radius: 10px; text-align: left; padding: 0.65em; min-height: 72px; }
+    .overview button.tile.here { background: #0e7c66; color: #fff; border-color: #0e7c66; }
+    .two, .three { display: grid; gap: 0.55em; margin-top: 0.45em; }
+    .two { grid-template-columns: 1fr 1fr; }
+    .three { grid-template-columns: 1fr 1fr 1fr; }
+    .card { border: 3px solid #123028; border-radius: 14px; padding: 0.55em 0.7em; background: #fff; }
+    .card.hot { border-color: #0e7c66; background: #e7f6f1; }
+    .card.warm { border-color: #c47b12; background: #fff8ee; }
+    .card b { display: block; margin-bottom: 0.15em; }
+    .slide.active .card, .slide.active .chip, .slide.active .rows tr { animation: pop 0.45s ease both; }
+    .slide.active .card:nth-child(2), .slide.active .chip:nth-child(2) { animation-delay: 0.12s; }
+    .slide.active .card:nth-child(3), .slide.active .chip:nth-child(3) { animation-delay: 0.24s; }
+    .slide.active .card:nth-child(4) { animation-delay: 0.36s; }
+    @keyframes pop { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.5em; }
+    .chip { background: #fff; border: 2px solid #123028; border-radius: 999px; padding: 0.28em 0.65em; font-weight: 800; }
+    .chip small { display: block; font-weight: 600; color: #3d6b5a; }
+    .rows { margin-top: 0.35em; width: 100%; border-collapse: collapse; font-size: 0.92em; }
+    .rows th, .rows td { border-bottom: 1px solid #c9ddd3; padding: 0.22em 0.35em; text-align: left; }
+    .rows th { color: #0e7c66; }
+    .mark { background: #ffe8a3; }
+    .flow { display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap; margin-top: 0.55em; }
+    .step { background: #fff; border: 3px solid #123028; border-radius: 12px; padding: 0.4em 0.6em; font-weight: 800; }
+    .step.hot { border-color: #0e7c66; background: #e7f6f1; }
+    .slide.active .step { animation: pop 0.45s ease both; }
+    .slide.active .step:nth-child(2) { animation-delay: 0.2s; }
+    .slide.active .step:nth-child(3) { animation-delay: 0.4s; }
+    .bars { margin-top: 0.4em; display: grid; gap: 0.32em; }
+    .bars div { display: grid; grid-template-columns: 4.6em 1fr 3.6em; gap: 0.4em; align-items: center; font-weight: 800; }
+    .track { display: block; height: 0.7em; background: #e3eee8; border-radius: 999px; overflow: hidden; }
+    .fill { display: block; height: 100%; width: 0; background: #0e7c66; border-radius: 999px; }
+    .slide.active .fill { animation: grow 0.8s ease forwards; }
+    .w1 { --w: 86%; } .w2 { --w: 79%; } .w3 { --w: 78%; } .w4 { --w: 77%; } .w5 { --w: 74%; }
+    @keyframes grow { to { width: var(--w); } }
+    .shelf { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0.7em; margin-top: 0.4em; }
+    .sheet { display: grid; gap: 4px; }
+    .sheet i, .colstack i { display: block; height: 0.7em; border-radius: 4px; }
+    .sheet i { background: linear-gradient(90deg, #9fd0be 0 22%, #f2d48a 22% 48%, #f0b4b4 48% 70%, #c9d7f5 70%); }
+    .colstack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: end; }
+    .colstack b { display: block; text-align: center; font-size: 0.75em; margin-bottom: 4px; }
+    .colstack i { width: 100%; }
+    .c1 { height: 7.2em; background: #9fd0be; }
+    .c2 { height: 5.2em; background: #f2d48a; }
+    .c3 { height: 4.2em; background: #f0b4b4; }
+    .c4 { height: 6.4em; background: #c9d7f5; }
+    .slide.active .colstack .c1, .slide.active .colstack .c2,
+    .slide.active .colstack .c3, .slide.active .colstack .c4 { animation: rise 0.7s ease both; }
+    @keyframes rise { from { transform: scaleY(0.15); transform-origin: bottom; } to { transform: none; } }
+    .choice { display: flex; gap: 0.5em; flex-wrap: wrap; margin-top: 0.55em; }
+    .choice button { border: 3px solid #123028; background: #fff; border-radius: 12px; padding: 0.55em 0.7em; font-weight: 800; cursor: pointer; }
+    .choice button.good { background: #0e7c66; color: #fff; border-color: #0e7c66; }
+    .choice button.bad { background: #f8e4e4; border-color: #9a3030; }
+    #quiz-msg { min-height: 1.3em; font-weight: 800; margin-top: 0.4em; }
+  </style>
+</head>
+<body>
+  <div class="bar" id="bar"></div>
+  <div class="deck">
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Занятие 3.6 · простыми словами</p>
+        <h1>Отчёт в PostgreSQL.<br>Когда рядом нужен ClickHouse</h1>
+        <p>OLAP — это не название кнопки. Так называют работу «прочитать много строк и свернуть их в несколько чисел». Сегодня те же вопросы задают обычной базе курса.</p>
+      </div>
+      <p class="notes">Не начинайте с терминов OLTP и колоночного хранения. Сначала бытовой вопрос: одну квартиру открыть или среднее по всем районам.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">PostgreSQL как OLAP-база</p>
+        <h2>Какую аналитику она считает, а какую уже нет</h2>
+        <table class="rows">
+          <tr><th>Задача</th><th>В PostgreSQL</th></tr>
+          <tr><td>Среднее, сумма, количество, минимум и максимум по району</td><td class="mark">да</td></tr>
+          <tr><td>Медиана и другие перцентили</td><td class="mark">да</td></tr>
+          <tr><td>Окна: место, соседняя строка, накопительный итог</td><td class="mark">да</td></tr>
+          <tr><td>Несколько этажей отчёта: район, комнаты и общий итог</td><td class="mark">да</td></tr>
+          <tr><td>Разворот отчёта в столбцы и сохранённая свёртка</td><td class="mark">да</td></tr>
+          <tr><td>Отчёт рядом с правкой одной квартиры в той же базе</td><td class="mark">да</td></tr>
+          <tr><td>Ежедневный проход по сотням миллионов и миллиардам событий, которые только дописывают</td><td>нет, для этого смотрят ClickHouse</td></tr>
+          <tr><td>Чтение одного столбца цены, почти не трогая остальные поля строки</td><td>нет, строка хранится целиком</td></tr>
+        </table>
+      </div>
+      <p class="notes">Пройдите таблицу сверху вниз. Первые шесть строк — обычный отчёт занятия. Две нижние — не «PostgreSQL не умеет среднее», а другой масштаб и другое хранение. На 10 000 квартир обе нижние строки ещё не наступили.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Два разных вопроса к одной таблице</p>
+        <h2>Поправить одну строку или свернуть все</h2>
+        <div class="two">
+          <div class="card"><b>Одна квартира</b>Знаем номер. Меняем цену. База достаёт строку целиком, как карточку в шкафу.</div>
+          <div class="card hot"><b>Отчёт</b>Номер не важен. Нужно среднее по району. База проходит все 10&nbsp;000 карточек.</div>
+        </div>
+        <p>Первый вопрос — повседневная работа. Второй — аналитика. Обе умеют и PostgreSQL, и ClickHouse, но устроены они под разную частоту этих вопросов.</p>
+      </div>
+      <p class="notes">Пусть зал назовёт свой пример: касса пробивает чек или директор смотрит выручку за месяц.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Как лежат данные</p>
+        <h2>Строка целиком или столбец отдельно</h2>
+        <div class="shelf">
+          <div>
+            <b>PostgreSQL хранит строку вместе</b>
+            <div class="sheet" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <p>Район, год, комнаты и цена одной квартиры лежат рядом. Удобно открыть и поправить квартиру.</p>
+          </div>
+          <div>
+            <b>ClickHouse хранит столбец отдельно</b>
+            <div class="colstack" aria-hidden="true">
+              <div><b>район</b><i class="c1"></i></div>
+              <div><b>год</b><i class="c2"></i></div>
+              <div><b>комнаты</b><i class="c3"></i></div>
+              <div><b>цена</b><i class="c4"></i></div>
+            </div>
+            <p>Для среднего цены читают в основном столбец цены, а не всю карточку.</p>
+          </div>
+        </div>
+      </div>
+      <p class="notes">Рисунок слева — четыре полоски-строки, каждая полоска смешанных цветов. Справа — четыре стопки одного цвета. Это и есть разница хранения.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Одно и то же слово GROUP BY</p>
+        <h2>Сравнение, без которого выбор базы путают</h2>
+        <table class="rows">
+          <tr><th></th><th>PostgreSQL</th><th>ClickHouse</th></tr>
+          <tr><td>Как читает отчёт</td><td>строку за строкой</td><td>столбец за столбцом</td></tr>
+          <tr><td>Поправить одну цену</td><td class="mark">обычное дело</td><td>для этого не строили</td></tr>
+          <tr><td>Среднее по миллиарду событий</td><td>может устать</td><td class="mark">для этого и сделан</td></tr>
+          <tr><td>Окна, GROUP BY, медиана</td><td>есть</td><td>есть, синтаксис похож</td></tr>
+          <tr><td>Наш файл, 10&nbsp;000 квартир</td><td class="mark">достаточно</td><td>отдельный сервер не окупится</td></tr>
+        </table>
+      </div>
+      <p class="notes">Подчеркните строку «окна и GROUP BY есть в обеих». Разница не в том, умеет ли база среднее, а в том, как она хранит данные и какой объём считает привычным.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Слова, которые дальше на слайдах</p>
+        <h2>Пять приёмов, все на одной идее</h2>
+        <div class="chips">
+          <span class="chip">свернуть<small>GROUP BY, ROLLUP</small></span>
+          <span class="chip">не сворачивать<small>окна OVER</small></span>
+          <span class="chip">сосед<small>lag и lead</small></span>
+          <span class="chip">место<small>row_number, rank</small></span>
+          <span class="chip">накопить<small>sum OVER</small></span>
+          <span class="chip">в столбцы<small>FILTER</small></span>
+        </div>
+        <p>Сначала девять сделок Анны, Бориса и Веры. Потом те же слова на 10&nbsp;000 квартир. ClickHouse на этом объёме ничего нового в формулах не добавит.</p>
+      </div>
+      <p class="notes">Пусть запишут только два слова: свернуть и не сворачивать. Остальные функции — виды этих двух.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">GROUP BY · свернуть</p>
+        <h2>10&nbsp;000 квартир становятся пятью строками</h2>
+        <div class="bars">
+          <div>центр <span class="track"><span class="fill w1"></span></span> 7331</div>
+          <div>юг <span class="track"><span class="fill w2"></span></span> 6708</div>
+          <div>запад <span class="track"><span class="fill w3"></span></span> 6704</div>
+          <div>север <span class="track"><span class="fill w4"></span></span> 6597</div>
+          <div>восток <span class="track"><span class="fill w5"></span></span> 6373</div>
+        </div>
+        <p><code>count</code> — сколько квартир. <code>avg</code> — среднее. <code>percentile_cont(0.5)</code> — медиана, середина списка. У центра среднее 7330.89, медиана 7335.</p>
+      </div>
+      <p class="notes">Среднее тянет одна очень дорогая квартира. Медиана — цена, которая стоит посередине, если квартиры выстроить по цене. На центре они почти совпали.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Ещё агрегаты, без новой теории</p>
+        <h2>sum, min, max — тоже свёртка</h2>
+        <div class="three">
+          <div class="card"><b>sum</b>Сумма всех цен 67&nbsp;412&nbsp;226. Центр целиком 14&nbsp;551&nbsp;817.</div>
+          <div class="card"><b>min / max</b>Самая дорогая в центре — 11&nbsp;625, квартира 1733.</div>
+          <div class="card hot"><b>count</b>Центр 1985, юг 2002, запад 1965, север 2060, восток 1988.</div>
+        </div>
+        <p>Это те же функции, что в окне. Разница только в том, пропадают ли исходные строки.</p>
+      </div>
+      <p class="notes">Не вводите новый список. Скажите: count, sum, avg, min, max уже знакомы. Дальше их поставят рядом со строкой, а не вместо неё.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Окно · не сворачивать</p>
+        <h2>Строка остаётся, рядом появляется столбец</h2>
+        <div class="two">
+          <div class="card"><b>GROUP BY seller</b>Анна исчезнет как три сделки. Останется одна цифра: 600.</div>
+          <div class="card hot"><b>SUM() OVER (...)</b>Три сделки на месте. Рядом растущий итог: 100, 300, 600.</div>
+        </div>
+        <p><code>PARTITION BY</code> — «считай отдельно по каждому продавцу». <code>ORDER BY</code> — «в порядке дат». Без порядка «предыдущая сделка» не существует.</p>
+      </div>
+      <p class="notes">Нарисуйте на доске три строки Анны и столбец справа. Это и есть окно. Группировка ту же тройку съедает.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">row_number, rank, dense_rank</p>
+        <h2>Три способа поставить место</h2>
+        <table class="rows">
+          <tr><th>Вера, сумма</th><th>row_number</th><th>rank</th><th>dense_rank</th></tr>
+          <tr><td>300</td><td>1</td><td>1</td><td>1</td></tr>
+          <tr><td>300</td><td>2</td><td>1</td><td>1</td></tr>
+          <tr><td>300</td><td>3</td><td>1</td><td>1</td></tr>
+        </table>
+        <div class="three">
+          <div class="card"><b>row_number</b>Всегда разные номера, даже если суммы равны.</div>
+          <div class="card"><b>rank</b>Равные делят место. Следующее другое было бы 4: 2 и 3 пропущены.</div>
+          <div class="card hot"><b>dense_rank</b>Равные тоже делят место, но дырок нет: следующее было бы 2.</div>
+        </div>
+      </div>
+      <p class="notes">У Анны 300, 200 и 100 без равенства, поэтому все три функции дают 1, 2, 3. Разница видна только на Вере.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">lag и lead</p>
+        <h2>Сосед слева и сосед справа</h2>
+        <div class="flow">
+          <div class="step">100</div>
+          <div class="step hot">200 · было 100</div>
+          <div class="step">300 · дальше пусто</div>
+        </div>
+        <div class="two">
+          <div class="card"><b>lag</b>Предыдущая сумма того же продавца. У второй сделки Анны разница 200 − 100 = 100. У первой предыдущей нет, там пусто.</div>
+          <div class="card"><b>lead</b>Следующая сумма. У последней сделки Анны следующей нет, тоже пусто.</div>
+        </div>
+      </div>
+      <p class="notes">Борис: 400, потом 100, потом 600. Скачок 100 → 600 даёт разницу 500. Это lag, не прогноз модели.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">first_value и last_value</p>
+        <h2>Край списка, а не сосед</h2>
+        <div class="two">
+          <div class="card hot"><b>first_value</b>Первая дата продавца. Анна 1 января, Борис 2 января, Вера 3 января.</div>
+          <div class="card warm"><b>last_value</b>Без рамки «до конца окна» считает последней текущую строку. Рамка <code>ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</code> дотягивает окно до настоящей последней даты.</div>
+        </div>
+        <p>Последние даты с полной рамкой: Анна 10 января, Борис 8 января, Вера 12 января.</p>
+      </div>
+      <p class="notes">Это частая ловушка. Если last_value совпал с датой строки, рамку забыли. DISTINCT нужен, потому что окно не схлопывает три сделки в одну.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">sum, avg, min, max внутри окна</p>
+        <h2>Итог растёт от строки к строке</h2>
+        <table class="rows">
+          <tr><th>Анна</th><th>сумма</th><th>накоплено</th><th>среднее к этой дате</th><th>минимум к этой дате</th></tr>
+          <tr><td>1 янв</td><td>100</td><td>100</td><td>100</td><td>100</td></tr>
+          <tr><td>5 янв</td><td>200</td><td>300</td><td>150</td><td>100</td></tr>
+          <tr><td>10 янв</td><td>300</td><td>600</td><td>200</td><td>100</td></tr>
+        </table>
+        <p>Рамка <code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code> не заглядывает в будущие сделки. Максимум к 10 января был бы 300.</p>
+      </div>
+      <p class="notes">Покажите, что min замирает на 100, а sum и avg растут. Это те же агрегаты, что в GROUP BY, только история не стёрта.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Тот же lag на квартирах</p>
+        <h2>Средняя цена центра и прошлый год</h2>
+        <table class="rows">
+          <tr><th>Год</th><th>Среднее</th><th>Прошлый год</th><th>Дельта</th></tr>
+          <tr><td>1962</td><td>6992.79</td><td>пусто</td><td>пусто</td></tr>
+          <tr><td>1963</td><td>7708.57</td><td>6992.79</td><td>+715.78</td></tr>
+          <tr><td>1964</td><td>6614.97</td><td>7708.57</td><td>−1093.60</td></tr>
+        </table>
+        <p>Сначала год сворачивают в одно число, потом окно сравнивает соседние годы. Формула та же, что разница сделок Анны.</p>
+      </div>
+      <p class="notes">Свяжите с предыдущим слайдом вслух: «lag не знает, сделки это или годы. Он смотрит на предыдущую строку в заданном порядке».</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">ROLLUP, GROUPING SETS, CUBE</p>
+        <h2>Один запрос, три этажа отчёта</h2>
+        <div class="three">
+          <div class="card"><b>Этаж клеток</b>Район и комнаты. Центр, 3 комнаты: 6&nbsp;032&nbsp;969.</div>
+          <div class="card"><b>Этаж района</b>Комнаты пустые. Весь центр: 14&nbsp;551&nbsp;817.</div>
+          <div class="card hot"><b>Общий итог</b>Пусты и район, и комнаты: 67&nbsp;412&nbsp;226. Это не пропавшая квартира.</div>
+        </div>
+        <p><code>ROLLUP</code> строит эту лесенку сам. <code>GROUPING SETS</code> перечисляет этажи списком. <code>CUBE</code> добавляет ещё итог «только комнаты, все районы».</p>
+      </div>
+      <p class="notes">На короткой таблице практики итог Анны 250, Бориса 250, Веры 375, всего 875. Та же лесенка, только вместо района продавец, вместо комнат товар.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">FILTER · строки становятся столбцами</p>
+        <h2>Район больше не список, а шапка таблицы</h2>
+        <table class="rows">
+          <tr><th></th><th>янв</th><th>фев</th></tr>
+          <tr><td>Товар А</td><td>100</td><td>120</td></tr>
+          <tr><td>Товар Б</td><td>80</td><td>90</td></tr>
+        </table>
+        <p>Было четыре строки «товар, месяц, сумма». Стало две строки и два столбца-месяца. Для квартир так же: столбец «центр» и столбец «восток», строка — десятилетие. <code>crosstab</code> делает то же через расширение, <code>FILTER</code> короче и без него.</p>
+      </div>
+      <p class="notes">Покажите пальцем: значение месяца переехало из ячейки в имя столбца. Это и просят, когда говорят «разверни отчёт».</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Готовый ответ</p>
+        <h2>Свёртку можно сохранить</h2>
+        <div class="flow">
+          <div class="step">10&nbsp;000 строк</div>
+          <div class="step">GROUP BY</div>
+          <div class="step hot">5 строк лежат в представлении</div>
+        </div>
+        <p>Материализованное представление — таблица с уже посчитанными средними. Новую квартиру оно не увидит, пока не сказать <code>REFRESH</code>. Экран отчёта можно открывать часто, пересчёт — после загрузки.</p>
+      </div>
+      <p class="notes">Это ещё не ClickHouse. Это способ не гонять одну и ту же свёртку при каждом взгляде на экран.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Один вопрос — две базы</p>
+        <h2>Где считать среднее по району</h2>
+        <div class="choice" id="quiz">
+          <button type="button" data-ok="yes">10&nbsp;000 квартир, цены иногда правят, база уже есть</button>
+          <button type="button" data-ok="no">Сотни миллионов событий, строки только дописывают, свёртка всё равно долгая</button>
+        </div>
+        <p id="quiz-msg"></p>
+      </div>
+      <p class="notes">Первая кнопка — PostgreSQL. Вторая — повод смотреть на ClickHouse. Формулы GROUP BY и окон при переносе почти те же, меняется хранение и привычный объём.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Что унести</p>
+        <h2>Формулы общие. Хранение разное</h2>
+        <p>Свернуть строки — <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, медиана, <code>ROLLUP</code>.</p>
+        <p>Не сворачивать — окно: место (<code>row_number</code>, <code>rank</code>, <code>dense_rank</code>), сосед (<code>lag</code>, <code>lead</code>), край (<code>first_value</code>, <code>last_value</code>), накопленные <code>sum</code> и <code>avg</code>.</p>
+        <p>На 10&nbsp;000 квартир это считается в PostgreSQL. ClickHouse подключают, когда таких строк становится так много, что даже сохранённая свёртка не успевает, а старые строки никто не правит.</p>
+        <p>Практика с числами: <a href="module-3-6.html">занятие 3.6</a>.</p>
+      </div>
+      <p class="notes">Попросите назвать вслух одну функцию, которая схлопывает, и одну, которая оставляет строку. Этого достаточно, чтобы занятие не рассыпалось на список имён.</p>
+    </section>
+
+  </div>
+  <div class="notes-panel" id="notes"></div>
+  <div class="chrome">
+    <button type="button" id="prev">←</button>
+    <button type="button" id="next">→</button>
+    <button type="button" id="notes-btn" aria-pressed="false">Текст</button>
+    <button type="button" id="over-btn">Слайды</button>
+  </div>
+  <div class="overview" id="overview"><div class="grid" id="grid"></div></div>
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const notes = document.getElementById("notes");
+    const notesBtn = document.getElementById("notes-btn");
+    const overview = document.getElementById("overview");
+    const grid = document.getElementById("grid");
+    const bar = document.getElementById("bar");
+    let index = 0;
+    slides.forEach((slide, i) => {
+      const mark = document.createElement("div");
+      mark.className = "num";
+      mark.textContent = (i + 1) + " / " + slides.length;
+      slide.appendChild(mark);
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "tile";
+      const title = slide.querySelector("h1, h2");
+      tile.textContent = (i + 1) + ". " + (title ? title.textContent.replace(/\s+/g, " ") : "");
+      tile.addEventListener("click", () => { show(i); overview.classList.remove("open"); });
+      grid.appendChild(tile);
+    });
+    function show(i) {
+      index = (i + slides.length) % slides.length;
+      slides.forEach((slide) => slide.classList.remove("active"));
+      void slides[index].offsetWidth;
+      slides[index].classList.add("active");
+      const aside = slides[index].querySelector(".notes");
+      notes.textContent = aside ? aside.textContent.trim() : "";
+      bar.style.width = ((index + 1) / slides.length * 100) + "%";
+      grid.querySelectorAll(".tile").forEach((tile, n) => tile.classList.toggle("here", n === index));
+    }
+    document.getElementById("prev").addEventListener("click", () => show(index - 1));
+    document.getElementById("next").addEventListener("click", () => show(index + 1));
+    notesBtn.addEventListener("click", () => {
+      const open = notes.classList.toggle("open");
+      notesBtn.setAttribute("aria-pressed", open ? "true" : "false");
+    });
+    document.getElementById("over-btn").addEventListener("click", () => overview.classList.toggle("open"));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault(); show(index + 1);
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault(); show(index - 1);
+      } else if (event.key === "Home") show(0);
+      else if (event.key === "End") show(slides.length - 1);
+      else if (event.key === "n" || event.key === "N") notesBtn.click();
+      else if (event.key === "Escape" || event.key === "o" || event.key === "O") overview.classList.toggle("open");
+    });
+    document.querySelectorAll("#quiz button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#quiz button").forEach((item) => item.classList.remove("good", "bad"));
+        const msg = document.getElementById("quiz-msg");
+        if (button.dataset.ok === "yes") {
+          button.classList.add("good");
+          msg.textContent = "Эту задачу оставляют в PostgreSQL: строк немного, цены ещё правят, формулы уже есть.";
+        } else {
+          button.classList.add("bad");
+          msg.textContent = "Здесь уже смотрят на ClickHouse: строки только копятся, а свёртка по ним не успевает.";
+        }
+      });
+    });
+    show(0);
+  </script>
+</body>
+</html>

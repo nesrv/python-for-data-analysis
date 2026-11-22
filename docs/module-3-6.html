@@ -43,6 +43,185 @@
 </tbody>
 </table>
 <p><code>price_note</code> в отчёт не входит. Это подпись «цена N», она повторяет ответ и для сводки не нужна.</p>
+<p>Практика, на которой держится занятие, устроена из пяти приёмов. Сначала их смотрят на нескольких строках, потом те же слова применяют к квартирам.</p>
+<table>
+<thead>
+<tr>
+<th>Приём</th>
+<th>Что делает со строками</th>
+<th>Где в занятии</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>row_number</code>, <code>rank</code>, <code>dense_rank</code>, <code>lag</code>, <code>lead</code>, <code>first_value</code>, <code>last_value</code></td>
+<td>не схлопывают таблицу, а дописывают соседнее значение или место</td>
+<td>3.6.1 и 3.6.2</td>
+</tr>
+<tr>
+<td><code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code> с <code>OVER</code></td>
+<td>считают итог по окну и оставляют каждую строку на месте</td>
+<td>3.6.2 и 3.6.6</td>
+</tr>
+<tr>
+<td><code>GROUP BY</code>, <code>ROLLUP</code>, <code>GROUPING SETS</code>, <code>CUBE</code></td>
+<td>схлопывают строки в итоги разной подробности</td>
+<td>3.6.3 и 3.6.7</td>
+</tr>
+<tr>
+<td><code>FILTER</code> и <code>crosstab</code></td>
+<td>разворачивают значения в столбцы</td>
+<td>3.6.8</td>
+</tr>
+<tr>
+<td><code>WITH RECURSIVE</code></td>
+<td>сам дописывает следующую строку ряда</td>
+<td>3.6.10</td>
+</tr>
+</tbody>
+</table>
+<p>Окно задают в <code>OVER</code>. <code>PARTITION BY</code> режет таблицу на независимые группы, как продавец или район. <code>ORDER BY</code> внутри окна задаёт порядок, без которого «предыдущая строка» не определена. Рамка <code>ROWS BETWEEN ... AND CURRENT ROW</code> говорит, что сумма идёт с начала группы до текущей строки, а не по всей группе сразу.</p>
+<p>Первая таблица практики — девять сделок. В занятии продавцы названы по-русски, суммы те же.</p>
+<table>
+<thead>
+<tr>
+<th>Продавец</th>
+<th>Дата</th>
+<th>Сумма</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Анна</td>
+<td>2024-01-01</td>
+<td>100</td>
+</tr>
+<tr>
+<td>Анна</td>
+<td>2024-01-05</td>
+<td>200</td>
+</tr>
+<tr>
+<td>Анна</td>
+<td>2024-01-10</td>
+<td>300</td>
+</tr>
+<tr>
+<td>Борис</td>
+<td>2024-01-02</td>
+<td>400</td>
+</tr>
+<tr>
+<td>Борис</td>
+<td>2024-01-07</td>
+<td>100</td>
+</tr>
+<tr>
+<td>Борис</td>
+<td>2024-01-08</td>
+<td>600</td>
+</tr>
+<tr>
+<td>Вера</td>
+<td>2024-01-03</td>
+<td>300</td>
+</tr>
+<tr>
+<td>Вера</td>
+<td>2024-01-10</td>
+<td>300</td>
+</tr>
+<tr>
+<td>Вера</td>
+<td>2024-01-12</td>
+<td>300</td>
+</tr>
+</tbody>
+</table>
+<p>На этих строках проверяют четыре вопроса практики:</p>
+<ol>
+<li>На сколько текущая сделка отличается от предыдущей у того же продавца. У Анны оба шага по 100. У Бориса скачок 100 → 600 даёт 500.</li>
+<li>Какая сумма будет следующей. У последней сделки продавца следующей нет, там пусто.</li>
+<li>Дата первой и последней сделки. У <code>last_value</code> без рамки до конца окна «последняя» совпадает с текущей строкой.</li>
+<li>Место по сумме. У Веры три сделки по 300: <code>rank</code> ставит всем место 1, <code>row_number</code> всё равно выдаёт 1, 2 и 3.</li>
+</ol>
+<p>Накопительная сумма Анны по дате: 100, затем 300, затем 600. Это <code>sum(amount) OVER (PARTITION BY seller ORDER BY sale_date)</code>, а не <code>GROUP BY</code>: строки сделок остаются в ответе.</p>
+<p>Вторая короткая таблица практики — товар и месяц. Её разворачивают в столбцы: одна строка на товар, столбец на месяц.</p>
+<table>
+<thead>
+<tr>
+<th>Товар</th>
+<th>Месяц</th>
+<th>Сумма</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Товар А</td>
+<td>янв</td>
+<td>100</td>
+</tr>
+<tr>
+<td>Товар А</td>
+<td>фев</td>
+<td>120</td>
+</tr>
+<tr>
+<td>Товар Б</td>
+<td>янв</td>
+<td>80</td>
+</tr>
+<tr>
+<td>Товар Б</td>
+<td>фев</td>
+<td>90</td>
+</tr>
+</tbody>
+</table>
+<p>После поворота у товара А в столбце «янв» стоит 100, в столбце «фев» — 120. У товара Б соответственно 80 и 90. В отчёте по квартирам так же поступают с районами: не список строк, а столбец на район.</p>
+<p>Третья таблица — продавец и товар, чтобы одним запросом получить и клетку «продавец + товар», и итог продавца, и общий итог.</p>
+<table>
+<thead>
+<tr>
+<th>Продавец</th>
+<th>Товар</th>
+<th>Сумма</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Анна</td>
+<td>виджет</td>
+<td>100</td>
+</tr>
+<tr>
+<td>Анна</td>
+<td>гаджет</td>
+<td>150</td>
+</tr>
+<tr>
+<td>Борис</td>
+<td>виджет</td>
+<td>200</td>
+</tr>
+<tr>
+<td>Борис</td>
+<td>гаджет</td>
+<td>50</td>
+</tr>
+<tr>
+<td>Вера</td>
+<td>виджет</td>
+<td>300</td>
+</tr>
+<tr>
+<td>Вера</td>
+<td>гаджет</td>
+<td>75</td>
+</tr>
+</tbody>
+</table>
+<p>Итог Анны 250, Бориса 250, Веры 375. Общая сумма 875. <code>ROLLUP</code> строит эту лесенку сам. <code>CUBE</code> добавляет ещё итог по товару без продавца. <code>GROUPING SETS</code> перечисляет только те уровни, которые нужны в отчёте. На квартирах те же три уровня: район и комнаты, район целиком, вся таблица.</p>
 <p><strong>Итоговые артефакты</strong> (в папке <code>module-3/module-3-6/</code>):</p>
 <table>
 <thead>
@@ -63,105 +242,15 @@
 </tbody>
 </table>
 <hr />
-<h2>Подготовка</h2>
-<p>Контейнер запущен. Схема и пустая таблица:</p>
-<pre><code class="language-powershell">docker exec pg18-course psql -U student -d course -c &quot;CREATE SCHEMA IF NOT EXISTS analytics;&quot;
-Get-Content -Raw -Encoding utf8 module-3\module-3-6\sql\flats_report.sql | docker exec -i pg18-course psql -U student -d course
-docker cp module-6-0\data\flats.csv pg18-course:/tmp/flats.csv
-docker exec pg18-course psql -U student -d course -c &quot;\copy analytics.flats FROM '/tmp/flats.csv' WITH (FORMAT csv, HEADER true, ENCODING 'UTF8')&quot;
-</code></pre>
-<p><code>docker cp</code> кладёт файл внутрь контейнера. <code>\copy</code> из psql на сервере читает уже этот путь, не путь Windows.</p>
-<p>Проверка загрузки:</p>
-<pre><code class="language-powershell">docker exec pg18-course psql -U student -d course -c &quot;SELECT count(*), sum(price), round(avg(price), 2) FROM analytics.flats;&quot;
-</code></pre>
-<p><strong>Критерий 3.6.0.</strong> Строк <strong>10000</strong>, сумма цен <strong>67412226</strong>, среднее <strong>6741.22</strong>.</p>
-<p>Дальше запросы набирают в DBeaver или дописывают в <code>module-3/module-3-6/lab36-report.sql</code> и прогоняют тем же <code>Get-Content | docker exec -i</code>.</p>
-<hr />
-<h2>3.6.1. Сводка по району</h2>
-<p>Один проход по таблице, пять строк ответа. Так выглядит основной аналитический запрос: не <code>WHERE flat_id = ...</code>, а <code>GROUP BY</code>.</p>
-<pre><code class="language-sql">SELECT district,
-       count(*) AS flats,
-       round(avg(price), 2) AS avg_price,
-       percentile_cont(0.5) WITHIN GROUP (ORDER BY price) AS median_price
-FROM analytics.flats
-GROUP BY district
-ORDER BY avg_price DESC;
-</code></pre>
-<p><code>percentile_cont(0.5)</code> — медиана. <code>avg</code> тянет среднее к редким дорогим квартирам, медиана показывает середину списка.</p>
-<p><strong>Критерий 3.6.1.</strong> Пять районов. Дороже всех центр: <strong>1985</strong> квартир, среднее <strong>7330.89</strong>, медиана <strong>7335</strong>. Дальше юг (среднее 6707.83), запад (6703.78), север (6596.82), восток (6372.72). Число квартир: юг 2002, запад 1965, север 2060, восток 1988.</p>
-<hr />
-<h2>3.6.2. Цена по десятилетиям</h2>
-<p>Год сам по себе слишком мелкий для графика. <code>year / 10 * 10</code> с целочисленным делением даёт начало десятилетия: 1994 превращается в 1990.</p>
-<pre><code class="language-sql">SELECT (year / 10) * 10 AS decade,
-       count(*) AS flats,
-       round(avg(price), 2) AS avg_price
-FROM analytics.flats
-GROUP BY decade
-ORDER BY decade;
-</code></pre>
-<p><strong>Критерий 3.6.2.</strong> Семь строк, с 1960 по 2020. Квартир: 1284, 1582, 1583, 1626, 1582, 1557, 786. В 2020-х строк меньше, потому что в файле годы только до 2024, десятилетие не полное.</p>
-<hr />
-<h2>3.6.3. Самые дорогие в своём районе</h2>
-<p>Оконная функция не схлопывает таблицу в одну строку на район. Она дописывает каждой квартире место в своём районе. В отчёт оставляют первое место.</p>
-<pre><code class="language-sql">SELECT flat_id, district, area, year, rooms, price
-FROM (
-    SELECT flat_id, district, area, year, rooms, price,
-           row_number() OVER (PARTITION BY district ORDER BY price DESC) AS place
-    FROM analytics.flats
-) ranked
-WHERE place = 1
-ORDER BY price DESC;
-</code></pre>
-<p><code>PARTITION BY district</code> начинает нумерацию заново в каждом районе. <code>ORDER BY price DESC</code> ставит единицу самой дорогой.</p>
-<p><strong>Критерий 3.6.3.</strong> Пять строк, по одной на район. Первая — центр, <code>flat_id</code> <strong>1733</strong>, 120 м², 2024 год, 4 комнаты, цена <strong>11625</strong>.</p>
-<hr />
-<h2>3.6.4. Свёртка, которую не пересчитывают каждый раз</h2>
-<p>Запросы выше за секунду проходят 10000 строк. Отчёт на экране обновляют чаще, чем данные. Готовую свёртку кладут в материализованное представление: это таблица с результатом, а не запрос, который живёт только пока его выполняют.</p>
-<pre><code class="language-sql">CREATE MATERIALIZED VIEW analytics.price_by_district AS
-SELECT district,
-       count(*) AS flats,
-       round(avg(price), 2) AS avg_price,
-       percentile_cont(0.5) WITHIN GROUP (ORDER BY price) AS median_price
-FROM analytics.flats
-GROUP BY district;
+<p>Дальше запросы идут от короткой таблицы к отчёту на 10000 строк. Сначала девять сделок: на них видно, чем отличаются нумерации. Потом загрузка квартир и сводки.</p>
+<h2>3.6.1. Номер строки, место и одинаковые цены</h2>
+<p><code>row_number</code>, <code>rank</code> и <code>dense_rank</code> нумеруют строки внутри окна. Расходятся они там, где значения равны. На девяти сделках это видно сразу, без файла квартир.</p>
+<p>Схему создают один раз. Перед повторным запуском таблицу удаляют, иначе девять строк вставятся ещё раз.</p>
+<pre><code class="language-sql">CREATE SCHEMA IF NOT EXISTS analytics;
 
-SELECT district, flats, avg_price
-FROM analytics.price_by_district
-ORDER BY avg_price DESC;
-</code></pre>
-<p>Пока представление не обновили, оно не видит новые вставки в <code>analytics.flats</code>. Обновление — отдельная команда, её запускают после загрузки, а не на каждый чих:</p>
-<pre><code class="language-sql">REFRESH MATERIALIZED VIEW analytics.price_by_district;
-</code></pre>
-<p><strong>Критерий 3.6.4.</strong> Чтение представления даёт те же пять районов и то же среднее центра <strong>7330.89</strong>, что запрос из 3.6.1. <code>REFRESH</code> без новой загрузки эти числа не меняет.</p>
-<hr />
-<h2>3.6.5. Несколько итогов одним запросом</h2>
-<p>Обычный <code>GROUP BY district, rooms</code> даёт только клетки «район и число комнат». В отчёте рядом нужны итог по району и общий итог. <code>ROLLUP</code> добавляет их сам: сначала отбрасывает комнаты, потом район.</p>
-<pre><code class="language-sql">SELECT district,
-       rooms,
-       count(*) AS flats,
-       sum(price) AS sum_price
-FROM analytics.flats
-GROUP BY ROLLUP (district, rooms)
-ORDER BY district NULLS LAST, rooms NULLS LAST;
-</code></pre>
-<p>Пустой <code>district</code> в результате — не ошибка данных. Это строка общего итога. Пустые <code>rooms</code> при заполненном районе — итог района по всем планировкам.</p>
-<p><code>GROUPING SETS</code> перечисляет те же уровни явно. На этих двух столбцах набор такой:</p>
-<pre><code class="language-sql">SELECT district, rooms, sum(price) AS sum_price
-FROM analytics.flats
-GROUP BY GROUPING SETS (
-    (district, rooms),
-    (district),
-    ()
-)
-ORDER BY district NULLS LAST, rooms NULLS LAST;
-</code></pre>
-<p><code>CUBE (district, rooms)</code> добавляет ещё один разрез, которого в <code>ROLLUP</code> нет: итог по числу комнат сразу по всем районам. Для отчёта «сначала район, внутри него комнаты» хватает <code>ROLLUP</code>.</p>
-<p><strong>Критерий 3.6.5.</strong> Строка, где пусты и район, и комнаты, имеет сумму <strong>67412226</strong>. Строка центра без комнат — <strong>14551817</strong>. Клетки центра: 1 комната <strong>1263020</strong>, 2 комнаты <strong>2699724</strong>, 3 комнаты <strong>6032969</strong>, 4 комнаты <strong>4556104</strong>.</p>
-<hr />
-<h2>3.6.6. Номер строки, место и одинаковые цены</h2>
-<p><code>row_number</code>, <code>rank</code> и <code>dense_rank</code> все нумеруют строки внутри окна. Расходятся они там, где значения равны.</p>
-<p>На квартирах максимум в каждом районе один, поэтому <code>row_number</code> и <code>rank</code> по цене совпали в разделе 3.6.3. Разницу видно на короткой таблице, где суммы повторяются. Это тот же приём, что в задачах на продавцов: три сделки Кэрол по 300.</p>
-<pre><code class="language-sql">CREATE TABLE analytics.sales (
+DROP TABLE IF EXISTS analytics.sales;
+
+CREATE TABLE analytics.sales (
     seller text NOT NULL,
     sale_date date NOT NULL,
     amount integer NOT NULL
@@ -185,13 +274,11 @@ SELECT seller, sale_date, amount,
 FROM analytics.sales
 ORDER BY seller, amount DESC, sale_date;
 </code></pre>
-<p>У Веры три одинаковые суммы. <code>row_number</code> всё равно выдаст 1, 2 и 3: место уникально, порядок среди равных не обещан без второго столбца в <code>ORDER BY</code>. <code>rank</code> поставит всем троим 1, а следующая другая сумма получила бы 4: номера 2 и 3 пропущены. <code>dense_rank</code> тоже поставит 1, но следующий другой уровень был бы 2, без дырки.</p>
-<p>Повторный запуск вставит те же девять строк ещё раз. Перед повтором таблицу удаляют: <code>DROP TABLE IF EXISTS analytics.sales;</code>.</p>
-<p><strong>Критерий 3.6.6.</strong> Девять строк. У Веры в колонке <code>rnk</code> три единицы. У Анны суммы 300, 200 и 100 получают места 1, 2 и 3 во всех трёх нумерациях: равных сумм у неё нет.</p>
+<p>У Веры три одинаковые суммы. <code>row_number</code> всё равно выдаст 1, 2 и 3: место уникально. <code>rank</code> поставит всем троим 1, а следующая другая сумма получила бы 4: номера 2 и 3 пропущены. <code>dense_rank</code> тоже поставит 1, но следующий другой уровень был бы 2, без дырки.</p>
+<p><strong>Критерий 3.6.1.</strong> Девять строк. У Веры в колонке <code>rnk</code> три единицы. У Анны суммы 300, 200 и 100 получают места 1, 2 и 3 во всех трёх нумерациях: равных сумм у неё нет.</p>
 <hr />
-<h2>3.6.7. Соседняя строка и накопленная сумма</h2>
-<p><code>lag</code> смотрит на предыдущую строку окна, <code>lead</code> — на следующую. У первой строки предыдущей нет, там <code>NULL</code>.</p>
-<p>Разница с предыдущей сделкой того же продавца:</p>
+<h2>3.6.2. Соседняя сделка и накопленная сумма</h2>
+<p><code>lag</code> смотрит на предыдущую строку окна, <code>lead</code> — на следующую. У первой строки предыдущей нет, там <code>NULL</code>. Таблица та же, <code>analytics.sales</code>.</p>
 <pre><code class="language-sql">SELECT seller, sale_date, amount,
        lag(amount) OVER (PARTITION BY seller ORDER BY sale_date) AS prev_amount,
        amount - lag(amount) OVER (PARTITION BY seller ORDER BY sale_date) AS diff
@@ -220,7 +307,125 @@ FROM analytics.sales
 ORDER BY seller, sale_date;
 </code></pre>
 <p>У Анны накопительные суммы <strong>100</strong>, <strong>300</strong>, <strong>600</strong>.</p>
-<p>Тот же приём на квартирах — средняя цена центра по годам и её изменение к прошлому году:</p>
+<p><code>lead</code> смотрит вперёд по тому же порядку. У последней сделки продавца следующей суммы нет.</p>
+<pre><code class="language-sql">SELECT seller, sale_date, amount,
+       lead(amount) OVER (PARTITION BY seller ORDER BY sale_date) AS next_amount
+FROM analytics.sales
+ORDER BY seller, sale_date;
+</code></pre>
+<p>У Анны следующие суммы <strong>200</strong>, <strong>300</strong> и пусто.</p>
+<p>Те же рамки окна принимают не только <code>sum</code>. <code>avg</code> — средний чек с начала до текущей строки, <code>min</code> и <code>max</code> — меньшая и большая сумма на этом отрезке, <code>count</code> — сколько сделок уже прошло.</p>
+<pre><code class="language-sql">SELECT seller, sale_date, amount,
+       round(avg(amount) OVER (
+           PARTITION BY seller ORDER BY sale_date
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ), 2) AS running_avg,
+       min(amount) OVER (
+           PARTITION BY seller ORDER BY sale_date
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS min_so_far,
+       max(amount) OVER (
+           PARTITION BY seller ORDER BY sale_date
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS max_so_far,
+       count(*) OVER (
+           PARTITION BY seller ORDER BY sale_date
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS deals_so_far
+FROM analytics.sales
+ORDER BY seller, sale_date;
+</code></pre>
+<p>У Анны средний чек по шагам <strong>100</strong>, <strong>150</strong>, <strong>200</strong>. Минимум всё время <strong>100</strong>. Максимум <strong>100</strong>, затем <strong>200</strong>, затем <strong>300</strong>. Сделок к каждой строке <strong>1</strong>, <strong>2</strong>, <strong>3</strong>.</p>
+<p>Сделка выше своего накопительного среднего — это сравнение строки с окном, не отдельная функция:</p>
+<pre><code class="language-sql">SELECT seller, sale_date, amount
+FROM (
+    SELECT seller, sale_date, amount,
+           avg(amount) OVER (
+               PARTITION BY seller ORDER BY sale_date
+               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+           ) AS running_avg
+    FROM analytics.sales
+) steps
+WHERE amount &gt; running_avg
+ORDER BY seller, sale_date;
+</code></pre>
+<p>У Анны условие выполняют вторая сделка (200 &gt; 150) и третья (300 &gt; 200). Первая равна своему среднему и в список не входит.</p>
+<p>Обычные агрегаты без <code>OVER</code> схлопывают продавца в одну строку. <code>string_agg</code> склеивает суммы в текст:</p>
+<pre><code class="language-sql">SELECT seller,
+       count(*) AS deals,
+       min(amount) AS min_amount,
+       max(amount) AS max_amount,
+       string_agg(amount::text, ', ' ORDER BY sale_date) AS amounts
+FROM analytics.sales
+GROUP BY seller
+ORDER BY seller;
+</code></pre>
+<p>У Анны три сделки, минимум 100, максимум 300, строка сумм <code>100, 200, 300</code>. У Веры минимум и максимум совпадают: все три суммы равны 300.</p>
+<p><strong>Критерий 3.6.2.</strong> Первые даты: Анна 2024-01-01, Борис 2024-01-02, Вера 2024-01-03. Последние: Анна 2024-01-10, Борис 2024-01-08, Вера 2024-01-12. Следующая сумма первой сделки Анны — <strong>200</strong>. Её накопительное среднее на третьей строке — <strong>200</strong>. В списке сделок выше своего среднего у Анны две строки.</p>
+<hr />
+<h2>Подготовка квартир</h2>
+<p>Контейнер запущен. Схема уже есть после раздела 3.6.1. Пустая таблица и загрузка файла:</p>
+<pre><code class="language-powershell">docker exec pg18-course psql -U student -d course -c &quot;CREATE SCHEMA IF NOT EXISTS analytics;&quot;
+Get-Content -Raw -Encoding utf8 module-3\module-3-6\sql\flats_report.sql | docker exec -i pg18-course psql -U student -d course
+docker cp module-6-0\data\flats.csv pg18-course:/tmp/flats.csv
+docker exec pg18-course psql -U student -d course -c &quot;\copy analytics.flats FROM '/tmp/flats.csv' WITH (FORMAT csv, HEADER true, ENCODING 'UTF8')&quot;
+</code></pre>
+<p><code>docker cp</code> кладёт файл внутрь контейнера. <code>\copy</code> в этой команде читает уже путь контейнера, не путь Windows.</p>
+<p>Если PostgreSQL 18 стоит в Windows и контейнера нет, файл читает клиентский <code>\copy</code> прямо с диска. Команды запускают из корня курса. Каталог <code>bin</code> установленного сервера должен быть в <code>PATH</code>, либо вместо <code>psql</code> пишут полный путь, например <code>"C:\Program Files\PostgreSQL\18\bin\psql.exe"</code>. Пользователь и база те же: <code>student</code> и <code>course</code>. Пароль спросит <code>psql</code>.</p>
+<pre><code class="language-powershell">psql -U student -d course -c &quot;CREATE SCHEMA IF NOT EXISTS analytics;&quot;
+Get-Content -Raw -Encoding utf8 module-3\module-3-6\sql\flats_report.sql | psql -U student -d course
+psql -U student -d course -c &quot;\copy analytics.flats FROM 'module-6-0/data/flats.csv' WITH (FORMAT csv, HEADER true, ENCODING 'UTF8')&quot;
+</code></pre>
+<p>Здесь <code>\copy</code> забирает <code>module-6-0/data/flats.csv</code> с компьютера, где открыт терминал. Серверный <code>COPY</code> без обратной косой черты для этого не нужен: он ищет файл уже на стороне сервера и требует прав суперпользователя.</p>
+<p>Проверка загрузки:</p>
+<pre><code class="language-powershell">docker exec pg18-course psql -U student -d course -c &quot;SELECT count(*), sum(price), round(avg(price), 2) FROM analytics.flats;&quot;
+</code></pre>
+<p>Без контейнера та же проверка:</p>
+<pre><code class="language-powershell">psql -U student -d course -c &quot;SELECT count(*), sum(price), round(avg(price), 2) FROM analytics.flats;&quot;
+</code></pre>
+<p><strong>Критерий 3.6.0.</strong> Строк <strong>10000</strong>, сумма цен <strong>67412226</strong>, среднее <strong>6741.22</strong>.</p>
+<p>Дальше запросы набирают в DBeaver или дописывают в <code>module-3/module-3-6/lab36-report.sql</code>. Файл прогоняют так же, как скрипт создания таблицы: через <code>docker exec -i</code> или через <code>psql -U student -d course</code>.</p>
+<hr />
+<h2>3.6.3. Сводка по району</h2>
+<p>Один проход по таблице, пять строк ответа. Так выглядит основной аналитический запрос: не <code>WHERE flat_id = ...</code>, а <code>GROUP BY</code>.</p>
+<pre><code class="language-sql">SELECT district,
+       count(*) AS flats,
+       round(avg(price), 2) AS avg_price,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY price) AS median_price
+FROM analytics.flats
+GROUP BY district
+ORDER BY avg_price DESC;
+</code></pre>
+<p><code>percentile_cont(0.5)</code> — медиана. <code>avg</code> тянет среднее к редким дорогим квартирам, медиана показывает середину списка.</p>
+<p><strong>Критерий 3.6.3.</strong> Пять районов. Дороже всех центр: <strong>1985</strong> квартир, среднее <strong>7330.89</strong>, медиана <strong>7335</strong>. Дальше юг (среднее 6707.83), запад (6703.78), север (6596.82), восток (6372.72). Число квартир: юг 2002, запад 1965, север 2060, восток 1988.</p>
+<hr />
+<h2>3.6.4. Цена по десятилетиям</h2>
+<p>Год сам по себе слишком мелкий для графика. <code>year / 10 * 10</code> с целочисленным делением даёт начало десятилетия: 1994 превращается в 1990.</p>
+<pre><code class="language-sql">SELECT (year / 10) * 10 AS decade,
+       count(*) AS flats,
+       round(avg(price), 2) AS avg_price
+FROM analytics.flats
+GROUP BY decade
+ORDER BY decade;
+</code></pre>
+<p><strong>Критерий 3.6.4.</strong> Семь строк, с 1960 по 2020. Квартир: 1284, 1582, 1583, 1626, 1582, 1557, 786. В 2020-х строк меньше, потому что в файле годы только до 2024, десятилетие не полное.</p>
+<hr />
+<h2>3.6.5. Самые дорогие в своём районе</h2>
+<p>То же окно, что в разделе 3.6.1, теперь на квартирах. Оно не схлопывает таблицу в одну строку на район, а дописывает каждой квартире место. В отчёт оставляют первое место. На этих данных максимум в районе один, поэтому <code>row_number</code> и <code>rank</code> совпали бы.</p>
+<pre><code class="language-sql">SELECT flat_id, district, area, year, rooms, price
+FROM (
+    SELECT flat_id, district, area, year, rooms, price,
+           row_number() OVER (PARTITION BY district ORDER BY price DESC) AS place
+    FROM analytics.flats
+) ranked
+WHERE place = 1
+ORDER BY price DESC;
+</code></pre>
+<p><code>PARTITION BY district</code> начинает нумерацию заново в каждом районе. <code>ORDER BY price DESC</code> ставит единицу самой дорогой.</p>
+<p><strong>Критерий 3.6.5.</strong> Пять строк, по одной на район. Первая — центр, <code>flat_id</code> <strong>1733</strong>, 120 м², 2024 год, 4 комнаты, цена <strong>11625</strong>.</p>
+<hr />
+<h2>3.6.6. Цена центра к прошлому году</h2>
+<p><code>lag</code> с раздела 3.6.2 переносится на сводку. Сначала год сворачивается в одно среднее, потом окно смотрит на предыдущий год. У первого года предыдущего нет, дельта пустая.</p>
 <pre><code class="language-sql">WITH by_year AS (
     SELECT year,
            round(avg(price), 2) AS avg_price
@@ -236,7 +441,54 @@ FROM by_year
 ORDER BY year
 LIMIT 3;
 </code></pre>
-<p><strong>Критерий 3.6.7.</strong> Первые даты: Анна 2024-01-01, Борис 2024-01-02, Вера 2024-01-03. Последние: Анна 2024-01-10, Борис 2024-01-08, Вера 2024-01-12. Центр по годам: 1962 год среднее <strong>6992.79</strong> и пустая дельта, 1963 год <strong>7708.57</strong> и дельта <strong>715.78</strong>, 1964 год <strong>6614.97</strong> и дельта <strong>-1093.60</strong>.</p>
+<p><strong>Критерий 3.6.6.</strong> 1962 год среднее <strong>6992.79</strong> и пустая дельта, 1963 год <strong>7708.57</strong> и дельта <strong>715.78</strong>, 1964 год <strong>6614.97</strong> и дельта <strong>-1093.60</strong>.</p>
+<hr />
+<h2>3.6.7. Несколько итогов одним запросом</h2>
+<p>Обычный <code>GROUP BY district, rooms</code> даёт только клетки «район и число комнат». В отчёте рядом нужны итог по району и общий итог. <code>ROLLUP</code> добавляет их сам: сначала отбрасывает комнаты, потом район.</p>
+<pre><code class="language-sql">SELECT district,
+       rooms,
+       count(*) AS flats,
+       sum(price) AS sum_price
+FROM analytics.flats
+GROUP BY ROLLUP (district, rooms)
+ORDER BY district NULLS LAST, rooms NULLS LAST;
+</code></pre>
+<p>Пустой <code>district</code> в результате — не ошибка данных. Это строка общего итога. Пустые <code>rooms</code> при заполненном районе — итог района по всем планировкам.</p>
+<p><code>GROUPING SETS</code> перечисляет те же уровни явно. На этих двух столбцах набор такой:</p>
+<pre><code class="language-sql">SELECT district, rooms, sum(price) AS sum_price
+FROM analytics.flats
+GROUP BY GROUPING SETS (
+    (district, rooms),
+    (district),
+    ()
+)
+ORDER BY district NULLS LAST, rooms NULLS LAST;
+</code></pre>
+<p><code>CUBE</code> на квартирах даёт длинный ответ. Тот же разрез сначала смотрят на шести строках «продавец и товар», чтобы увидеть все четыре уровня: клетка, итог продавца, итог товара и общий итог.</p>
+<pre><code class="language-sql">DROP TABLE IF EXISTS analytics.goods;
+
+CREATE TABLE analytics.goods (
+    seller text NOT NULL,
+    product text NOT NULL,
+    amount integer NOT NULL
+);
+
+INSERT INTO analytics.goods (seller, product, amount) VALUES
+    ('Анна', 'виджет', 100),
+    ('Анна', 'гаджет', 150),
+    ('Борис', 'виджет', 200),
+    ('Борис', 'гаджет', 50),
+    ('Вера', 'виджет', 300),
+    ('Вера', 'гаджет', 75);
+
+SELECT seller, product, sum(amount) AS total_amount
+FROM analytics.goods
+GROUP BY CUBE (seller, product)
+ORDER BY seller NULLS LAST, product NULLS LAST;
+</code></pre>
+<p>Клетка Анны и виджета — <strong>100</strong>. Итог Анны, строка с пустым товаром, — <strong>250</strong>. Итог всех виджетов, строка с пустым продавцом, — <strong>600</strong>. Итог гаджетов — <strong>275</strong>. Общий итог, где пусты оба столбца, — <strong>875</strong>.</p>
+<p><code>CUBE (district, rooms)</code> на квартирах добавляет тот же лишний для этого отчёта разрез: итог по числу комнат сразу по всем районам. Для отчёта «сначала район, внутри него комнаты» хватает <code>ROLLUP</code>.</p>
+<p><strong>Критерий 3.6.7.</strong> В <code>CUBE</code> по товарам общий итог <strong>875</strong>, виджеты <strong>600</strong>, гаджеты <strong>275</strong>, итог Анны <strong>250</strong>. По квартирам строка, где пусты и район, и комнаты, имеет сумму <strong>67412226</strong>. Строка центра без комнат — <strong>14551817</strong>. Клетки центра: 1 комната <strong>1263020</strong>, 2 комнаты <strong>2699724</strong>, 3 комнаты <strong>6032969</strong>, 4 комнаты <strong>4556104</strong>.</p>
 <hr />
 <h2>3.6.8. Район в столбцы</h2>
 <p>Сводке иногда нужен не длинный список, а один столбец на район. Без дополнительного модуля это делает <code>FILTER</code>: сумма считается только по строкам, которые прошли условие.</p>
@@ -247,12 +499,54 @@ FROM analytics.flats
 GROUP BY decade
 ORDER BY decade;
 </code></pre>
-<p>Тот же поворот через <code>crosstab</code> из модуля <code>tablefunc</code> требует расширение и список будущих столбцов заранее. Для пяти районов в отчёте короче <code>FILTER</code>. Расширение ставят так:</p>
+<p>Тот же поворот на четырёх строках практики делает <code>crosstab</code>. Ему нужно расширение <code>tablefunc</code> и заранее названные столбцы месяцев. Первый аргумент — запрос из трёх колонок: строка, будущий столбец, значение. Второй — список этих столбцов.</p>
 <pre><code class="language-sql">CREATE EXTENSION IF NOT EXISTS tablefunc;
+
+DROP TABLE IF EXISTS analytics.month_sales;
+
+CREATE TABLE analytics.month_sales (
+    product text NOT NULL,
+    month text NOT NULL,
+    sales_amount integer NOT NULL
+);
+
+INSERT INTO analytics.month_sales (product, month, sales_amount) VALUES
+    ('Товар А', 'янв', 100),
+    ('Товар А', 'фев', 120),
+    ('Товар Б', 'янв', 80),
+    ('Товар Б', 'фев', 90);
+
+SELECT *
+FROM crosstab(
+    $$SELECT product, month, sales_amount
+      FROM analytics.month_sales
+      ORDER BY 1, 2$$,
+    $$VALUES ('янв'), ('фев')$$
+) AS ct(product text, jan integer, feb integer);
 </code></pre>
+<p>У товара А в столбце <code>jan</code> число <strong>100</strong>, в <code>feb</code> — <strong>120</strong>. У товара Б — <strong>80</strong> и <strong>90</strong>. Для пяти районов в большом отчёте короче <code>FILTER</code>: не нужно расширение и не нужно перечислять имена столбцов в типе результата.</p>
 <p><strong>Критерий 3.6.8.</strong> Семь десятилетий, два столбца средних. Пустых средних нет: в каждом десятилетии есть и центр, и восток.</p>
 <hr />
-<h2>3.6.9. Рекурсия — не свёртка таблицы</h2>
+<h2>3.6.9. Свёртка, которую не пересчитывают каждый раз</h2>
+<p>Запросы выше за секунду проходят 10000 строк. Отчёт на экране обновляют чаще, чем данные. Готовую свёртку кладут в материализованное представление: это таблица с результатом, а не запрос, который живёт только пока его выполняют.</p>
+<pre><code class="language-sql">CREATE MATERIALIZED VIEW analytics.price_by_district AS
+SELECT district,
+       count(*) AS flats,
+       round(avg(price), 2) AS avg_price,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY price) AS median_price
+FROM analytics.flats
+GROUP BY district;
+
+SELECT district, flats, avg_price
+FROM analytics.price_by_district
+ORDER BY avg_price DESC;
+</code></pre>
+<p>Пока представление не обновили, оно не видит новые вставки в <code>analytics.flats</code>. Обновление — отдельная команда, её запускают после загрузки, а не на каждый чих:</p>
+<pre><code class="language-sql">REFRESH MATERIALIZED VIEW analytics.price_by_district;
+</code></pre>
+<p><strong>Критерий 3.6.9.</strong> Чтение представления даёт те же пять районов и то же среднее центра <strong>7330.89</strong>, что запрос из 3.6.3. <code>REFRESH</code> без новой загрузки эти числа не меняет.</p>
+<hr />
+<h2>3.6.10. Рекурсия — не свёртка таблицы</h2>
 <p>В тех же материалах есть <code>WITH RECURSIVE</code>: запрос сам дописывает следующую строку, пока выполняется условие. Так считают ряд, а не группу квартир. Для факториала до 10 это выглядит так:</p>
 <pre><code class="language-sql">WITH RECURSIVE factorial(n, fact) AS (
     SELECT 1, 1::bigint
@@ -264,7 +558,7 @@ ORDER BY decade;
 SELECT n, fact FROM factorial ORDER BY n;
 </code></pre>
 <p>Первая ветка <code>UNION ALL</code> — старт: 1! = 1. Вторая берёт последнюю полученную строку и умножает на следующее число, пока <code>n</code> меньше 10. На квартирах такой цикл не нужен: там уже есть готовые строки, их сворачивает <code>GROUP BY</code> или окно.</p>
-<p><strong>Критерий 3.6.9.</strong> Десять строк. В последней <code>n</code> равен <strong>10</strong>, <code>fact</code> равен <strong>3628800</strong>.</p>
+<p><strong>Критерий 3.6.10.</strong> Десять строк. В последней <code>n</code> равен <strong>10</strong>, <code>fact</code> равен <strong>3628800</strong>.</p>
 <hr />
 <h2>Когда этого мало</h2>
 <p>PostgreSQL здесь уместен: 10000 строк, отчёт из нескольких свёрток, база уже есть, строки иногда всё же правят. ClickHouse берёт другой режим. Туда уносят журнал, который только дописывают, на десятки миллиардов событий, и по нему постоянно считают одни и те же разрезы. Копировать туда справочник квартир города М ради пяти средних не нужно.</p>

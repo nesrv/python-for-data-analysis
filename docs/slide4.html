@@ -135,6 +135,14 @@
       content: "";
     }
 
+    .toc-page ol.toc li.ahead {
+      border-top: 1px solid #e4dfd4;
+    }
+
+    .toc-page ol.toc li.ahead a {
+      padding: 11px 0 4px;
+    }
+
     .toc-page .files {
       margin: 0;
       padding: 0;
@@ -211,6 +219,8 @@
             <ol class="toc">
               <li><a href="module-1.html">Введение и настройка рабочей среды</a></li>
               <li><a href="module-2.html">Основы Python</a></li>
+              <li class="sub ahead"><a href="olap-postgres-deck.html">Презентация. PostgreSQL для OLAP</a></li>
+              <li class="sub ahead"><a href="fts-postgres-deck.html">Презентация. Полнотекстовый поиск в PostgreSQL</a></li>
               <li><a href="module-3.html">Подготовка и доступ к данным</a></li>
               <li class="sub"><a href="module-3-6.html">3.6 PostgreSQL как база для аналитики</a></li>
               <li><a href="module-4.html">Анализ, исследование и визуализация данных</a></li>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Полнотекстовый поиск в PostgreSQL как альтернатива Elasticsearch</title>
+  <link rel="stylesheet" href="course.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #e8eef6; overflow: hidden; }
+    .deck { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .slide {
+      display: none; width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: #f6f8fc; color: #1b2740; position: relative; overflow: hidden;
+      font-size: clamp(14px, 1.28vw, 21px);
+      box-shadow: 0 16px 48px rgba(27, 39, 64, 0.16);
+    }
+    .slide.active { display: block; }
+    .slide .notes { display: none; }
+    .logo { position: absolute; top: 2.5%; right: 2.5%; width: 12%; }
+    .pad { position: absolute; inset: 8% 4.5% 11% 4.5%; }
+    .kicker { margin: 0 0 0.2em; color: #1d4e89; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.66em; }
+    h1 { margin: 0 0 0.2em; font-size: 1.85em; line-height: 1.08; }
+    h2 { margin: 0 0 0.28em; font-size: 1.38em; line-height: 1.15; }
+    p { margin: 0.2em 0; line-height: 1.32; }
+    .num { position: absolute; left: 4.5%; bottom: 3.5%; font-size: 0.7em; color: #4d6280; font-weight: 800; }
+    .bar { position: fixed; top: 0; left: 0; height: 5px; background: #1d4e89; z-index: 6; width: 0; }
+    .chrome { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px; }
+    .chrome button, .overview button {
+      border: 2px solid #1b2740; background: #fff; color: #1b2740;
+      border-radius: 999px; padding: 0.3em 0.85em; font-weight: 800; cursor: pointer;
+    }
+    .chrome button[aria-pressed="true"] { background: #1d4e89; color: #fff; border-color: #1d4e89; }
+    .notes-panel {
+      display: none; position: fixed; left: 2%; right: 2%; bottom: 54px; z-index: 6;
+      background: #1b2740; color: #fff; border-radius: 12px; padding: 0.8em 1em;
+      font-size: 16px; line-height: 1.45; max-height: 32vh; overflow: auto;
+    }
+    .notes-panel.open { display: block; }
+    .overview { display: none; position: fixed; inset: 0; z-index: 8; background: rgba(27,39,64,.94); overflow: auto; padding: 24px; }
+    .overview.open { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .overview button.tile { border-radius: 10px; text-align: left; padding: 0.65em; min-height: 72px; }
+    .overview button.tile.here { background: #1d4e89; color: #fff; border-color: #1d4e89; }
+    .two { display: grid; gap: 0.55em; margin-top: 0.4em; grid-template-columns: 1fr 1fr; }
+    .card { border: 3px solid #1b2740; border-radius: 14px; padding: 0.5em 0.7em; background: #fff; }
+    .card.hot { border-color: #1d4e89; background: #e7f0fb; }
+    .card.warm { border-color: #c47b12; background: #fff8ee; }
+    .card b { display: block; margin-bottom: 0.12em; }
+    .slide.active .card, .slide.active .chip, .slide.active .rows tr, .slide.active .step {
+      animation: pop 0.45s ease both;
+    }
+    .slide.active .card:nth-child(2), .slide.active .step:nth-child(2) { animation-delay: 0.12s; }
+    .slide.active .card:nth-child(3), .slide.active .step:nth-child(3) { animation-delay: 0.24s; }
+    @keyframes pop { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .rows { margin-top: 0.3em; width: 100%; border-collapse: collapse; font-size: 0.86em; }
+    .rows th, .rows td { border-bottom: 1px solid #d5deea; padding: 0.18em 0.35em; text-align: left; }
+    .rows th { color: #1d4e89; }
+    .mark { background: #ffe8a3; }
+    .flow { display: flex; align-items: center; gap: 0.35em; flex-wrap: wrap; margin-top: 0.5em; }
+    .step { background: #fff; border: 3px solid #1b2740; border-radius: 12px; padding: 0.4em 0.55em; font-weight: 800; }
+    .step.hot { border-color: #1d4e89; background: #e7f0fb; }
+    .tokens { display: flex; gap: 0.4em; flex-wrap: wrap; margin-top: 0.45em; }
+    .tok { border-radius: 999px; padding: 0.25em 0.6em; font-weight: 800; background: #fff; border: 2px solid #1b2740; }
+    .slide.active .tok { animation: pop 0.4s ease both; }
+    .slide.active .tok:nth-child(2) { animation-delay: 0.1s; }
+    .slide.active .tok:nth-child(3) { animation-delay: 0.2s; }
+    .slide.active .tok:nth-child(4) { animation-delay: 0.3s; }
+    .slide.active .tok:nth-child(5) { animation-delay: 0.4s; }
+    .tok.on { background: #ffe8a3; border-color: #c47b12; }
+    .ad { border: 3px solid #d5deea; border-radius: 12px; padding: 0.4em 0.6em; margin-top: 0.35em; background: #fff; }
+    .ad.hit { border-color: #1d4e89; background: #e7f0fb; }
+    .ad .why { color: #4d6280; font-size: 0.82em; }
+    .choice { display: flex; gap: 0.45em; flex-wrap: wrap; margin-top: 0.35em; }
+    .choice button { border: 3px solid #1b2740; background: #fff; border-radius: 12px; padding: 0.4em 0.6em; font-weight: 800; cursor: pointer; font-size: 0.9em; }
+    .choice button.good { background: #1d4e89; color: #fff; border-color: #1d4e89; }
+    .choice button.bad { background: #f8e4e4; border-color: #9a3030; }
+    #find-msg, #quiz-msg { min-height: 1.2em; font-weight: 800; margin-top: 0.25em; }
+    code { font-size: 0.86em; }
+  </style>
+</head>
+<body>
+  <div class="bar" id="bar"></div>
+  <div class="deck">
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Поиск по тексту · простыми словами</p>
+        <h1>Найти объявление по словам.<br>PostgreSQL рядом с Elasticsearch</h1>
+        <p>Полнотекстовый поиск — это не «найти кусок букв внутри строки». Слова приводят к одной основе, выкидывают «в» и «на», и ищут по списку основ. Для каталога объявлений это умеет сама база курса.</p>
+      </div>
+      <p class="notes">Начните с бытовой фразы: человек пишет «квартиры в центре», а в базе лежит «квартира в центре». Обычный LIKE такое часто не склеивает. Отдельный поисковый сервер для учебной таблицы не нужен.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Когда какая система</p>
+        <h2>PostgreSQL, Elasticsearch и компания без второго сервера</h2>
+        <table class="rows">
+          <tr><th>Случай</th><th>Что ставят</th></tr>
+          <tr><td>Каталог, заявки, база знаний: тысячи и миллионы документов, цена и текст в одной базе</td><td class="mark">полнотекст PostgreSQL</td></tr>
+          <tr><td>Крупная компания, но не поисковик и не маркетплейс на всю страну. Сотни сотрудников, свой сайт, свой склад</td><td class="mark">обычно тоже PostgreSQL, Elasticsearch не обязателен</td></tr>
+          <tr><td>Нужны опечатки, подсказки «как в магазине» и выдача, которую крутят отдельной командой</td><td>Elasticsearch</td></tr>
+          <tr><td>Сотни миллионов и миллиарды документов, поиск живёт отдельно от кассы и склада</td><td>Elasticsearch</td></tr>
+        </table>
+        <p style="margin-top:0.35em">Крупная компания обходится без Elasticsearch, пока поиск — это «найти свой документ», а не отдельный продукт. Второй сервер появляется, когда текст уже не помещается в одну базу или выдача должна быть сложнее, чем <code>ts_rank</code>.</p>
+      </div>
+      <p class="notes">Скажите прямо: «мега» — это поисковик, маркетплейс, лента на десятки миллионов людей. Банк, завод, сеть клиник, вуз с своим порталом чаще живут на PostgreSQL. Elasticsearch стоит денег не лицензией, а второй копией данных и людьми, которые её чинят. Пока документы считаются миллионами, а не миллиардами, полнотекста базы хватает.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">PostgreSQL как поисковая база</p>
+        <h2>Какой поиск она делает, а какой уже нет</h2>
+        <table class="rows">
+          <tr><th>Задача</th><th>В PostgreSQL</th></tr>
+          <tr><td>Найти слово в любой форме: квартира и квартиры</td><td class="mark">да, словарь russian</td></tr>
+          <tr><td>Несколько слов сразу, слово или слово, фраза «два слова рядом»</td><td class="mark">да, операторы &amp; | &lt;-&gt;</td></tr>
+          <tr><td>Поставить более подходящие объявления выше</td><td class="mark">да, ts_rank</td></tr>
+          <tr><td>Подсветить найденный кусок в тексте</td><td class="mark">да, ts_headline</td></tr>
+          <tr><td>Ускорить поиск индексом и держать текст в той же таблице, что и цену</td><td class="mark">да, GIN</td></tr>
+          <tr><td>Каталог на миллиарды документов, свой кластер только под поиск, опечатки и сложная релевантность «как у большого сайта»</td><td>нет, для этого смотрят Elasticsearch</td></tr>
+        </table>
+      </div>
+      <p class="notes">Пройдите таблицу сверху. Первые пять строк — занятие. Последняя — не «PostgreSQL не умеет искать», а другой масштаб и отдельная поисковая система. На тысячах и даже на нескольких миллионах объявлений нижняя строка ещё не наступила.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Почему не хватает LIKE</p>
+        <h2>Кусок букв — это ещё не слово</h2>
+        <div class="two">
+          <div class="card warm">
+            <b>WHERE text ILIKE '%квартира%'</b>
+            Находит «квартира». Пропускает «квартиры на юге»: буквы после «квартир» другие. На большой таблице читает строки целиком.
+          </div>
+          <div class="card hot">
+            <b>to_tsvector('russian', text)</b>
+            Обе строки становятся основой «квартир». Служебные «в», «на» выкидываются. Ищут уже список основ, а не сырой текст.
+          </div>
+        </div>
+      </div>
+      <p class="notes">LIKE нужен, когда ищете точный кусок: телефон, код, артикул. Для человеческой фразы он врёт на окончаниях и тормозит без хитрого индекса. Полнотекст отвечает на другой вопрос: «это то же слово?».</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Что происходит с фразой</p>
+        <h2>Текст режут на основы, запрос — тоже</h2>
+        <p>Исходное объявление: «Светлая квартира в центре, две комнаты».</p>
+        <div class="flow">
+          <div class="step">текст</div>
+          <div class="step">to_tsvector</div>
+          <div class="step hot">основы</div>
+          <div class="step">сравнить с запросом</div>
+        </div>
+        <div class="tokens">
+          <span class="tok">светл</span>
+          <span class="tok on">квартир</span>
+          <span class="tok on">центр</span>
+          <span class="tok">дв</span>
+          <span class="tok">комнат</span>
+        </div>
+        <p>«в» исчезло. «квартира» и запрос «квартиры» сходятся в «квартир».</p>
+      </div>
+      <p class="notes">Жёлтые фишки — то, что совпало с запросом «квартиры в центре». Позиции слов база тоже помнит: иначе фраза «две комнаты» не отличится от «комнаты … две» в разных концах текста. Словарь russian уже встроен, его не ставят отдельно.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Попробуйте на трёх объявлениях</p>
+        <h2>Один и тот же вопрос, два способа</h2>
+        <div class="choice" id="find">
+          <button type="button" data-mode="like">LIKE «квартира»</button>
+          <button type="button" data-mode="stem">полнотекст «квартира»</button>
+          <button type="button" data-mode="near">фраза «две комнаты»</button>
+        </div>
+        <div class="ad" data-id="1">1. Светлая квартира в центре, две комнаты<div class="why"></div></div>
+        <div class="ad" data-id="2">2. Квартиры на юге, рядом парк<div class="why"></div></div>
+        <div class="ad" data-id="3">3. Дом у леса, три комнаты<div class="why"></div></div>
+        <p id="find-msg">Нажмите способ поиска.</p>
+      </div>
+      <p class="notes">Пусть студенты нажмут все три кнопки. LIKE оставляет только первое объявление. Полнотекст добавляет второе, потому что «квартиры» — та же основа. Фраза «две комнаты» берёт только первое: в третьем «три комнаты», слова не те.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Запрос</p>
+        <h2>Слова соединяют знаками, не AND из WHERE</h2>
+        <table class="rows">
+          <tr><th>Как написать</th><th>Что значит</th></tr>
+          <tr><td><code>квартира &amp; центр</code></td><td>оба слова есть</td></tr>
+          <tr><td><code>квартира | дом</code></td><td>хотя бы одно</td></tr>
+          <tr><td><code>квартира &amp; !юг</code></td><td>квартира, но без юга</td></tr>
+          <tr><td><code>две &lt;-&gt; комнаты</code></td><td>эти два слова стоят подряд</td></tr>
+        </table>
+        <p style="margin-top:0.45em"><code>to_tsquery('russian', 'квартира &amp; центр')</code> сам приведёт слова к основам. Готовую фразу человека удобнее отдать в <code>websearch_to_tsquery</code>: она понимает кавычки и минус.</p>
+      </div>
+      <p class="notes">Не пишите AND между основами: тип tsquery живёт своими знаками. websearch_to_tsquery нужен, когда строку набрал человек в поле поиска: «квартира центр -юг». plainto_tsquery склеивает все слова через «и».</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Порядок на странице</p>
+        <h2>Совпало — ещё не значит «самое подходящее»</h2>
+        <table class="rows">
+          <tr><th>Объявление</th><th>Почему выше</th></tr>
+          <tr><td class="mark">Квартира в центре, квартира с балконом</td><td>слово встретилось дважды, ts_rank больше</td></tr>
+          <tr><td>Дом в центре, рядом квартира соседа</td><td>слово есть, но оно не главное</td></tr>
+        </table>
+        <p style="margin-top:0.4em"><code>ORDER BY ts_rank(vector, query) DESC</code> ставит более «плотные» тексты наверх. Это простая оценка, не формула большого сайта.</p>
+      </div>
+      <p class="notes">ts_rank смотрит, как часто слово попало в документ. ts_rank_cd ещё смотрит, насколько слова запроса стоят близко. Для каталога курса этого хватает. Если через месяц порядок «не как в магазине», это повод обсуждать Elasticsearch, а не сразу его ставить.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Подсветка и индекс</p>
+        <h2>Показать кусок и не читать всю таблицу</h2>
+        <div class="two">
+          <div class="card hot">
+            <b>ts_headline</b>
+            Возвращает короткий фрагмент, найденные слова обёрнуты метками. В объявлении на экране видно, за что строка попала в выдачу.
+          </div>
+          <div class="card">
+            <b>GIN-индекс по tsvector</b>
+            Вектор считают один раз и хранят в столбце. Индекс ищет по основам. Без него база снова читает тексты подряд, как при LIKE.
+          </div>
+        </div>
+        <p style="margin-top:0.4em">Столбец vector обновляют при правке текста. Цена квартиры лежит в той же строке: отдельную копию объявления никуда не отправляют.</p>
+      </div>
+      <p class="notes">Покажите порядок: добавить столбец tsvector, заполнить to_tsvector, создать GIN, в запросе писать vector @@ query. Триггер на UPDATE нужен, иначе после правки текста поиск останется на старых основах. Это одна транзакция с ценой, не второй сервис.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Рядом с Elasticsearch</p>
+        <h2>Та же задача, разное место для текста</h2>
+        <table class="rows">
+          <tr><th></th><th>PostgreSQL</th><th>Elasticsearch</th></tr>
+          <tr><td>Где лежит объявление</td><td>в таблице, рядом с ценой</td><td>в отдельном индексе, копия текста</td></tr>
+          <tr><td>Формы слов</td><td>словарь russian</td><td>свой анализатор, его настраивают отдельно</td></tr>
+          <tr><td>Правка одной цены</td><td>обычный UPDATE</td><td>надо догнать копию в поиске</td></tr>
+          <tr><td>Опечатки и «как в большом каталоге»</td><td>простые средства</td><td>это его основная работа</td></tr>
+          <tr><td>Миллиарды документов</td><td>поиск упирается в одну базу</td><td>кластер только под поиск</td></tr>
+        </table>
+      </div>
+      <p class="notes">Главная цена Elasticsearch — вторая копия данных. Пока объявление, цена и поиск живут в PostgreSQL, расхождения «в базе одно, в поиске другое» нет. Кластер поиска окупается, когда текстов столько, что GIN и диск одной базы уже не успевают.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Проверка</p>
+        <h2>Куда положить поиск по объявлениям?</h2>
+        <div class="choice" id="quiz">
+          <button type="button" data-ok="yes">10 тысяч объявлений, цену правят в той же базе, нужен поиск по словам</button>
+          <button type="button" data-ok="no">Миллиард документов, опечатки, выдача как у большого сайта, поиск отдельно от кассы</button>
+        </div>
+        <p id="quiz-msg"></p>
+      </div>
+      <p class="notes">Первая кнопка — PostgreSQL. Вторая — уже разговор про Elasticsearch. Если класс спорит про опечатки на учебной тысяче строк, покажите pg_trgm как маленький шаг, не как замену кластера.</p>
+    </section>
+
+    <section class="slide">
+      <img class="logo" src="assets/logo-top.png" alt="">
+      <div class="pad">
+        <p class="kicker">Что унести</p>
+        <h2>Поиск по словам живёт в той же базе, пока каталог ваш</h2>
+        <div class="tokens">
+          <span class="tok">to_tsvector</span>
+          <span class="tok">russian</span>
+          <span class="tok">@@</span>
+          <span class="tok">&amp; | ! &lt;-&gt;</span>
+          <span class="tok">ts_rank</span>
+          <span class="tok">ts_headline</span>
+          <span class="tok">GIN</span>
+        </div>
+        <p style="margin-top:0.55em">LIKE ищет кусок букв. Полнотекст ищет основу слова. Elasticsearch забирает поиск, когда документов очень много и выдача должна жить отдельно от таблицы с ценами.</p>
+      </div>
+      <p class="notes">Повторите цепочку на одном объявлении: текст, основы, запрос, @@ , порядок, подсветка, индекс. Назовите вслух, что в учебном каталоге вторая система не нужна.</p>
+    </section>
+
+  </div>
+  <div class="chrome">
+    <button type="button" id="prev">Назад</button>
+    <button type="button" id="next">Дальше</button>
+    <button type="button" id="notes-btn" aria-pressed="false">Текст</button>
+    <button type="button" id="over-btn">Слайды</button>
+  </div>
+  <div class="notes-panel" id="notes"></div>
+  <div class="overview" id="overview"><div class="grid" id="grid"></div></div>
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const notes = document.getElementById("notes");
+    const notesBtn = document.getElementById("notes-btn");
+    const overview = document.getElementById("overview");
+    const grid = document.getElementById("grid");
+    const bar = document.getElementById("bar");
+    let index = 0;
+    slides.forEach((slide, i) => {
+      const mark = document.createElement("div");
+      mark.className = "num";
+      mark.textContent = (i + 1) + " / " + slides.length;
+      slide.appendChild(mark);
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "tile";
+      const title = slide.querySelector("h1, h2");
+      tile.textContent = (i + 1) + ". " + (title ? title.textContent.replace(/\s+/g, " ") : "");
+      tile.addEventListener("click", () => { show(i); overview.classList.remove("open"); });
+      grid.appendChild(tile);
+    });
+    function show(i) {
+      index = (i + slides.length) % slides.length;
+      slides.forEach((slide) => slide.classList.remove("active"));
+      void slides[index].offsetWidth;
+      slides[index].classList.add("active");
+      const aside = slides[index].querySelector(".notes");
+      notes.textContent = aside ? aside.textContent.trim() : "";
+      bar.style.width = ((index + 1) / slides.length * 100) + "%";
+      grid.querySelectorAll(".tile").forEach((tile, n) => tile.classList.toggle("here", n === index));
+    }
+    document.getElementById("prev").addEventListener("click", () => show(index - 1));
+    document.getElementById("next").addEventListener("click", () => show(index + 1));
+    notesBtn.addEventListener("click", () => {
+      const open = notes.classList.toggle("open");
+      notesBtn.setAttribute("aria-pressed", open ? "true" : "false");
+    });
+    document.getElementById("over-btn").addEventListener("click", () => overview.classList.toggle("open"));
+    document.addEventListener("keydown", (event) => {
+      if (event.target.closest("#find, #quiz")) return;
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault(); show(index + 1);
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault(); show(index - 1);
+      } else if (event.key === "Home") show(0);
+      else if (event.key === "End") show(slides.length - 1);
+      else if (event.key === "n" || event.key === "N") notesBtn.click();
+      else if (event.key === "Escape" || event.key === "o" || event.key === "O") overview.classList.toggle("open");
+    });
+    const reasons = {
+      like: { 1: "есть кусок «квартира»", 2: "нет: тут «квартиры»", 3: "слова «квартира» нет" },
+      stem: { 1: "основа квартир", 2: "«квартиры» — та же основа", 3: "основы квартир нет" },
+      near: { 1: "«две» и «комнаты» стоят подряд", 2: "этих слов нет", 3: "есть «комнаты», но перед ними «три»" }
+    };
+    const hits = { like: ["1"], stem: ["1", "2"], near: ["1"] };
+    document.querySelectorAll("#find button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = button.dataset.mode;
+        document.querySelectorAll(".ad").forEach((ad) => {
+          const id = ad.dataset.id;
+          const on = hits[mode].includes(id);
+          ad.classList.toggle("hit", on);
+          ad.querySelector(".why").textContent = reasons[mode][id];
+        });
+        document.getElementById("find-msg").textContent =
+          mode === "like" ? "LIKE нашёл 1 объявление и пропустил «квартиры»." :
+          mode === "stem" ? "Полнотекст нашёл 2 объявления: квартира и квартиры — одна основа." :
+          "Фраза подряд есть только в первом объявлении.";
+      });
+    });
+    document.querySelectorAll("#quiz button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#quiz button").forEach((item) => item.classList.remove("good", "bad"));
+        const msg = document.getElementById("quiz-msg");
+        if (button.dataset.ok === "yes") {
+          button.classList.add("good");
+          msg.textContent = "Эту задачу оставляют в PostgreSQL: объявлений немного, цена и текст в одной строке.";
+        } else {
+          button.classList.add("bad");
+          msg.textContent = "Здесь уже смотрят на Elasticsearch: документов миллиард, выдача живёт отдельно от таблицы.";
+        }
+      });
+    });
+    show(0);
+  </script>
+</body>
+</html>
