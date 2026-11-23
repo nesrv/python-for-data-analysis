@@ -31,6 +31,7 @@
   - [3.3 Типы, JSON, иерархии и материализованные представления](https://nesrv.github.io/python-for-data-analysis/module-3-3.html)
   - [3.4 Устранение излишней и избыточной информации](https://nesrv.github.io/python-for-data-analysis/module-3-4.html)
   - [3.5 Нормализация данных. Форматирование данных](https://nesrv.github.io/python-for-data-analysis/module-3-5.html)
+  - [3.6 Классы операторов и индексы](https://nesrv.github.io/python-for-data-analysis/module-3-6.html)
 - [Модуль 4. Анализ, исследование и визуализация данных](https://nesrv.github.io/python-for-data-analysis/module-4.html)
 - [Презентация. От таблицы к прогнозу](https://nesrv.github.io/python-for-data-analysis/analysis-deck.html)
 - [Презентация. Где нужен компьютер, который учится](https://nesrv.github.io/python-for-data-analysis/ml-kids-deck.html)
@@ -44,4 +45,4 @@
 - [Модуль 10. PostgreSQL в аналитике данных](https://nesrv.github.io/python-for-data-analysis/module-10.html)
   - [10.1 Презентация. PostgreSQL для OLAP](https://nesrv.github.io/python-for-data-analysis/olap-postgres-deck.html)
   - [10.2 PostgreSQL и Elasticsearch](https://nesrv.github.io/python-for-data-analysis/fts-postgres-deck.html)
-  - [10.3 Работа с аналитическими функциями в PostgreSQL](https://nesrv.github.io/python-for-data-analysis/module-3-6.html)
+  - [10.3 Работа с аналитическими функциями в PostgreSQL](https://nesrv.github.io/python-for-data-analysis/module-10-3.html)

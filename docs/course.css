@@ -225,6 +225,10 @@ a { color: var(--ink); }
 }
 
 .doc pre code { background: none; padding: 0; }
+.doc pre code .tok-kw { color: #1a4fd8; font-weight: 700; }
+.doc pre code .tok-str { color: #c23b78; }
+.doc pre code .tok-num { color: #0b7a4b; }
+.doc pre code .tok-com { color: #6b7094; font-style: italic; }
 .doc pre code.hljs { background: transparent; }
 
 .doc table {
@@ -255,3 +259,21 @@ a { color: var(--ink); }
   text-decoration: underline;
 }
 .topics a:hover { color: var(--accent); }
+
+.solution-toggle {
+  display: inline-block;
+  margin: 0.2em 0 0.8em;
+  padding: 0.25em 0.7em;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.solution-toggle:hover { background: #f3f4fb; }
+
+.solution { display: none; margin: 0 0 1em; }
+.solution.is-open { display: block; }

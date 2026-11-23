@@ -261,7 +261,87 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 
 ---
 
-## 3.2.9. Самопроверка
+## 3.2.9. Практика. Правила и триггеры
+
+Отдельная практика на один академический час. Двенадцать заданий идут по одной таблице: сначала журнал и мягкое удаление правилами, затем те же действия триггерами. Каждое следующее задание использует объекты предыдущего. Текст дописывайте в `module-3-2/sql/rules-triggers.sql`.
+
+Перед началом снимите учебные объекты этой практики, если запускаете её повторно:
+
+```sql
+DROP TABLE IF EXISTS goods_log;
+DROP TABLE IF EXISTS goods;
+```
+
+**Задание 1.** Создайте таблицу товаров и пустой журнал.
+
+```sql
+CREATE TABLE goods (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text NOT NULL,
+    price numeric(10, 2) NOT NULL
+);
+
+CREATE TABLE goods_log (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    goods_id integer,
+    action text NOT NULL,
+    at timestamp DEFAULT now()
+);
+```
+
+**Задание 2.** Правило `goods_log_insert`: при `INSERT` в `goods` исходная вставка остаётся (`DO ALSO`) и в `goods_log` пишется строка с `NEW.id`, действием `'INSERT'`.
+
+**Задание 3.** Вставьте товар `'Бумага'` с ценой `350`. Выберите строку из `goods` и строку из `goods_log`. В журнале одно действие `INSERT`, и `goods_id` совпадает с `id` товара.
+
+**Задание 4.** Добавьте в `goods` столбец `is_deleted boolean NOT NULL DEFAULT false`. Правило `goods_soft_delete`: `ON DELETE TO goods DO INSTEAD` ставит `is_deleted = true` у строки `OLD.id`, а не удаляет её.
+
+**Задание 5.** Выполните `DELETE FROM goods WHERE name = 'Бумага'`. Строка остаётся в `goods`, `is_deleted` равен `true`. Запишите в файл одну фразу: почему `DELETE` не уменьшил число строк.
+
+**Задание 6.** Снимите оба правила.
+
+```sql
+DROP RULE IF EXISTS goods_log_insert ON goods;
+DROP RULE IF EXISTS goods_soft_delete ON goods;
+```
+
+Верните бумаге `is_deleted = false`. Убедитесь, что после `DROP RULE` новый `INSERT` больше не пишет журнал: вставьте `'Карандаш'` за `80` и проверьте, что в `goods_log` по-прежнему одна строка.
+
+**Задание 7.** Функция триггера `goods_log_fn`. Она вставляет в `goods_log` имя операции `TG_OP`. Для `DELETE` берите `OLD.id`, для остальных операций — `NEW.id`.
+
+```sql
+CREATE OR REPLACE FUNCTION goods_log_fn()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO goods_log (goods_id, action)
+    VALUES (
+        CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
+        TG_OP
+    );
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+```
+
+**Задание 8.** Триггер `goods_insert_trg`: `AFTER INSERT ON goods FOR EACH ROW`. Вставьте `'Линейка'` за `120`. В журнале появляется вторая строка, действие `INSERT`.
+
+**Задание 9.** Триггер `goods_update_trg`: `AFTER UPDATE ON goods FOR EACH ROW`, та же функция. Поменяйте цену линейки на `150`. В журнале есть действие `UPDATE` с тем же `goods_id`.
+
+**Задание 10.** Функция `goods_price_fn` и триггер `goods_price_trg`: `BEFORE INSERT OR UPDATE`. Если `NEW.price <= 0`, поднимите исключение с текстом `цена должна быть больше нуля`. Иначе верните `NEW`. Проверка: вставка цены `0` не создаёт строку в `goods` и не пишет журнал, потому что строка отклонена до `AFTER INSERT`.
+
+**Задание 11.** Триггер `goods_delete_trg`: `AFTER DELETE`, та же функция журнала. Удалите карандаш обычным `DELETE`. Строки в `goods` больше нет, в журнале есть `DELETE`. Мягкое удаление из задания 4 больше не подменяет команду.
+
+**Задание 12.** В конец `rules-triggers.sql` тремя фразами ответьте: на каком шаге сработало `DO ALSO`, на каком `DO INSTEAD`, почему журнал оставлен на триггерах, а не на правиле.
+
+**Критерий 3.2.9:** в `goods` есть бумага и линейка, карандаша нет. В `goods_log` есть `INSERT`, `UPDATE` и `DELETE`. Нулевая цена отклонена. Оба правила удалены, три триггера на `goods` есть.
+
+---
+
+## 3.2.10. Самопроверка
 
 В `lab32-routines.ipynb` или в конце `sql/routines.sql` ответьте:
 
@@ -280,7 +360,8 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 | 5 | `names_in_order()` собирает имена курсором | ☐ |
 | 6 | Журнал `scores_log` пишет вставку триггером | ☐ |
 | 7 | Текст объектов лежит в `sql/routines.sql` | ☐ |
-| 8 | Три ответа самопроверки | ☐ |
+| 8 | Практика 3.2.9: журнал `goods_log` содержит `INSERT`, `UPDATE` и `DELETE`, правила сняты | ☐ |
+| 9 | Три ответа самопроверки | ☐ |
 
 ### Типовые ошибки
 

@@ -228,7 +228,144 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 <p><strong>Практика 3.2.8.</strong> Вставьте ещё одну строку обычным <code>INSERT</code>, без процедуры. Убедитесь, что журнал пополнился и без <code>add_score</code>.</p>
 <p><strong>Критерий 3.2.8:</strong> у Марии в журнале действие <code>INSERT</code>. Новая строка из практики тоже есть в <code>scores_log</code>. Правила <code>scores_log_insert</code> уже нет.</p>
 <hr />
-<h2>3.2.9. Самопроверка</h2>
+<h2>3.2.9. Практика. Правила и триггеры</h2>
+<p>Отдельная практика на один академический час. Двенадцать заданий идут по одной таблице: сначала журнал и мягкое удаление правилами, затем те же действия триггерами. Каждое следующее задание использует объекты предыдущего. Текст дописывайте в <code>module-3-2/sql/rules-triggers.sql</code>.</p>
+<p>Перед началом снимите учебные объекты этой практики, если запускаете её повторно:</p>
+<pre><code class="language-sql">DROP TABLE IF EXISTS goods_log;
+DROP TABLE IF EXISTS goods;
+</code></pre>
+<p><strong>Задание 1.</strong> Создайте таблицу товаров и пустой журнал.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TABLE goods (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text NOT NULL,
+    price numeric(10, 2) NOT NULL
+);
+
+CREATE TABLE goods_log (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    goods_id integer,
+    action text NOT NULL,
+    at timestamp DEFAULT now()
+);
+</code></pre></div>
+<p><strong>Задание 2.</strong> Правило <code>goods_log_insert</code>: при <code>INSERT</code> в <code>goods</code> исходная вставка остаётся (<code>DO ALSO</code>) и в <code>goods_log</code> пишется строка с <code>NEW.id</code>, действием <code>'INSERT'</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE OR REPLACE RULE goods_log_insert AS
+    ON INSERT TO goods
+    DO ALSO
+    INSERT INTO goods_log (goods_id, action)
+    VALUES (NEW.id, 'INSERT');
+</code></pre></div>
+<p><strong>Задание 3.</strong> Вставьте товар <code>'Бумага'</code> с ценой <code>350</code>. Выберите строку из <code>goods</code> и строку из <code>goods_log</code>. В журнале одно действие <code>INSERT</code>, и <code>goods_id</code> совпадает с <code>id</code> товара.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">INSERT INTO goods (name, price) VALUES ('Бумага', 350);
+
+SELECT id, name, price FROM goods WHERE name = 'Бумага';
+SELECT goods_id, action FROM goods_log;
+</code></pre></div>
+<p><strong>Задание 4.</strong> Добавьте в <code>goods</code> столбец <code>is_deleted boolean NOT NULL DEFAULT false</code>. Правило <code>goods_soft_delete</code>: <code>ON DELETE TO goods DO INSTEAD</code> ставит <code>is_deleted = true</code> у строки <code>OLD.id</code>, а не удаляет её.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">ALTER TABLE goods
+    ADD COLUMN is_deleted boolean NOT NULL DEFAULT false;
+
+CREATE OR REPLACE RULE goods_soft_delete AS
+    ON DELETE TO goods
+    DO INSTEAD
+    UPDATE goods SET is_deleted = true WHERE id = OLD.id;
+</code></pre></div>
+<p><strong>Задание 5.</strong> Выполните <code>DELETE FROM goods WHERE name = 'Бумага'</code>. Строка остаётся в <code>goods</code>, <code>is_deleted</code> равен <code>true</code>. Запишите в файл одну фразу: почему <code>DELETE</code> не уменьшил число строк.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">DELETE FROM goods WHERE name = 'Бумага';
+SELECT name, is_deleted FROM goods WHERE name = 'Бумага';
+</code></pre><p>Число строк не уменьшилось, потому что правило <code>DO INSTEAD</code> подменило удаление обновлением <code>is_deleted</code>.</p></div>
+<p><strong>Задание 6.</strong> Снимите оба правила. Верните бумаге <code>is_deleted = false</code>. Убедитесь, что после <code>DROP RULE</code> новый <code>INSERT</code> больше не пишет журнал: вставьте <code>'Карандаш'</code> за <code>80</code> и проверьте, что в <code>goods_log</code> по-прежнему одна строка.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">DROP RULE IF EXISTS goods_log_insert ON goods;
+DROP RULE IF EXISTS goods_soft_delete ON goods;
+
+UPDATE goods SET is_deleted = false WHERE name = 'Бумага';
+INSERT INTO goods (name, price) VALUES ('Карандаш', 80);
+
+SELECT count(*) FROM goods_log;
+</code></pre></div>
+<p><strong>Задание 7.</strong> Функция триггера <code>goods_log_fn</code>. Она вставляет в <code>goods_log</code> имя операции <code>TG_OP</code>. Для <code>DELETE</code> берите <code>OLD.id</code>, для остальных операций — <code>NEW.id</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE OR REPLACE FUNCTION goods_log_fn()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO goods_log (goods_id, action)
+    VALUES (
+        CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
+        TG_OP
+    );
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+</code></pre></div>
+<p><strong>Задание 8.</strong> Триггер <code>goods_insert_trg</code>: <code>AFTER INSERT ON goods FOR EACH ROW</code>. Вставьте <code>'Линейка'</code> за <code>120</code>. В журнале появляется вторая строка, действие <code>INSERT</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TRIGGER goods_insert_trg
+    AFTER INSERT ON goods
+    FOR EACH ROW
+    EXECUTE FUNCTION goods_log_fn();
+
+INSERT INTO goods (name, price) VALUES ('Линейка', 120);
+SELECT goods_id, action FROM goods_log ORDER BY id;
+</code></pre></div>
+<p><strong>Задание 9.</strong> Триггер <code>goods_update_trg</code>: <code>AFTER UPDATE ON goods FOR EACH ROW</code>, та же функция. Поменяйте цену линейки на <code>150</code>. В журнале есть действие <code>UPDATE</code> с тем же <code>goods_id</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TRIGGER goods_update_trg
+    AFTER UPDATE ON goods
+    FOR EACH ROW
+    EXECUTE FUNCTION goods_log_fn();
+
+UPDATE goods SET price = 150 WHERE name = 'Линейка';
+SELECT goods_id, action FROM goods_log ORDER BY id;
+</code></pre></div>
+<p><strong>Задание 10.</strong> Функция <code>goods_price_fn</code> и триггер <code>goods_price_trg</code>: <code>BEFORE INSERT OR UPDATE</code>. Если <code>NEW.price &lt;= 0</code>, поднимите исключение с текстом <code>цена должна быть больше нуля</code>. Иначе верните <code>NEW</code>. Проверка: вставка цены <code>0</code> не создаёт строку в <code>goods</code> и не пишет журнал, потому что строка отклонена до <code>AFTER INSERT</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE OR REPLACE FUNCTION goods_price_fn()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.price &lt;= 0 THEN
+        RAISE EXCEPTION 'цена должна быть больше нуля';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER goods_price_trg
+    BEFORE INSERT OR UPDATE ON goods
+    FOR EACH ROW
+    EXECUTE FUNCTION goods_price_fn();
+
+INSERT INTO goods (name, price) VALUES ('Брак', 0);
+</code></pre></div>
+<p><strong>Задание 11.</strong> Триггер <code>goods_delete_trg</code>: <code>AFTER DELETE</code>, та же функция журнала. Удалите карандаш обычным <code>DELETE</code>. Строки в <code>goods</code> больше нет, в журнале есть <code>DELETE</code>. Мягкое удаление из задания 4 больше не подменяет команду.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TRIGGER goods_delete_trg
+    AFTER DELETE ON goods
+    FOR EACH ROW
+    EXECUTE FUNCTION goods_log_fn();
+
+DELETE FROM goods WHERE name = 'Карандаш';
+SELECT name FROM goods WHERE name = 'Карандаш';
+SELECT action FROM goods_log ORDER BY id;
+</code></pre></div>
+<p><strong>Задание 12.</strong> В конец <code>rules-triggers.sql</code> тремя фразами ответьте: на каком шаге сработало <code>DO ALSO</code>, на каком <code>DO INSTEAD</code>, почему журнал оставлен на триггерах, а не на правиле.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><p><code>DO ALSO</code> сработало в задании 3: вставка бумаги прошла, и журнал получил копию. <code>DO INSTEAD</code> сработало в задании 5: удаление бумаги заменилось на <code>is_deleted</code>. Журнал оставлен на триггерах, потому что правило переписывает весь запрос и вместе с триггером пишет две строки на одну вставку.</p></div>
+<p><strong>Критерий 3.2.9:</strong> в <code>goods</code> есть бумага и линейка, карандаша нет. В <code>goods_log</code> есть <code>INSERT</code>, <code>UPDATE</code> и <code>DELETE</code>. Нулевая цена отклонена. Оба правила удалены, три триггера на <code>goods</code> есть.</p>
+<hr />
+<h2>3.2.10. Самопроверка</h2>
 <p>В <code>lab32-routines.ipynb</code> или в конце <code>sql/routines.sql</code> ответьте:</p>
 <ol>
 <li>Почему <code>score_label</code> объявлена <code>IMMUTABLE</code>, а <code>score_of</code> — <code>STABLE</code>.</li>
@@ -282,6 +419,11 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 </tr>
 <tr>
 <td>8</td>
+<td>Практика 3.2.9: журнал <code>goods_log</code> содержит <code>INSERT</code>, <code>UPDATE</code> и <code>DELETE</code>, правила сняты</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>9</td>
 <td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
@@ -324,5 +466,15 @@ SELECT name, action FROM scores_log WHERE name IN ('Пётр', 'Мария') ORD
 </table>
 <p>После занятия слушатель кладёт повторяемое вычисление в функцию, изменение данных — в процедуру, а реакцию на вставку — в триггер, и хранит этот текст в файле.</p>
   </article>
+  <script>
+    document.querySelectorAll(".solution-toggle").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var solution = button.nextElementSibling;
+        var open = solution.classList.toggle("is-open");
+        button.textContent = open ? "Скрыть" : "Показать";
+      });
+    });
+  </script>
+<script src="sql-highlight.js"></script>
 </body>
 </html>

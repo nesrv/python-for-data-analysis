@@ -182,7 +182,131 @@ SELECT * FROM category_size WHERE parent_id = 2;
 <p><strong>Практика 3.3.6.</strong> Создайте индекс по <code>parent_id</code> на <code>category_size</code>. В markdown одной фразой запишите, чем этот объект отличается от обычного <code>VIEW</code>.</p>
 <p><strong>Критерий 3.3.6:</strong> до обновления счётчик равен 2, после — 3. В ответе сказано, что материализованное представление хранит результат, а не только текст запроса.</p>
 <hr />
-<h2>3.3.7. Самопроверка</h2>
+<h2>3.3.8. Практика. Типы и иерархия</h2>
+<p>Практика на один академический час. Двенадцать заданий идут по одному отделу: сначала свои типы для сотрудника, затем дерево отделов списком смежности. Текст дописывайте в <code>module-3-3/sql/types-tree.sql</code>.</p>
+<p>Перед повторным запуском снимите объекты практики:</p>
+<pre><code class="language-sql">DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS units;
+DROP TYPE IF EXISTS person_name;
+DROP DOMAIN IF EXISTS work_hours;
+DROP TYPE IF EXISTS employment;
+</code></pre>
+<p><strong>Задание 1.</strong> Создайте перечисление <code>employment</code> со значениями <code>'full'</code>, <code>'part'</code>, <code>'contract'</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TYPE employment AS ENUM ('full', 'part', 'contract');
+</code></pre></div>
+<p><strong>Задание 2.</strong> Создайте домен <code>work_hours</code> как <code>numeric(4, 1)</code> с проверкой: значение больше 0 и не больше 40.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE DOMAIN work_hours AS numeric(4, 1)
+    CHECK (VALUE &gt; 0 AND VALUE &lt;= 40);
+</code></pre></div>
+<p><strong>Задание 3.</strong> Создайте составной тип <code>person_name</code> с полями <code>last_name text</code> и <code>first_name text</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TYPE person_name AS (
+    last_name text,
+    first_name text
+);
+</code></pre></div>
+<p><strong>Задание 4.</strong> Таблица <code>units</code>: <code>id</code>, <code>title</code>, <code>parent_id</code> со ссылкой на <code>units(id)</code>. Таблица <code>staff</code>: имя типа <code>person_name</code>, занятость типа <code>employment</code>, часы типа <code>work_hours</code>, внешний ключ <code>unit_id</code> на <code>units</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">CREATE TABLE units (
+    id integer PRIMARY KEY,
+    title text NOT NULL,
+    parent_id integer REFERENCES units (id)
+);
+
+CREATE TABLE staff (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    full_name person_name NOT NULL,
+    kind employment NOT NULL,
+    hours work_hours NOT NULL,
+    unit_id integer NOT NULL REFERENCES units (id)
+);
+</code></pre></div>
+<p><strong>Задание 5.</strong> Вставьте дерево: <code>1</code> «Компания» без родителя, <code>2</code> «Аналитика» и <code>3</code> «Данные» — дети компании, <code>4</code> «Витрины» — ребёнок «Данных».</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">INSERT INTO units (id, title, parent_id) VALUES
+    (1, 'Компания', NULL),
+    (2, 'Аналитика', 1),
+    (3, 'Данные', 1),
+    (4, 'Витрины', 3);
+</code></pre></div>
+<p><strong>Задание 6.</strong> Добавьте двух сотрудников отдела «Витрины»: <code>('Соколова', 'Анна')</code>, занятость <code>full</code>, 40 часов и <code>('Ильин', 'Пётр')</code>, занятость <code>part</code>, 20 часов. Поле составного типа передайте конструктором <code>ROW</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">INSERT INTO staff (full_name, kind, hours, unit_id) VALUES
+    (ROW('Соколова', 'Анна'), 'full', 40, 4),
+    (ROW('Ильин', 'Пётр'), 'part', 20, 4);
+</code></pre></div>
+<p><strong>Задание 7.</strong> Покажите прямых детей «Компании»: только <code>id</code> и <code>title</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">SELECT id, title
+FROM units
+WHERE parent_id = 1;
+</code></pre></div>
+<p><strong>Задание 8.</strong> Рекурсивным запросом получите узел «Данные» и всех его потомков. В выборке две строки: «Данные» и «Витрины».</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">WITH RECURSIVE branch AS (
+    SELECT id, title, parent_id
+    FROM units
+    WHERE id = 3
+    UNION ALL
+    SELECT u.id, u.title, u.parent_id
+    FROM units AS u
+    JOIN branch AS b ON u.parent_id = b.id
+)
+SELECT id, title, parent_id
+FROM branch
+ORDER BY id;
+</code></pre></div>
+<p><strong>Задание 9.</strong> Тем же приёмом получите предков «Витрин», включая сам узел: Витрины, Данные, Компания.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">WITH RECURSIVE up AS (
+    SELECT id, title, parent_id
+    FROM units
+    WHERE id = 4
+    UNION ALL
+    SELECT u.id, u.title, u.parent_id
+    FROM units AS u
+    JOIN up ON u.id = up.parent_id
+)
+SELECT id, title
+FROM up;
+</code></pre></div>
+<p><strong>Задание 10.</strong> Постройте подписи с уровнем. У «Компании» уровень 0, у её детей 1, у «Витрин» 2. Выведите <code>title</code> и <code>level</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">WITH RECURSIVE tree AS (
+    SELECT id, title, parent_id, 0 AS level
+    FROM units
+    WHERE parent_id IS NULL
+    UNION ALL
+    SELECT u.id, u.title, u.parent_id, tree.level + 1
+    FROM units AS u
+    JOIN tree ON u.parent_id = tree.id
+)
+SELECT title, level
+FROM tree
+ORDER BY level, id;
+</code></pre></div>
+<p><strong>Задание 11.</strong> Добавьте столбец <code>path text</code> и заполните путь от корня через точку: компания <code>1</code>, аналитика <code>1.2</code>, данные <code>1.3</code>, витрины <code>1.3.4</code>. Найдите потомков «Данных» по префиксу пути <code>1.3</code>.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><pre><code class="language-sql">ALTER TABLE units ADD COLUMN path text;
+
+UPDATE units SET path = '1' WHERE id = 1;
+UPDATE units SET path = '1.2' WHERE id = 2;
+UPDATE units SET path = '1.3' WHERE id = 3;
+UPDATE units SET path = '1.3.4' WHERE id = 4;
+
+SELECT id, title
+FROM units
+WHERE path = '1.3' OR path LIKE '1.3.%'
+ORDER BY id;
+</code></pre></div>
+<p><strong>Задание 12.</strong> В конец файла тремя фразами ответьте: что запретил домен <code>work_hours</code>, чем список смежности в заданиях 7–10 отличается от пути в задании 11, почему вложенные множества неудобны при вставке отдела в середину дерева.</p>
+<button type="button" class="solution-toggle">Показать</button>
+<div class="solution"><p>Домен не пускает 0 часов и значение больше 40. Список смежности хранит только родителя, а всё поддерево собирает рекурсия. Путь хранит цепочку в строке, и потомки ищутся по префиксу без рекурсии. Во вложенных множествах вставка в середину переписывает границы соседних узлов.</p></div>
+<p><strong>Критерий 3.3.8:</strong> занятость вне списка и часы <code>0</code> или <code>41</code> отклоняются. Прямые дети компании — «Аналитика» и «Данные». Предки витрин — три узла. У витрин уровень 2. По пути <code>1.3</code> находятся «Данные» и «Витрины».</p>
+<hr />
+<h2>3.3.9. Самопроверка</h2>
 <p>В ноутбуке ответьте:</p>
 <ol>
 <li>Чем домен отличается от перечисления.</li>
@@ -236,6 +360,11 @@ SELECT * FROM category_size WHERE parent_id = 2;
 </tr>
 <tr>
 <td>8</td>
+<td>Практика 3.3.8: типы сотрудника и дерево отделов проходят критерий</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>9</td>
 <td>Три ответа самопроверки</td>
 <td>☐</td>
 </tr>
@@ -278,5 +407,15 @@ SELECT * FROM category_size WHERE parent_id = 2;
 </table>
 <p>После занятия слушатель ограничивает столбец своим типом или доменом, читает поле из <code>jsonb</code>, собирает поддерево рекурсией и отличает снимок материализованного представления от запроса, который считается заново.</p>
   </article>
+  <script>
+    document.querySelectorAll(".solution-toggle").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var solution = button.nextElementSibling;
+        var open = solution.classList.toggle("is-open");
+        button.textContent = open ? "Скрыть" : "Показать";
+      });
+    });
+  </script>
+  <script src="sql-highlight.js"></script>
 </body>
 </html>

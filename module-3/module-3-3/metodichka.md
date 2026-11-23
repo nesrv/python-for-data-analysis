@@ -194,7 +194,185 @@ SELECT * FROM category_size WHERE parent_id = 2;
 
 ---
 
-## 3.3.7. Самопроверка
+## 3.3.8. Практика. Типы и иерархия
+
+Практика на один академический час. Двенадцать заданий идут по одному отделу: сначала свои типы для сотрудника, затем дерево отделов списком смежности. Текст дописывайте в `module-3-3/sql/types-tree.sql`.
+
+Перед повторным запуском снимите объекты практики:
+
+```sql
+DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS units;
+DROP TYPE IF EXISTS person_name;
+DROP DOMAIN IF EXISTS work_hours;
+DROP TYPE IF EXISTS employment;
+```
+
+**Задание 1.** Создайте перечисление `employment` со значениями `'full'`, `'part'`, `'contract'`.
+
+**Решение.**
+
+```sql
+CREATE TYPE employment AS ENUM ('full', 'part', 'contract');
+```
+
+**Задание 2.** Создайте домен `work_hours` как `numeric(4, 1)` с проверкой: значение больше 0 и не больше 40.
+
+**Решение.**
+
+```sql
+CREATE DOMAIN work_hours AS numeric(4, 1)
+    CHECK (VALUE > 0 AND VALUE <= 40);
+```
+
+**Задание 3.** Создайте составной тип `person_name` с полями `last_name text` и `first_name text`.
+
+**Решение.**
+
+```sql
+CREATE TYPE person_name AS (
+    last_name text,
+    first_name text
+);
+```
+
+**Задание 4.** Таблица `units`: `id`, `title`, `parent_id` со ссылкой на `units(id)`. Таблица `staff`: имя типа `person_name`, занятость типа `employment`, часы типа `work_hours`, внешний ключ `unit_id` на `units`.
+
+**Решение.**
+
+```sql
+CREATE TABLE units (
+    id integer PRIMARY KEY,
+    title text NOT NULL,
+    parent_id integer REFERENCES units (id)
+);
+
+CREATE TABLE staff (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    full_name person_name NOT NULL,
+    kind employment NOT NULL,
+    hours work_hours NOT NULL,
+    unit_id integer NOT NULL REFERENCES units (id)
+);
+```
+
+**Задание 5.** Вставьте дерево: `1` «Компания» без родителя, `2` «Аналитика» и `3` «Данные» — дети компании, `4` «Витрины» — ребёнок «Данных».
+
+**Решение.**
+
+```sql
+INSERT INTO units (id, title, parent_id) VALUES
+    (1, 'Компания', NULL),
+    (2, 'Аналитика', 1),
+    (3, 'Данные', 1),
+    (4, 'Витрины', 3);
+```
+
+**Задание 6.** Добавьте двух сотрудников отдела «Витрины»: `('Соколова', 'Анна')`, занятость `full`, 40 часов и `('Ильин', 'Пётр')`, занятость `part`, 20 часов. Поле составного типа передайте конструктором `ROW`.
+
+**Решение.**
+
+```sql
+INSERT INTO staff (full_name, kind, hours, unit_id) VALUES
+    (ROW('Соколова', 'Анна'), 'full', 40, 4),
+    (ROW('Ильин', 'Пётр'), 'part', 20, 4);
+```
+
+**Задание 7.** Покажите прямых детей «Компании»: только `id` и `title`.
+
+**Решение.**
+
+```sql
+SELECT id, title
+FROM units
+WHERE parent_id = 1;
+```
+
+**Задание 8.** Рекурсивным запросом получите узел «Данные» и всех его потомков. В выборке две строки: «Данные» и «Витрины».
+
+**Решение.**
+
+```sql
+WITH RECURSIVE branch AS (
+    SELECT id, title, parent_id
+    FROM units
+    WHERE id = 3
+    UNION ALL
+    SELECT u.id, u.title, u.parent_id
+    FROM units AS u
+    JOIN branch AS b ON u.parent_id = b.id
+)
+SELECT id, title, parent_id
+FROM branch
+ORDER BY id;
+```
+
+**Задание 9.** Тем же приёмом получите предков «Витрин», включая сам узел: Витрины, Данные, Компания.
+
+**Решение.**
+
+```sql
+WITH RECURSIVE up AS (
+    SELECT id, title, parent_id
+    FROM units
+    WHERE id = 4
+    UNION ALL
+    SELECT u.id, u.title, u.parent_id
+    FROM units AS u
+    JOIN up ON u.id = up.parent_id
+)
+SELECT id, title
+FROM up;
+```
+
+**Задание 10.** Постройте подписи с уровнем. У «Компании» уровень 0, у её детей 1, у «Витрин» 2. Выведите `title` и `level`.
+
+**Решение.**
+
+```sql
+WITH RECURSIVE tree AS (
+    SELECT id, title, parent_id, 0 AS level
+    FROM units
+    WHERE parent_id IS NULL
+    UNION ALL
+    SELECT u.id, u.title, u.parent_id, tree.level + 1
+    FROM units AS u
+    JOIN tree ON u.parent_id = tree.id
+)
+SELECT title, level
+FROM tree
+ORDER BY level, id;
+```
+
+**Задание 11.** Добавьте столбец `path text` и заполните путь от корня через точку: компания `1`, аналитика `1.2`, данные `1.3`, витрины `1.3.4`. Найдите потомков «Данных» по префиксу пути `1.3`.
+
+**Решение.**
+
+```sql
+ALTER TABLE units ADD COLUMN path text;
+
+UPDATE units SET path = '1' WHERE id = 1;
+UPDATE units SET path = '1.2' WHERE id = 2;
+UPDATE units SET path = '1.3' WHERE id = 3;
+UPDATE units SET path = '1.3.4' WHERE id = 4;
+
+SELECT id, title
+FROM units
+WHERE path = '1.3' OR path LIKE '1.3.%'
+ORDER BY id;
+```
+
+**Задание 12.** В конец файла тремя фразами ответьте: что запретил домен `work_hours`, чем список смежности в заданиях 7–10 отличается от пути в задании 11, почему вложенные множества неудобны при вставке отдела в середину дерева.
+
+**Решение.**
+
+Домен не пускает 0 часов и значение больше 40. Список смежности хранит только родителя, а всё поддерево собирает рекурсия. Путь хранит цепочку в строке, и потомки ищутся по префиксу без рекурсии. Во вложенных множествах вставка в середину переписывает границы соседних узлов.
+
+**Критерий 3.3.8:** занятость вне списка и часы `0` или `41` отклоняются. Прямые дети компании — «Аналитика» и «Данные». Предки витрин — три узла. У витрин уровень 2. По пути `1.3` находятся «Данные» и «Витрины».
+
+---
+
+## 3.3.9. Самопроверка
 
 В ноутбуке ответьте:
 
@@ -213,7 +391,8 @@ SELECT * FROM category_size WHERE parent_id = 2;
 | 5 | Рекурсивный запрос возвращает ветку «Базы» и предков «JSON» | ☐ |
 | 6 | В заметке названа схема дерева, которой мешает вставка в середину | ☐ |
 | 7 | `category_size` обновляется только после `REFRESH` | ☐ |
-| 8 | Три ответа самопроверки | ☐ |
+| 8 | Практика 3.3.8: типы сотрудника и дерево отделов проходят критерий | ☐ |
+| 9 | Три ответа самопроверки | ☐ |
 
 ### Типовые ошибки
 
