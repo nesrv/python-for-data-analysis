@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Методичка: баги поездок и зажигания на SQL</title>
+  <link rel="stylesheet" href="course.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+</head>
+<body>
+  <article class="doc">
+    <a class="back" href="slide4.html">← Оглавление</a>
+    <img class="doc-logo" src="assets/logo-top.png" alt="IT Cloud. Учебный центр">
+    <h1>Методичка: баги поездок и зажигания на SQL</h1>
+<p>Та же задача, что в <code>trip_counter.py</code> и <code>ignition_counter.py</code>, на PostgreSQL 18 из корневого <code>docker-compose.yml</code>. База <code>course</code>, пользователь <code>student</code>, контейнер <code>pg18-course</code>. Сутки считаются по <code>device_time</code> в UTC. Баг суток — модуль разницы двух парных событий больше 1.</p>
+<table><thead><tr><th>Пара</th><th>События в колонке <code>reason</code></th></tr></thead><tbody><tr><td>Поездка</td><td><code>TRIP_BEGIN</code> и <code>TRIP_END</code></td></tr><tr><td>Зажигание</td><td><code>IGNITION_ON</code> и <code>IGNITION_OFF</code></td></tr></tbody></table>
+<p>Оконная функция считает значение по соседним строкам и при этом оставляет саму строку на месте. <code>GROUP BY</code> схлопывает строки в одну на группу. Здесь группировка даёт итог суток, а окна отвечают на вопросы «что было предыдущим событием» и «как копился перекос внутри дня».</p>
+<h2>1. Что лежит в файле</h2>
+<p><code>for_example_1.csv</code>, разделитель <code>;</code>, первая строка — заголовки.</p>
+<p>Для задачи нужны три колонки:</p>
+<table><thead><tr><th>Колонка</th><th>Смысл</th></tr></thead><tbody><tr><td><code>device_time</code></td><td>Unix-время события, секунды с 1970-01-01 UTC</td></tr><tr><td><code>record_number</code></td><td>Номер записи, порядок при одинаковом времени</td></tr><tr><td><code>reason</code></td><td>Тип события</td></tr></tbody></table>
+<p>Остальные колонки в этих запросах не участвуют. В файле есть учебные строки <code>record_number</code> <code>990001</code>–<code>990007</code> и <code>990101</code>–<code>990106</code>. Их и должны найти запросы ниже.</p>
+<p><code>navigation</code> тоже похожа на Unix-время, но там встречаются пустые значения, <code>0</code> и <code>4294967295</code>. Границы периода и сутки берутся только из <code>device_time</code>.</p>
+<h2>2. Сервер и таблица</h2>
+<p>Команды Compose выполняются из корня практики, рядом с <code>docker-compose.yml</code>. Образ <code>postgres:18</code>, порт <code>5432</code>, пароль <code>student</code>. Том <code>pgdata</code> смонтирован в <code>/var/lib/postgresql</code>: это каталог кластера, CSV туда класть нельзя. Файл телеметрии копируется в <code>/tmp</code> контейнера отдельно.</p>
+<pre><code class="language-powershell">docker compose up -d
+docker compose ps
+docker cp .\Analysis-Device\for_example_1.csv pg18-course:/tmp/for_example_1.csv
+docker compose exec postgres psql -U student -d course</code></pre>
+<p><code>docker compose ps</code> должен показать состояние <code>healthy</code>: это проверка <code>pg_isready -U student -d course</code> из Compose. Дальше приглашение <code>psql</code> уже внутри контейнера.</p>
+<p>Все колонки файла читаются как <code>text</code>: в телеметрии много пустых ячеек, а числа вроде <code>-1</code> и <code>4294967295</code> не везде являются настоящими измерениями. Нужные поля приводятся к типу уже в запросе. Повторный прогон начинается с <code>DROP</code>: <code>\copy</code> дописывает строки, а не заменяет таблицу.</p>
+<pre><code class="language-sql">DROP FUNCTION IF EXISTS bug_days();
+DROP VIEW IF EXISTS events_utc;
+DROP TABLE IF EXISTS events;
+
+CREATE TABLE events (
+    received_time           text,
+    device_time             text,
+    navigation              text,
+    record_number           text,
+    reason                  text,
+    nav__latitude           text,
+    nav__longitude          text,
+    nav__altitude           text,
+    nav__speed              text,
+    nav__course             text,
+    nav__satellite_count    text,
+    nav__hdop               text,
+    nav__track              text,
+    nav__odometer           text,
+    nav__validity           text,
+    nav__timestamp          text,
+    can__speed              text,
+    can__engine_max_speed   text,
+    can__track_all          text,
+    can__remaining_mileage  text,
+    can__remaining_hours    text,
+    can__fuel_level         text,
+    can__gas_level          text,
+    can__gas_pressure       text,
+    can__fuel_type          text,
+    can__fuel_total_liquid  text,
+    can__fuel_total_gas     text,
+    can__engine_oil_pressure text,
+    can__engine_temperature text,
+    can__battery_voltage    text,
+    can__soot_mass          text,
+    can__airbag_deploy      text,
+    can__alternator_malfunction text,
+    can__brake_fluid_low    text,
+    can__coolant_level_low  text,
+    can__flag_security_state text,
+    can__flag_alarm         text,
+    can__engine_time_all    text,
+    can__engine_speed       text,
+    can__pressure_axle_1    text,
+    can__pressure_axle_2    text,
+    can__pressure_axle_3    text,
+    can__pressure_axle_4    text,
+    can__pressure_axle_5    text,
+    power__int_voltage      text,
+    power__int_charge       text,
+    power__int_ir           text,
+    power__int_temperature  text,
+    power__int_fault        text,
+    power__ext_voltage      text,
+    power__ext_fault        text,
+    status_flags            text
+);</code></pre>
+<p><code>\copy</code> читает файл на той машине, где запущен клиент <code>psql</code>. Таблица к этому моменту уже создана запросом выше. В файле первая колонка записана с BOM, поэтому режим <code>HEADER MATCH</code> не подходит: сервер видит имя <code>\ufeffreceived_time</code>. Обычный <code>HEADER</code> просто пропускает первую строку и грузит поля по порядку колонок таблицы.</p>
+<h3>Контейнер</h3>
+<p>Клиент <code>psql</code> запущен внутри контейнера, поэтому путь — <code>/tmp</code>, куда файл попал через <code>docker cp</code>.</p>
+<pre><code class="language-sql">\copy events FROM &#x27;/tmp/for_example_1.csv&#x27; WITH (FORMAT csv, HEADER, DELIMITER &#x27;;&#x27;, ENCODING &#x27;UTF8&#x27;)</code></pre>
+<h3>Локальный PostgreSQL</h3>
+<p>Сервер установлен на Windows, клиент <code>psql</code> тоже на Windows. <code>docker cp</code> не нужен: <code>\copy</code> берёт CSV прямо с диска. Подключение — к своему экземпляру; пользователь, база и порт те, что заданы при установке. Если локальный сервер слушает <code>5432</code>, контейнер из Compose на это время останавливают командой <code>docker compose stop</code>, иначе порт занят им.</p>
+<p>Из каталога <code>Analysis-Device</code>:</p>
+<pre><code class="language-powershell">psql -h localhost -p 5432 -U student -d course</code></pre>
+<p>Слэши в пути прямые: так строка одинаково читается в <code>psql</code> на Windows.</p>
+<pre><code class="language-sql">\copy events FROM &#x27;c:/W27/IT-Cloud-Practice/Analysis-Device/for_example_1.csv&#x27; WITH (FORMAT csv, HEADER, DELIMITER &#x27;;&#x27;, ENCODING &#x27;UTF8&#x27;)</code></pre>
+<p>Если <code>psql</code> запущен уже из каталога <code>Analysis-Device</code>, достаточно имени файла: <code>\copy events FROM &#x27;for_example_1.csv&#x27; WITH (FORMAT csv, HEADER, DELIMITER &#x27;;&#x27;, ENCODING &#x27;UTF8&#x27;)</code>.</p>
+<p>Серверный <code>COPY events FROM &#x27;c:/...&#x27;</code> для этой загрузки не подходит: файл должен быть доступен учётной записи службы PostgreSQL, а не только пользователю, который сидит в <code>psql</code>. <code>\copy</code> читает файл самим клиентом и передаёт строки на сервер.</p>
+<p>Проверка загрузки:</p>
+<pre><code class="language-sql">SELECT count(*) FROM events;</code></pre>
+<p>Ожидается 40157 строк: 40144 исходные записи плюс 13 добавленных.</p>
+<h2>3. Unix-время и сутки</h2>
+<p><code>to_timestamp(bigint)</code> возвращает <code>timestamptz</code>. Выражение <code>AT TIME ZONE &#x27;UTC&#x27;</code> переводит его в <code>timestamp</code> без пояса, уже в UTC. Дата от этого значения — календарные сутки задачи.</p>
+<p>Порядок сортировки везде один: <code>device_ts</code>, затем <code>record_number</code>. Иначе строки с одинаковой секундой меняются местами между запусками.</p>
+<pre><code class="language-sql">CREATE VIEW events_utc AS
+SELECT
+    record_number::bigint AS record_number,
+    reason,
+    to_timestamp(device_time::bigint) AT TIME ZONE &#x27;UTC&#x27; AS device_ts,
+    (to_timestamp(device_time::bigint) AT TIME ZONE &#x27;UTC&#x27;)::date AS day
+FROM events
+WHERE device_time &lt;&gt; &#x27;&#x27;;</code></pre>
+<p>Промежуток всех событий — минимум и максимум. Это прямой аналог поиска первой и последней метки в Python.</p>
+<pre><code class="language-sql">SELECT min(device_ts) AS started_at, max(device_ts) AS finished_at
+FROM events_utc;</code></pre>
+<p>Ожидается <code>2026-10-31 21:26:13</code> … <code>2026-11-25 11:00:02</code>. Верхняя граница сдвинута учебными строками зажигания. Без них конец периода — <code>2026-11-23 05:21:35</code>.</p>
+<h2>4. Оконная функция на этом файле</h2>
+<p>Каркас один и тот же:</p>
+<pre><code class="language-sql">функция() OVER (
+    PARTITION BY день      -- внутри каких строк считать
+    ORDER BY device_ts, record_number  -- в каком порядке
+)</code></pre>
+<p><code>PARTITION BY</code> делит поток на независимые окна. Без него окно — вся таблица. <code>ORDER BY</code> внутри <code>OVER</code> задаёт порядок именно для окна. Порядок <code>SELECT</code> на него не влияет.</p>
+<p>Дальше используются четыре функции:</p>
+<table><thead><tr><th>Функция</th><th>Что возвращает на каждой строке</th></tr></thead><tbody><tr><td><code>LAG(x)</code></td><td>значение <code>x</code> у предыдущей строки окна</td></tr><tr><td><code>LEAD(x)</code></td><td>значение <code>x</code> у следующей строки окна</td></tr><tr><td><code>SUM(x) OVER (ORDER BY ...)</code></td><td>накопленная сумма от начала окна до текущей строки</td></tr><tr><td><code>ROW_NUMBER()</code></td><td>номер строки внутри окна, с 1</td></tr></tbody></table>
+<h2>5. Переход в следующие сутки</h2>
+<p><code>LAG(day)</code> смотрит на календарную дату предыдущей записи. Строка, у которой дата отличается от предыдущей, и есть переход. У первой строки файла предыдущей даты нет, <code>LAG</code> даёт <code>NULL</code>, и она тоже попадает в выборку: это начало ряда.</p>
+<pre><code class="language-sql">WITH ordered AS (
+    SELECT
+        device_ts,
+        day,
+        LAG(day) OVER (ORDER BY device_ts, record_number) AS prev_day
+    FROM events_utc
+)
+SELECT device_ts AS transition_at, day
+FROM ordered
+WHERE prev_day IS DISTINCT FROM day
+ORDER BY device_ts;</code></pre>
+<p><code>IS DISTINCT FROM</code> считает <code>NULL</code> отдельным значением, поэтому первая строка не теряется в сравнении.</p>
+<p>Первые переходы в этом файле:</p>
+<pre><code class="language-text">2026-10-31 21:26:13   2026-10-31
+2026-11-01 00:26:13   2026-11-01
+2026-11-02 00:00:25   2026-11-02</code></pre>
+<h2>6. Баги поездок</h2>
+<p>Итог суток считается фильтром по <code>reason</code>. <code>::int</code> превращает логическое значение в 1 или 0, <code>SUM(...) OVER (PARTITION BY day)</code> повторяет этот итог на каждой строке дня. <code>DISTINCT</code> оставляет одну строку на сутки.</p>
+<pre><code class="language-sql">WITH per_day AS (
+    SELECT DISTINCT
+        day,
+        SUM((reason = &#x27;TRIP_BEGIN&#x27;)::int) OVER (PARTITION BY day) AS trip_begin,
+        SUM((reason = &#x27;TRIP_END&#x27;)::int)   OVER (PARTITION BY day) AS trip_end
+    FROM events_utc
+    WHERE reason IN (&#x27;TRIP_BEGIN&#x27;, &#x27;TRIP_END&#x27;)
+)
+SELECT
+    day,
+    trip_begin,
+    trip_end,
+    abs(trip_begin - trip_end) AS diff
+FROM per_day
+WHERE abs(trip_begin - trip_end) &gt; 1
+ORDER BY day;</code></pre>
+<p>Ожидаемый результат:</p>
+<table><thead><tr><th>day</th><th>trip_begin</th><th>trip_end</th><th>diff</th></tr></thead><tbody><tr><td>2026-11-01</td><td>10</td><td>8</td><td>2</td></tr><tr><td>2026-11-05</td><td>10</td><td>13</td><td>3</td></tr><tr><td>2026-11-12</td><td>9</td><td>7</td><td>2</td></tr></tbody></table>
+<p>Тот же итог через <code>GROUP BY</code> короче. Окно нужно, когда вместе с итогом надо видеть сами события.</p>
+<pre><code class="language-sql">SELECT
+    day,
+    count(*) FILTER (WHERE reason = &#x27;TRIP_BEGIN&#x27;) AS trip_begin,
+    count(*) FILTER (WHERE reason = &#x27;TRIP_END&#x27;)   AS trip_end
+FROM events_utc
+WHERE reason IN (&#x27;TRIP_BEGIN&#x27;, &#x27;TRIP_END&#x27;)
+GROUP BY day
+HAVING abs(
+    count(*) FILTER (WHERE reason = &#x27;TRIP_BEGIN&#x27;)
+    - count(*) FILTER (WHERE reason = &#x27;TRIP_END&#x27;)
+) &gt; 1
+ORDER BY day;</code></pre>
+<h3>Как перекос копился внутри дня</h3>
+<p>Накопленная сумма показывает баланс после каждого события: <code>TRIP_BEGIN</code> даёт <code>+1</code>, <code>TRIP_END</code> даёт <code>-1</code>. К концу суток баланс равен <code>trip_begin - trip_end</code>.</p>
+<pre><code class="language-sql">SELECT
+    day,
+    device_ts,
+    record_number,
+    reason,
+    SUM(CASE reason
+            WHEN &#x27;TRIP_BEGIN&#x27; THEN 1
+            WHEN &#x27;TRIP_END&#x27; THEN -1
+        END) OVER (
+            PARTITION BY day
+            ORDER BY device_ts, record_number
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS balance
+FROM events_utc
+WHERE reason IN (&#x27;TRIP_BEGIN&#x27;, &#x27;TRIP_END&#x27;)
+  AND day IN (DATE &#x27;2026-11-01&#x27;, DATE &#x27;2026-11-05&#x27;, DATE &#x27;2026-11-12&#x27;)
+ORDER BY device_ts, record_number;</code></pre>
+<p><code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code> явно задаёт рамку: от первой строки суток до текущей. Для <code>SUM</code> с <code>ORDER BY</code> такая рамка и есть поведение по умолчанию. Её пишут, чтобы рамка не смешалась с <code>RANGE</code>.</p>
+<h3>Соседнее событие того же типа</h3>
+<p><code>LAG</code> в окне только из поездок находит два начала или два конца подряд. Это уже последовательность, а не суточный итог: сутки могут сойтись по счётчику и при этом содержать такой стык.</p>
+<pre><code class="language-sql">WITH seq AS (
+    SELECT
+        day,
+        device_ts,
+        record_number,
+        reason,
+        LAG(reason) OVER (PARTITION BY day ORDER BY device_ts, record_number) AS prev_reason
+    FROM events_utc
+    WHERE reason IN (&#x27;TRIP_BEGIN&#x27;, &#x27;TRIP_END&#x27;)
+)
+SELECT *
+FROM seq
+WHERE reason = prev_reason
+ORDER BY device_ts, record_number;</code></pre>
+<h2>7. Баги зажигания</h2>
+<p>Тот же приём, другие значения <code>reason</code>. Комментарий в <code>ignition_counter.py</code> называет это двойным срабатыванием: за сутки включений и выключений не поровну, и перекос больше одного.</p>
+<pre><code class="language-sql">WITH per_day AS (
+    SELECT DISTINCT
+        day,
+        SUM((reason = &#x27;IGNITION_ON&#x27;)::int)  OVER (PARTITION BY day) AS ignition_on,
+        SUM((reason = &#x27;IGNITION_OFF&#x27;)::int) OVER (PARTITION BY day) AS ignition_off
+    FROM events_utc
+    WHERE reason IN (&#x27;IGNITION_ON&#x27;, &#x27;IGNITION_OFF&#x27;)
+)
+SELECT
+    day,
+    ignition_on,
+    ignition_off,
+    abs(ignition_on - ignition_off) AS diff
+FROM per_day
+WHERE abs(ignition_on - ignition_off) &gt; 1
+ORDER BY day;</code></pre>
+<p>Ожидаемый результат:</p>
+<table><thead><tr><th>day</th><th>ignition_on</th><th>ignition_off</th><th>diff</th></tr></thead><tbody><tr><td>2026-11-24</td><td>3</td><td>0</td><td>3</td></tr><tr><td>2026-11-25</td><td>0</td><td>3</td><td>3</td></tr></tbody></table>
+<p>Двойное срабатывание подряд видно через <code>LAG</code> без подсчёта итога. На 24 ноября каждое следующее <code>IGNITION_ON</code> совпадает с предыдущим <code>reason</code>.</p>
+<pre><code class="language-sql">WITH seq AS (
+    SELECT
+        day,
+        device_ts,
+        record_number,
+        reason,
+        LAG(reason) OVER (PARTITION BY day ORDER BY device_ts, record_number) AS prev_reason
+    FROM events_utc
+    WHERE reason IN (&#x27;IGNITION_ON&#x27;, &#x27;IGNITION_OFF&#x27;)
+)
+SELECT *
+FROM seq
+WHERE reason = prev_reason
+ORDER BY device_ts, record_number;</code></pre>
+<h2>8. Одна функция на PL/pgSQL</h2>
+<p>Функция собирает оба списка. <code>UNION ALL</code> складывает результаты двух запросов, колонка <code>kind</code> различает пару событий. <code>RETURN QUERY</code> отдаёт строки наружу. <code>LANGUAGE plpgsql</code> нужен, потому что тело — блок с несколькими операторами; один голый <code>SELECT</code> обошёлся бы языком <code>sql</code>.</p>
+<pre><code class="language-sql">CREATE OR REPLACE FUNCTION bug_days()
+RETURNS TABLE (
+    kind    text,
+    day     date,
+    opened  int,
+    closed  int,
+    diff    int
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH per_day AS (
+        SELECT DISTINCT
+            events_utc.day,
+            SUM((reason = &#x27;TRIP_BEGIN&#x27;)::int) OVER (PARTITION BY events_utc.day) AS opened,
+            SUM((reason = &#x27;TRIP_END&#x27;)::int)   OVER (PARTITION BY events_utc.day) AS closed
+        FROM events_utc
+        WHERE reason IN (&#x27;TRIP_BEGIN&#x27;, &#x27;TRIP_END&#x27;)
+    )
+    SELECT
+        &#x27;trip&#x27;::text,
+        per_day.day,
+        per_day.opened::int,
+        per_day.closed::int,
+        abs(per_day.opened - per_day.closed)::int
+    FROM per_day
+    WHERE abs(per_day.opened - per_day.closed) &gt; 1
+
+    UNION ALL
+
+    SELECT
+        &#x27;ignition&#x27;::text,
+        per_day.day,
+        per_day.opened::int,
+        per_day.closed::int,
+        abs(per_day.opened - per_day.closed)::int
+    FROM (
+        SELECT DISTINCT
+            events_utc.day,
+            SUM((reason = &#x27;IGNITION_ON&#x27;)::int)  OVER (PARTITION BY events_utc.day) AS opened,
+            SUM((reason = &#x27;IGNITION_OFF&#x27;)::int) OVER (PARTITION BY events_utc.day) AS closed
+        FROM events_utc
+        WHERE reason IN (&#x27;IGNITION_ON&#x27;, &#x27;IGNITION_OFF&#x27;)
+    ) AS per_day
+    WHERE abs(per_day.opened - per_day.closed) &gt; 1
+
+    ORDER BY 1, 2;
+END;
+$$;</code></pre>
+<p>Вызов:</p>
+<pre><code class="language-sql">SELECT * FROM bug_days();</code></pre>
+<p>Ожидается пять строк: три <code>trip</code> и две <code>ignition</code>, с датами и разницами из таблиц выше.</p>
+<p>Имена выходных колонок (<code>day</code>, <code>diff</code>) внутри функции становятся переменными. Поэтому в запросах поля представления записаны как <code>events_utc.day</code> и <code>per_day.day</code>: иначе PostgreSQL примет <code>day</code> за переменную результата, а не за колонку. <code>SUM(...) OVER</code> имеет тип <code>bigint</code>, а колонки <code>opened</code>, <code>closed</code> и <code>diff</code> объявлены как <code>int</code>, поэтому перед возвратом стоит <code>::int</code>.</p>
+<h2>9. Сверка с Python</h2>
+<table><thead><tr><th>Python</th><th>SQL</th></tr></thead><tbody><tr><td><code>datetime.fromtimestamp(..., timezone.utc).date()</code></td><td><code>(to_timestamp(...) AT TIME ZONE &#x27;UTC&#x27;)::date</code></td></tr><tr><td>первое <code>device_time</code> суток</td><td><code>LAG(day)</code> и строка, где день сменился</td></tr><tr><td>словарь <code>days[day][&quot;TRIP_BEGIN&quot;]</code></td><td><code>SUM((reason = &#x27;TRIP_BEGIN&#x27;)::int) OVER (PARTITION BY day)</code></td></tr><tr><td><code>abs(...) &gt; 1</code></td><td>то же условие в <code>WHERE</code> или <code>HAVING</code></td></tr><tr><td><code>get_trips</code> и <code>get_ignitions</code></td><td><code>bug_days()</code></td></tr></tbody></table>
+<p>Обе реализации режут сутки по UTC. Локальный пояс UTC+3 сдвинет границу на три часа, и те же события попадут в другие даты.</p>
+<h2>10. Как это стыкуется с Compose</h2>
+<p>Параметры берутся из корневого <code>docker-compose.yml</code>. Второй контейнер не поднимается: порт <code>5432</code> уже занят сервисом <code>postgres</code>.</p>
+<table><thead><tr><th>Compose</th><th>Значение в этой задаче</th></tr></thead><tbody><tr><td><code>image</code></td><td><code>postgres:18</code></td></tr><tr><td><code>container_name</code></td><td><code>pg18-course</code></td></tr><tr><td><code>POSTGRES_USER</code> / <code>POSTGRES_PASSWORD</code></td><td><code>student</code> / <code>student</code></td></tr><tr><td><code>POSTGRES_DB</code></td><td><code>course</code></td></tr><tr><td><code>ports</code></td><td><code>localhost:5432</code> с компьютера, <code>5432</code> внутри контейнера</td></tr><tr><td><code>pgdata:/var/lib/postgresql</code></td><td>данные кластера; папку проекта сюда не монтируют</td></tr><tr><td><code>healthcheck</code></td><td><code>pg_isready -U student -d course</code></td></tr></tbody></table>
+<p>Подключение с хоста из DBeaver к контейнеру: хост <code>localhost</code>, порт <code>5432</code>, база <code>course</code>, пользователь и пароль <code>student</code>. Локальный сервер загружает тот же CSV командой из раздела 2, с путём <code>c:/W27/IT-Cloud-Practice/Analysis-Device/for_example_1.csv</code>.</p>
+<p>Остановить контейнер, не стирая загруженные строки: <code>docker compose stop</code>. Команда <code>docker compose down -v</code> удаляет том <code>pgdata</code> вместе с таблицей <code>events</code>. Файл <code>/tmp/for_example_1.csv</code> при пересоздании контейнера пропадает, CSV тогда копируют через <code>docker cp</code> ещё раз.</p>
+  </article>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>document.querySelectorAll("code.language-python, code.language-sql, code.language-powershell").forEach(function (el) { hljs.highlightElement(el); });</script>
+</body>
+</html>
